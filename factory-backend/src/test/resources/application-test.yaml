@@ -1,0 +1,10 @@
+spring:
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          secret: test-worker-secret-0123456789abcdef
+anode:
+  security:
+    env-oidc: false
+    mock: false

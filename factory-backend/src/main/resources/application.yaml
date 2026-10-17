@@ -1,0 +1,60 @@
+spring:
+  application:
+    name: digital-factory
+  threads:
+    virtual:
+      enabled: true
+  datasource:
+    url: ${FACTORY_DB_URL:jdbc:postgresql://localhost:5432/factory}
+    username: ${FACTORY_DB_USER:factory}
+    password: ${FACTORY_DB_PASSWORD:}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+  modulith:
+    events:
+      jdbc:
+        schema-initialization:
+          enabled: true
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # signs the workers' bearer tokens
+          secret: ${FACTORY_WORKER_JWT_SECRET:}
+
+logging:
+  structured:
+    format:
+      console: ecs
+
+anode:
+  security:
+    env-oidc: ${FACTORY_OIDC_ENABLED:true}
+    env-local-jwt: true
+    jwt:
+      issuer: ${FACTORY_PUBLIC_URL:http://localhost:8080}
+    allowed-patterns:
+      - /webhooks/**
+    roles:
+      claim: groups
+      mapping:
+        ROLE_ADMIN: ${FACTORY_ADMIN_GROUPS:factory-admins}
+        ROLE_DEVELOPER: ${FACTORY_DEVELOPER_GROUPS:factory-developers}
+        ROLE_VIEWER: ${FACTORY_VIEWER_GROUPS:factory-viewers}
+        ROLE_WORKER: factory-workers
+
+workflow:
+  engines:
+    - name: factory
+      storage:
+        type: jdbc
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

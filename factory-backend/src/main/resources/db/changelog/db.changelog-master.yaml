@@ -1,0 +1,9 @@
+databaseChangeLog:
+  - changeSet:
+      id: 001-workflow-engine-storage
+      author: digital-factory
+      comment: Durable storage of the workflow engine (workflow-spring-boot-starter, JDBC storage)
+      changes:
+        - sqlFile:
+            path: com/anode/workflow/spring/storage/schema-postgresql.sql
+            relativeToChangelogFile: false
