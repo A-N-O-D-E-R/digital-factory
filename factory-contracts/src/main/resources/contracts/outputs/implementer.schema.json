@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Implementation",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["summary", "commitMessage"],
+  "properties": {
+    "summary": { "type": "string", "maxLength": 20000 },
+    "commitMessage": { "type": "string", "maxLength": 2000 }
+  }
+}

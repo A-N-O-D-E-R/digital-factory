@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Analysis",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["valid", "risk", "plan", "acceptanceCriteria"],
+  "properties": {
+    "valid": { "type": "boolean", "description": "False when the request cannot or must not be done (unclear, destructive, out of scope)." },
+    "reason": { "type": "string", "description": "Why the request is invalid, or what could not be reproduced." },
+    "reproduced": { "type": ["boolean", "null"], "description": "For bugs: whether the bug was reproduced; null otherwise." },
+    "risk": { "enum": ["LOW", "MEDIUM", "HIGH"] },
+    "plan": { "type": "string", "maxLength": 20000 },
+    "acceptanceCriteria": { "type": "array", "items": { "type": "string" } },
+    "files": { "type": "array", "items": { "type": "string" }, "description": "Files expected to change." }
+  }
+}

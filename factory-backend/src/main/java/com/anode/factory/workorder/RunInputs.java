@@ -1,0 +1,50 @@
+package com.anode.factory.workorder;
+
+import com.anode.factory.run.Run;
+import com.anode.factory.run.RunStatus;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import tools.jackson.databind.json.JsonMapper;
+
+/**
+ * What a run receives: the work order, the facts, and the outputs of earlier steps. Acceptance
+ * tests (the specifier's output) are never shown to an agent — only the evidence runs execute them.
+ */
+final class RunInputs {
+
+    /** Outputs agents must not see. */
+    private static final Set<String> HIDDEN_FROM_AGENTS = Set.of("specifier");
+
+    private RunInputs() {}
+
+    static String agent(WorkOrder workOrder, String stepId, String role, List<Run> earlier, JsonMapper json) {
+        return input(workOrder, stepId, role, earlier, false, json);
+    }
+
+    static String evidence(WorkOrder workOrder, String stepId, String action, List<Run> earlier, JsonMapper json) {
+        return input(workOrder, stepId, action, earlier, true, json);
+    }
+
+    private static String input(WorkOrder workOrder, String stepId, String task, List<Run> earlier,
+                                boolean evidence, JsonMapper json) {
+        Map<String, Object> artifacts = new LinkedHashMap<>();
+        for (Run run : earlier) { // in creation order: the latest output of a task wins
+            if (run.status() == RunStatus.SUCCEEDED && (evidence || !HIDDEN_FROM_AGENTS.contains(run.task()))) {
+                artifacts.put(run.task(), json.readTree(run.output()));
+            }
+        }
+        Map<String, Object> input = new LinkedHashMap<>();
+        input.put("workOrder", Map.of(
+                "id", workOrder.id().toString(),
+                "repository", workOrder.repository(),
+                "title", workOrder.title(),
+                "description", workOrder.description()));
+        input.put("step", stepId);
+        input.put("task", task);
+        input.put("facts", workOrder.facts());
+        input.put("artifacts", artifacts);
+        return json.writeValueAsString(input);
+    }
+}

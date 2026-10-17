@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Security review",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["verdict", "summary", "comments"],
+  "properties": {
+    "verdict": { "enum": ["PASS", "REVISE"] },
+    "summary": { "type": "string", "maxLength": 20000 },
+    "comments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["body"],
+        "properties": {
+          "path": { "type": "string" },
+          "line": { "type": "integer", "minimum": 1 },
+          "body": { "type": "string" }
+        }
+      }
+    }
+  }
+}

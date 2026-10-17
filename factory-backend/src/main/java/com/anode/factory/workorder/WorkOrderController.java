@@ -1,0 +1,118 @@
+package com.anode.factory.workorder;
+
+import com.anode.factory.run.Run;
+import com.anode.factory.run.RunQueue;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+import java.math.BigDecimal;
+import java.net.URI;
+import java.time.Instant;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/api")
+class WorkOrderController {
+
+    record CreateRequest(
+            @NotBlank @Size(max = 255) String repository,
+            @NotBlank @Size(max = 300) String title,
+            @NotBlank @Size(max = 100_000) String description,
+            String workflow) {}
+
+    record WorkOrderView(UUID id, String repository, String title, String description, String workflow,
+                         int workflowVersion, WorkOrderStatus status, String currentStep, int currentVisit,
+                         String outcomeReason, Map<String, Object> facts, String createdBy, Instant createdAt,
+                         Instant updatedAt) {
+        static WorkOrderView of(WorkOrder w) {
+            return new WorkOrderView(w.id(), w.repository(), w.title(), w.description(), w.workflowName(),
+                    w.workflowVersion(), w.status(), w.currentStep(), w.currentVisit(), w.outcomeReason(), w.facts(),
+                    w.createdBy(), w.createdAt(), w.updatedAt());
+        }
+    }
+
+    record RunView(UUID id, String stepId, int visit, String kind, String task, String status, int attempt,
+                   String error, BigDecimal costUsd, Instant createdAt, Instant finishedAt) {
+        static RunView of(Run r) {
+            return new RunView(r.id(), r.stepId(), r.visit(), r.kind().name(), r.task(), r.status().name(),
+                    r.attempt(), r.error(), r.costUsd(), r.createdAt(), r.finishedAt());
+        }
+    }
+
+    record ApprovalView(UUID id, UUID workOrderId, String stepId, int visit, String gate, String decision,
+                        String decidedBy, String comment, Instant createdAt, Instant decidedAt) {
+        static ApprovalView of(Approval a) {
+            return new ApprovalView(a.id(), a.workOrderId(), a.stepId(), a.visit(), a.gate(), a.decision().name(),
+                    a.decidedBy(), a.comment(), a.createdAt(), a.decidedAt());
+        }
+    }
+
+    record Detail(WorkOrderView workOrder, List<RunView> runs, List<ApprovalView> approvals) {}
+
+    record DecisionRequest(Approval.Decision decision, @Size(max = 2000) String comment) {}
+
+    private final WorkOrderService service;
+    private final RunQueue runs;
+
+    WorkOrderController(WorkOrderService service, RunQueue runs) {
+        this.service = service;
+        this.runs = runs;
+    }
+
+    @PostMapping("/work-orders")
+    @PreAuthorize("hasAnyRole('ADMIN','DEVELOPER')")
+    ResponseEntity<WorkOrderView> create(@Valid @RequestBody CreateRequest request, Authentication author) {
+        WorkOrder workOrder = service.create(request.repository(), request.title(), request.description(),
+                request.workflow(), author.getName());
+        return ResponseEntity.created(URI.create("/api/work-orders/" + workOrder.id()))
+                .body(WorkOrderView.of(service.get(workOrder.id())));
+    }
+
+    @GetMapping("/work-orders")
+    @PreAuthorize("hasAnyRole('ADMIN','DEVELOPER','VIEWER')")
+    List<WorkOrderView> all() {
+        return service.all().stream().map(WorkOrderView::of).toList();
+    }
+
+    @GetMapping("/work-orders/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN','DEVELOPER','VIEWER')")
+    Detail get(@PathVariable UUID id) {
+        return new Detail(WorkOrderView.of(service.get(id)),
+                runs.runsOf(id).stream().map(RunView::of).toList(),
+                service.approvalsOf(id).stream().map(ApprovalView::of).toList());
+    }
+
+    @PostMapping("/work-orders/{id}/cancel")
+    @PreAuthorize("hasAnyRole('ADMIN','DEVELOPER')")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    void cancel(@PathVariable UUID id, Authentication user) {
+        service.cancel(id, user.getName());
+    }
+
+    @GetMapping("/approvals")
+    @PreAuthorize("hasAnyRole('ADMIN','DEVELOPER','VIEWER')")
+    List<ApprovalView> pending() {
+        return service.pendingApprovals().stream().map(ApprovalView::of).toList();
+    }
+
+    @PostMapping("/work-orders/{id}/approvals/{approvalId}")
+    @PreAuthorize("hasAnyRole('ADMIN','DEVELOPER')")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    void decide(@PathVariable UUID id, @PathVariable UUID approvalId, @Valid @RequestBody DecisionRequest request,
+                Authentication user) {
+        service.decide(id, approvalId, request.decision(), request.comment(), user.getName());
+    }
+}

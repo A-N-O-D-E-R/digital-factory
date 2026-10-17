@@ -8,3 +8,9 @@ anode:
   security:
     env-oidc: false
     mock: false
+logging:
+  structured:
+    format:
+      console:
+  level:
+    root: WARN

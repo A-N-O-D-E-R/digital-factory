@@ -51,6 +51,9 @@ anode:
         ROLE_WORKER: factory-workers
 
 workflow:
+  runtime:
+    # every engine operation runs on the caller's thread, inside its transaction
+    threads: 0
   engines:
     - name: factory
       storage:

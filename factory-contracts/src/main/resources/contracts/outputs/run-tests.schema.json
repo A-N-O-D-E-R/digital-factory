@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Test evidence",
+  "description": "Produced by the factory's worker, not by an agent: the diff of the work branch and the results of the repository tests and of the hidden acceptance tests (JUnit XML).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["diff", "tests"],
+  "properties": {
+    "diff": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["files", "insertions", "deletions"],
+      "properties": {
+        "files": { "type": "integer", "minimum": 0 },
+        "insertions": { "type": "integer", "minimum": 0 },
+        "deletions": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "tests": { "$ref": "#/$defs/suite" },
+    "acceptance": { "$ref": "#/$defs/suite" }
+  },
+  "$defs": {
+    "suite": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["total", "failed", "errors", "skipped"],
+      "properties": {
+        "total": { "type": "integer", "minimum": 0 },
+        "failed": { "type": "integer", "minimum": 0 },
+        "errors": { "type": "integer", "minimum": 0 },
+        "skipped": { "type": "integer", "minimum": 0 },
+        "failures": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  }
+}

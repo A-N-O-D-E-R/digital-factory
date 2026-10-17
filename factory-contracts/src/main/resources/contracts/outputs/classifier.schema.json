@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Classification",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["type", "risk", "summary"],
+  "properties": {
+    "type": { "enum": ["BUG", "FEATURE", "REFACTOR", "DOCUMENTATION", "TEST", "DEPENDENCY", "SECURITY", "UNKNOWN"] },
+    "risk": { "enum": ["LOW", "MEDIUM", "HIGH"] },
+    "summary": { "type": "string", "maxLength": 2000 }
+  }
+}

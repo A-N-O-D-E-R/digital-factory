@@ -23,3 +23,85 @@ databaseChangeLog:
         - addPrimaryKey:
             tableName: workflow_versions
             columnNames: name, version
+  - changeSet:
+      id: 003-work-orders-runs-approvals-workers
+      author: digital-factory
+      changes:
+        - createTable:
+            tableName: work_orders
+            columns:
+              - column: { name: id, type: uuid, constraints: { primaryKey: true } }
+              - column: { name: repository, type: varchar(255), constraints: { nullable: false } }
+              - column: { name: title, type: varchar(300), constraints: { nullable: false } }
+              - column: { name: description, type: text, constraints: { nullable: false } }
+              - column: { name: workflow_name, type: varchar(63), constraints: { nullable: false } }
+              - column: { name: workflow_version, type: int, constraints: { nullable: false } }
+              - column: { name: status, type: varchar(32), constraints: { nullable: false } }
+              - column: { name: current_step, type: varchar(63) }
+              - column: { name: current_visit, type: int, constraints: { nullable: false } }
+              - column: { name: outcome_reason, type: text }
+              - column: { name: facts, type: jsonb, constraints: { nullable: false } }
+              - column: { name: visits, type: jsonb, constraints: { nullable: false } }
+              - column: { name: transition_counts, type: jsonb, constraints: { nullable: false } }
+              - column: { name: created_by, type: varchar(255), constraints: { nullable: false } }
+              - column: { name: created_at, type: timestamptz, constraints: { nullable: false } }
+              - column: { name: updated_at, type: timestamptz, constraints: { nullable: false } }
+        - addForeignKeyConstraint:
+            baseTableName: work_orders
+            baseColumnNames: workflow_name, workflow_version
+            referencedTableName: workflow_versions
+            referencedColumnNames: name, version
+            constraintName: fk_work_orders_workflow
+        - createTable:
+            tableName: runs
+            columns:
+              - column: { name: id, type: uuid, constraints: { primaryKey: true } }
+              - column: { name: work_order_id, type: uuid, constraints: { nullable: false, foreignKeyName: fk_runs_work_order, references: work_orders(id) } }
+              - column: { name: step_id, type: varchar(63), constraints: { nullable: false } }
+              - column: { name: visit, type: int, constraints: { nullable: false } }
+              - column: { name: kind, type: varchar(16), constraints: { nullable: false } }
+              - column: { name: task, type: varchar(63), constraints: { nullable: false } }
+              - column: { name: status, type: varchar(16), constraints: { nullable: false } }
+              - column: { name: attempt, type: int, constraints: { nullable: false } }
+              - column: { name: input, type: jsonb, constraints: { nullable: false } }
+              - column: { name: output, type: jsonb }
+              - column: { name: error, type: text }
+              - column: { name: worker_id, type: uuid }
+              - column: { name: lease_until, type: timestamptz }
+              - column: { name: cost_usd, type: "numeric(12,4)" }
+              - column: { name: created_at, type: timestamptz, constraints: { nullable: false } }
+              - column: { name: started_at, type: timestamptz }
+              - column: { name: finished_at, type: timestamptz }
+        - createIndex:
+            tableName: runs
+            indexName: ix_runs_queued
+            columns: [ { column: { name: status } }, { column: { name: created_at } } ]
+        - createIndex:
+            tableName: runs
+            indexName: ix_runs_work_order
+            columns: [ { column: { name: work_order_id } }, { column: { name: step_id } }, { column: { name: visit } } ]
+        - createTable:
+            tableName: approvals
+            columns:
+              - column: { name: id, type: uuid, constraints: { primaryKey: true } }
+              - column: { name: work_order_id, type: uuid, constraints: { nullable: false, foreignKeyName: fk_approvals_work_order, references: work_orders(id) } }
+              - column: { name: step_id, type: varchar(63), constraints: { nullable: false } }
+              - column: { name: visit, type: int, constraints: { nullable: false } }
+              - column: { name: gate, type: varchar(32), constraints: { nullable: false } }
+              - column: { name: decision, type: varchar(16), constraints: { nullable: false } }
+              - column: { name: decided_by, type: varchar(255) }
+              - column: { name: comment, type: text }
+              - column: { name: created_at, type: timestamptz, constraints: { nullable: false } }
+              - column: { name: decided_at, type: timestamptz }
+        - addUniqueConstraint:
+            tableName: approvals
+            columnNames: work_order_id, step_id, visit
+            constraintName: uq_approvals_visit
+        - createTable:
+            tableName: workers
+            columns:
+              - column: { name: id, type: uuid, constraints: { primaryKey: true } }
+              - column: { name: name, type: varchar(63), constraints: { nullable: false, unique: true } }
+              - column: { name: active, type: boolean, constraints: { nullable: false } }
+              - column: { name: created_by, type: varchar(255), constraints: { nullable: false } }
+              - column: { name: created_at, type: timestamptz, constraints: { nullable: false } }

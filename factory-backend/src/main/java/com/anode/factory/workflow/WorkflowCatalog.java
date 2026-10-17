@@ -6,12 +6,15 @@ import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import tools.jackson.databind.json.JsonMapper;
 
 /** The workflows: immutable, numbered versions, validated before they are stored. */
 @Service
@@ -22,11 +25,23 @@ public class WorkflowCatalog {
     private final WorkflowVersionRepository versions;
     private final WorkflowValidator validator;
     private final Clock clock;
+    private final JsonMapper json;
+    private final Map<WorkflowVersion.Key, WorkflowDefinition> parsed = new ConcurrentHashMap<>();
 
-    WorkflowCatalog(WorkflowVersionRepository versions, WorkflowValidator validator, Clock clock) {
+    WorkflowCatalog(WorkflowVersionRepository versions, WorkflowValidator validator, Clock clock, JsonMapper json) {
         this.versions = versions;
         this.validator = validator;
         this.clock = clock;
+        this.json = json;
+    }
+
+    /** A published version, parsed (versions are immutable, so this is cached). */
+    public WorkflowDefinition definition(String name, int version) {
+        return parsed.computeIfAbsent(new WorkflowVersion.Key(name, version), key -> json.readValue(
+                versions.findByNameAndVersion(name, version)
+                        .orElseThrow(() -> new IllegalArgumentException("No workflow " + name + " v" + version))
+                        .definition(),
+                WorkflowDefinition.class));
     }
 
     public WorkflowValidator.Result validate(String definitionJson) {

@@ -1,0 +1,167 @@
+package com.anode.factory.run;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.UUID;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
+/** One execution of an agent role or evidence action for a step visit of a work order. */
+@Entity
+@Table(name = "runs")
+public class Run {
+
+    @Id private UUID id;
+
+    @Column(name = "work_order_id", nullable = false)
+    private UUID workOrderId;
+
+    @Column(name = "step_id", nullable = false)
+    private String stepId;
+
+    @Column(nullable = false)
+    private int visit;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private RunKind kind;
+
+    /** Agent role or evidence action. */
+    @Column(nullable = false)
+    private String task;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private RunStatus status;
+
+    @Column(nullable = false)
+    private int attempt;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(nullable = false)
+    private String input;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    private String output;
+
+    private String error;
+
+    @Column(name = "worker_id")
+    private UUID workerId;
+
+    @Column(name = "lease_until")
+    private Instant leaseUntil;
+
+    @Column(name = "cost_usd")
+    private BigDecimal costUsd;
+
+    @Column(name = "created_at", nullable = false)
+    private Instant createdAt;
+
+    @Column(name = "started_at")
+    private Instant startedAt;
+
+    @Column(name = "finished_at")
+    private Instant finishedAt;
+
+    protected Run() {}
+
+    Run(UUID workOrderId, String stepId, int visit, RunKind kind, String task, int attempt, String input, Instant now) {
+        this.id = UUID.randomUUID();
+        this.workOrderId = workOrderId;
+        this.stepId = stepId;
+        this.visit = visit;
+        this.kind = kind;
+        this.task = task;
+        this.attempt = attempt;
+        this.input = input;
+        this.status = RunStatus.QUEUED;
+        this.createdAt = now;
+    }
+
+    void start(UUID workerId, Instant leaseUntil, Instant now) {
+        this.status = RunStatus.RUNNING;
+        this.workerId = workerId;
+        this.leaseUntil = leaseUntil;
+        this.startedAt = now;
+    }
+
+    void extendLease(Instant leaseUntil) {
+        this.leaseUntil = leaseUntil;
+    }
+
+    void finish(RunStatus status, String output, String error, BigDecimal costUsd, Instant now) {
+        this.status = status;
+        this.output = output;
+        this.error = error;
+        this.costUsd = costUsd;
+        this.leaseUntil = null;
+        this.finishedAt = now;
+    }
+
+    public UUID id() {
+        return id;
+    }
+
+    public UUID workOrderId() {
+        return workOrderId;
+    }
+
+    public String stepId() {
+        return stepId;
+    }
+
+    public int visit() {
+        return visit;
+    }
+
+    public RunKind kind() {
+        return kind;
+    }
+
+    public String task() {
+        return task;
+    }
+
+    public RunStatus status() {
+        return status;
+    }
+
+    public int attempt() {
+        return attempt;
+    }
+
+    public String input() {
+        return input;
+    }
+
+    public String output() {
+        return output;
+    }
+
+    public String error() {
+        return error;
+    }
+
+    public UUID workerId() {
+        return workerId;
+    }
+
+    public BigDecimal costUsd() {
+        return costUsd;
+    }
+
+    public Instant createdAt() {
+        return createdAt;
+    }
+
+    public Instant finishedAt() {
+        return finishedAt;
+    }
+}
