@@ -7,3 +7,19 @@ databaseChangeLog:
         - sqlFile:
             path: com/anode/workflow/spring/storage/schema-postgresql.sql
             relativeToChangelogFile: false
+  - changeSet:
+      id: 002-workflow-versions
+      author: digital-factory
+      changes:
+        - createTable:
+            tableName: workflow_versions
+            columns:
+              - column: { name: name, type: varchar(63), constraints: { nullable: false } }
+              - column: { name: version, type: int, constraints: { nullable: false } }
+              - column: { name: definition, type: jsonb, constraints: { nullable: false } }
+              - column: { name: note, type: varchar(200), constraints: { nullable: false } }
+              - column: { name: created_by, type: varchar(255), constraints: { nullable: false } }
+              - column: { name: created_at, type: timestamptz, constraints: { nullable: false } }
+        - addPrimaryKey:
+            tableName: workflow_versions
+            columnNames: name, version

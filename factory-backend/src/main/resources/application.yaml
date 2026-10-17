@@ -8,6 +8,9 @@ spring:
     url: ${FACTORY_DB_URL:jdbc:postgresql://localhost:5432/factory}
     username: ${FACTORY_DB_USER:factory}
     password: ${FACTORY_DB_PASSWORD:}
+  mvc:
+    problemdetails:
+      enabled: true
   jpa:
     open-in-view: false
     hibernate:

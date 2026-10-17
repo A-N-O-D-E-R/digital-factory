@@ -1,0 +1,103 @@
+{
+  "description": "Classify, analyse, specify, implement, prove, review, open a draft PR, then watch it until it is merged or closed.",
+  "start": "classify",
+  "steps": [
+    {
+      "id": "classify", "kind": "agent", "roles": ["classifier"],
+      "next": [{ "to": "analyze" }]
+    },
+    {
+      "id": "analyze", "kind": "agent", "roles": ["analyst"],
+      "next": [
+        { "when": { "fact": "analysis.valid", "equals": false }, "to": "@blocked" },
+        { "when": { "allOf": [{ "fact": "type", "equals": "BUG" }, { "fact": "analysis.reproduced", "equals": false }] }, "to": "@blocked" },
+        { "to": "plan-gate" }
+      ]
+    },
+    {
+      "id": "plan-gate", "kind": "gate", "gate": "plan",
+      "when": { "fact": "risk", "equals": "HIGH" },
+      "next": [
+        { "when": { "fact": "approval", "equals": "REJECTED" }, "to": "@cancelled" },
+        { "to": "specify" }
+      ]
+    },
+    {
+      "id": "specify", "kind": "agent", "roles": ["specifier"],
+      "next": [{ "to": "implement" }]
+    },
+    {
+      "id": "implement", "kind": "agent", "roles": ["implementer"],
+      "next": [{ "to": "verify" }]
+    },
+    {
+      "id": "verify", "kind": "factory", "action": "run-tests",
+      "next": [
+        { "when": { "fact": "diff.empty", "equals": true }, "to": "@blocked" },
+        { "when": { "anyOf": [{ "fact": "tests.passed", "equals": false }, { "fact": "acceptance.passed", "equals": false }] }, "to": "implement", "maxVisits": 3 },
+        { "to": "secrets" }
+      ]
+    },
+    {
+      "id": "secrets", "kind": "factory", "action": "secret-scan",
+      "next": [
+        { "when": { "fact": "secrets.found", "equals": true }, "to": "implement", "maxVisits": 2 },
+        { "to": "review" }
+      ]
+    },
+    {
+      "id": "review", "kind": "agent", "roles": ["reviewer"], "join": "all",
+      "next": [
+        { "when": { "fact": "verdict", "equals": "REVISE" }, "to": "implement", "maxVisits": 3 },
+        { "to": "push" }
+      ]
+    },
+    {
+      "id": "push", "kind": "factory", "action": "push-branch",
+      "next": [
+        { "when": { "fact": "pr.open", "equals": true }, "to": "respond" },
+        { "to": "open-pr" }
+      ]
+    },
+    {
+      "id": "respond", "kind": "factory", "action": "request-review",
+      "next": [{ "to": "watch" }]
+    },
+    {
+      "id": "open-pr", "kind": "factory", "action": "open-draft-pr",
+      "next": [{ "to": "final-gate" }]
+    },
+    {
+      "id": "final-gate", "kind": "gate", "gate": "final",
+      "when": { "fact": "autonomy.allows", "equals": false },
+      "next": [
+        { "when": { "fact": "approval", "equals": "REJECTED" }, "to": "@cancelled" },
+        { "to": "ready" }
+      ]
+    },
+    {
+      "id": "ready", "kind": "factory", "action": "mark-pr-ready",
+      "next": [
+        { "when": { "fact": "autonomy.allows", "equals": true }, "to": "merge" },
+        { "to": "watch" }
+      ]
+    },
+    {
+      "id": "merge", "kind": "factory", "action": "merge",
+      "next": [{ "to": "watch" }]
+    },
+    {
+      "id": "watch", "kind": "factory", "action": "watch-pr",
+      "next": [
+        { "when": { "fact": "pr.event", "equals": "merged" }, "to": "@done" },
+        { "when": { "fact": "pr.event", "equals": "closed" }, "to": "@cancelled" },
+        { "when": { "fact": "pr.event", "in": ["changes_requested", "commented", "checks_failed", "conflict"] }, "to": "triage", "maxVisits": 5 },
+        { "to": "watch", "maxVisits": 20 }
+      ]
+    },
+    {
+      "id": "triage", "kind": "agent", "roles": ["feedback-triage"],
+      "next": [{ "to": "implement" }]
+    }
+  ]
+}

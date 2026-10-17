@@ -1,0 +1,87 @@
+package com.anode.factory.workflow;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
+import java.time.Clock;
+import java.util.List;
+import java.util.Optional;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+/** The workflows: immutable, numbered versions, validated before they are stored. */
+@Service
+public class WorkflowCatalog {
+
+    public static final String DEFAULT = "default";
+
+    private final WorkflowVersionRepository versions;
+    private final WorkflowValidator validator;
+    private final Clock clock;
+
+    WorkflowCatalog(WorkflowVersionRepository versions, WorkflowValidator validator, Clock clock) {
+        this.versions = versions;
+        this.validator = validator;
+        this.clock = clock;
+    }
+
+    public WorkflowValidator.Result validate(String definitionJson) {
+        return validator.validate(definitionJson);
+    }
+
+    /**
+     * Stores {@code definitionJson} as the next version of {@code name}.
+     *
+     * @throws InvalidWorkflowException listing what is wrong
+     */
+    @Transactional
+    public WorkflowVersion publish(String name, String definitionJson, String note, String author) {
+        var result = validator.validate(definitionJson);
+        if (!result.valid()) {
+            throw new InvalidWorkflowException(result.errors());
+        }
+        int next = versions.findFirstByNameOrderByVersionDesc(name).map(WorkflowVersion::version).orElse(0) + 1;
+        try {
+            return versions.saveAndFlush(new WorkflowVersion(name, next, definitionJson, note, author, clock.instant()));
+        } catch (DataIntegrityViolationException concurrentPublish) {
+            throw new IllegalStateException("Workflow '" + name + "' was published concurrently, retry", concurrentPublish);
+        }
+    }
+
+    public Optional<WorkflowVersion> latest(String name) {
+        return versions.findFirstByNameOrderByVersionDesc(name);
+    }
+
+    public Optional<WorkflowVersion> version(String name, int version) {
+        return versions.findByNameAndVersion(name, version);
+    }
+
+    public List<WorkflowVersion> history(String name) {
+        return versions.findByNameOrderByVersionDesc(name);
+    }
+
+    public List<WorkflowVersion> latestOfEach() {
+        return versions.findLatestVersions();
+    }
+
+    /** The built-in workflow exists from the first start on. */
+    @EventListener(ApplicationReadyEvent.class)
+    @Transactional
+    public void installDefault() {
+        if (versions.findFirstByNameOrderByVersionDesc(DEFAULT).isEmpty()) {
+            publish(DEFAULT, builtIn(), "Built-in workflow", "factory");
+        }
+    }
+
+    static String builtIn() {
+        try (InputStream in = WorkflowCatalog.class.getResourceAsStream("/workflows/default.json")) {
+            return new String(in.readAllBytes(), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+}
