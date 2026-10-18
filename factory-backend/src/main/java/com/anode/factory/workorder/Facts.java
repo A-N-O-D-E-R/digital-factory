@@ -43,6 +43,7 @@ final class Facts {
                     }
                 }
                 case "secret-scan" -> facts.put("secrets.found", !out.get("findings").isEmpty());
+                case "judge" -> facts.put("eval.passed", passed(out.get("tests")));
                 default -> {
                     // specifier, implementer, feedback-triage: their outputs are artifacts, not facts
                 }

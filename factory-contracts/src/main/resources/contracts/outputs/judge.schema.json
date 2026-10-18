@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Eval judgement",
+  "description": "Produced by the factory's worker, not by an agent: the fixture's hidden tests run on the work of an eval work order (JUnit XML).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["tests"],
+  "properties": {
+    "tests": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["total", "failed", "errors", "skipped"],
+      "properties": {
+        "total": { "type": "integer", "minimum": 0 },
+        "failed": { "type": "integer", "minimum": 0 },
+        "errors": { "type": "integer", "minimum": 0 },
+        "skipped": { "type": "integer", "minimum": 0 },
+        "failures": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  }
+}

@@ -41,13 +41,20 @@ public class WorkOrderService {
     /** Creates a work order on the latest version of {@code workflowName} (frozen from now on) and starts it. */
     @Transactional
     public WorkOrder create(String repository, String title, String description, String workflowName, String author) {
+        return create(repository, title, description, workflowName, author, null, null);
+    }
+
+    /** A work order of an eval run, judged by {@code judgeCommand} instead of being published. */
+    @Transactional
+    public WorkOrder create(String repository, String title, String description, String workflowName, String author,
+                            UUID evalRunId, String judgeCommand) {
         repositories.active(repository);
         String name = workflowName == null ? WorkflowCatalog.DEFAULT : workflowName;
         int version = catalog.latest(name)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNPROCESSABLE_CONTENT, "No workflow " + name))
                 .version();
         WorkOrder workOrder = workOrders.save(new WorkOrder(repository, title, description, name, version, author,
-                clock.instant()));
+                evalRunId, judgeCommand, clock.instant()));
         execution.start(workOrder);
         return workOrder;
     }
@@ -67,8 +74,13 @@ public class WorkOrderService {
         events.publishEvent(new WorkOrderExecution.Resume(workOrderId));
     }
 
+    /** Real work only: eval runs have their own view. */
     public List<WorkOrder> all() {
-        return workOrders.findAllByOrderByCreatedAtDesc();
+        return workOrders.findByEvalRunIdIsNullOrderByCreatedAtDesc();
+    }
+
+    public List<WorkOrder> ofEvalRun(UUID evalRunId) {
+        return workOrders.findByEvalRunIdOrderByCreatedAt(evalRunId);
     }
 
     public List<Approval> approvalsOf(UUID workOrderId) {

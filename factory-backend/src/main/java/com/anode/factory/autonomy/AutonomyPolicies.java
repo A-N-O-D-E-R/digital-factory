@@ -30,17 +30,27 @@ public class AutonomyPolicies {
         return policies.save(policy);
     }
 
+    /** What the latest eval run measured for the class; a class without a policy stays at the draft PR. */
+    @Transactional
+    public void measured(WorkOrderType type, BigDecimal successRate) {
+        AutonomyPolicy policy = policies.findById(type).orElseGet(() -> {
+            AutonomyPolicy created = new AutonomyPolicy(type);
+            created.grant(AutonomyLevel.DRAFT_PR, BigDecimal.ONE, "evals", clock.instant());
+            return policies.save(created);
+        });
+        policy.measured(successRate);
+    }
+
     /**
-     * The {@code autonomy.allows} fact: the class has earned merging, and every piece of evidence
-     * is known and green — tests, acceptance tests, review, secret scan, and the forge's own checks.
-     * Anything unknown denies.
+     * The {@code autonomy.allows} fact: the class has earned merging, and every piece of the factory's
+     * evidence is known and green — tests, acceptance tests, review, secret scan. Anything unknown
+     * denies. The forge's own checks come later, from the PR: the merge action requires them too.
      */
     public boolean allowsMerge(Map<String, Object> facts) {
         boolean green = Boolean.TRUE.equals(facts.get("tests.passed"))
                 && Boolean.TRUE.equals(facts.get("acceptance.passed"))
                 && "PASS".equals(facts.get("verdict"))
-                && Boolean.FALSE.equals(facts.get("secrets.found"))
-                && Boolean.TRUE.equals(facts.get("pr.checks.passed"));
+                && Boolean.FALSE.equals(facts.get("secrets.found"));
         if (!green || !(facts.get("type") instanceof String type)) {
             return false;
         }

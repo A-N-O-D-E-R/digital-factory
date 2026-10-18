@@ -77,10 +77,7 @@
     },
     {
       "id": "ready", "kind": "factory", "action": "mark-pr-ready",
-      "next": [
-        { "when": { "fact": "autonomy.allows", "equals": true }, "to": "merge" },
-        { "to": "watch" }
-      ]
+      "next": [{ "to": "watch" }]
     },
     {
       "id": "merge", "kind": "factory", "action": "merge",

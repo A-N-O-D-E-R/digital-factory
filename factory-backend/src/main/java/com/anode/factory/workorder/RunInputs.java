@@ -22,17 +22,25 @@ final class RunInputs {
 
     static String agent(WorkOrder workOrder, CodeRepository repository, String stepId, String role, List<Run> earlier,
                         JsonMapper json) {
-        return input(workOrder, repository, stepId, role, earlier, false, json);
+        return json.writeValueAsString(input(workOrder, repository, stepId, role, earlier, false, json));
     }
 
     /** Evidence and push runs: no agent involved, they see every artifact. */
     static String evidence(WorkOrder workOrder, CodeRepository repository, String stepId, String action,
                            List<Run> earlier, JsonMapper json) {
-        return input(workOrder, repository, stepId, action, earlier, true, json);
+        return json.writeValueAsString(input(workOrder, repository, stepId, action, earlier, true, json));
     }
 
-    private static String input(WorkOrder workOrder, CodeRepository repository, String stepId, String task,
-                                List<Run> earlier, boolean evidence, JsonMapper json) {
+    /** The judge of an eval work order: the evidence input plus the fixture's hidden tests. */
+    static String judge(WorkOrder workOrder, CodeRepository repository, String stepId, List<Run> earlier,
+                        JsonMapper json) {
+        Map<String, Object> input = input(workOrder, repository, stepId, FactoryStep.JUDGE, earlier, true, json);
+        input.put("judge", Map.of("command", workOrder.judgeCommand()));
+        return json.writeValueAsString(input);
+    }
+
+    private static Map<String, Object> input(WorkOrder workOrder, CodeRepository repository, String stepId,
+                                             String task, List<Run> earlier, boolean evidence, JsonMapper json) {
         Map<String, Object> artifacts = new LinkedHashMap<>();
         for (Run run : earlier) { // in creation order: the latest output of a task wins
             if (run.status() == RunStatus.SUCCEEDED && (evidence || !HIDDEN_FROM_AGENTS.contains(run.task()))) {
@@ -57,6 +65,6 @@ final class RunInputs {
         input.put("task", task);
         input.put("facts", workOrder.facts());
         input.put("artifacts", artifacts);
-        return json.writeValueAsString(input);
+        return input;
     }
 }

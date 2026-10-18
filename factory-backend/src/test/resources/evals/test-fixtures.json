@@ -1,0 +1,6 @@
+[
+  { "id": "docs", "repository": "github:acme/api", "type": "DOCUMENTATION", "title": "Document the options",
+    "description": "Add a Usage section.", "expect": "success", "judge": "node --test hidden/usage.test.js" },
+  { "id": "vague", "repository": "github:acme/api", "type": "DOCUMENTATION", "title": "Make the docs better",
+    "description": "Something about the docs.", "expect": "refusal" }
+]

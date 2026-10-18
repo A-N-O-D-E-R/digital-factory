@@ -96,6 +96,9 @@ class PullRequestActions {
             if (!Boolean.TRUE.equals(context.facts().get("autonomy.allows"))) {
                 return Result.fail("the autonomy policy does not allow merging this work order");
             }
+            if (!Boolean.TRUE.equals(context.facts().get("pr.checks.passed"))) {
+                return Result.fail("the forge's checks have not passed");
+            }
             forge(repository).merge(repository, pullRequest(context), context.title());
             return Result.proceed();
         });

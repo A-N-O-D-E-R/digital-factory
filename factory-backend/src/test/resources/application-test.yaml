@@ -17,3 +17,7 @@ logging:
       console:
   level:
     root: WARN
+factory:
+  evals:
+    fixtures: classpath:evals/test-fixtures.json
+    judge-interval: 200ms

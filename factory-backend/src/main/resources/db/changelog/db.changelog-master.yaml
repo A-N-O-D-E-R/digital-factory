@@ -161,3 +161,22 @@ databaseChangeLog:
             tableName: forge_events
             indexName: ix_forge_events_work_order
             columns: [ { column: { name: work_order_id } }, { column: { name: received_at } } ]
+  - changeSet:
+      id: 007-evals
+      author: digital-factory
+      changes:
+        - createTable:
+            tableName: eval_runs
+            columns:
+              - column: { name: id, type: uuid, constraints: { primaryKey: true } }
+              - column: { name: workflow, type: varchar(63), constraints: { nullable: false } }
+              - column: { name: finished, type: boolean, constraints: { nullable: false } }
+              - column: { name: results, type: jsonb, constraints: { nullable: false } }
+              - column: { name: created_by, type: varchar(255), constraints: { nullable: false } }
+              - column: { name: created_at, type: timestamptz, constraints: { nullable: false } }
+              - column: { name: finished_at, type: timestamptz }
+        - addColumn:
+            tableName: work_orders
+            columns:
+              - column: { name: eval_run_id, type: uuid, constraints: { foreignKeyName: fk_work_orders_eval_run, references: eval_runs(id) } }
+              - column: { name: judge_command, type: text }

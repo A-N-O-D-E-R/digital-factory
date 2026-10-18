@@ -53,6 +53,10 @@ public class AutonomyPolicy {
         this.updatedAt = now;
     }
 
+    void measured(BigDecimal successRate) {
+        this.successRate = successRate;
+    }
+
     /** Merging alone is earned: granted, and measured at least as reliable as required. */
     boolean mergeEarned() {
         return level == AutonomyLevel.MERGE && successRate != null && successRate.compareTo(minSuccessRate) >= 0;

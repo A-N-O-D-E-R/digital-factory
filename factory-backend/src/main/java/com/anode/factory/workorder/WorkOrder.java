@@ -66,6 +66,14 @@ public class WorkOrder {
     @Column(name = "transition_counts", nullable = false)
     private Map<String, Integer> transitionCounts = new HashMap<>();
 
+    /** Set on the work orders of an eval run: gates approve themselves, publishing is replaced by the judge. */
+    @Column(name = "eval_run_id")
+    private UUID evalRunId;
+
+    /** The fixture's hidden tests: only ever in the judge run's input. */
+    @Column(name = "judge_command")
+    private String judgeCommand;
+
     @Column(name = "created_by", nullable = false)
     private String createdBy;
 
@@ -89,6 +97,13 @@ public class WorkOrder {
         this.createdBy = createdBy;
         this.createdAt = now;
         this.updatedAt = now;
+    }
+
+    WorkOrder(String repository, String title, String description, String workflowName, int workflowVersion,
+              String createdBy, UUID evalRunId, String judgeCommand, Instant now) {
+        this(repository, title, description, workflowName, workflowVersion, createdBy, now);
+        this.evalRunId = evalRunId;
+        this.judgeCommand = judgeCommand;
     }
 
     /** Enters {@code step}: a new visit of it begins. */
@@ -143,6 +158,18 @@ public class WorkOrder {
 
     public String repository() {
         return repository;
+    }
+
+    public UUID evalRunId() {
+        return evalRunId;
+    }
+
+    public boolean eval() {
+        return evalRunId != null;
+    }
+
+    String judgeCommand() {
+        return judgeCommand;
     }
 
     /** The branch the factory pushes the work to, and opens the PR from. */

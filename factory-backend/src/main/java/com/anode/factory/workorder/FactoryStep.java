@@ -19,6 +19,7 @@ import java.time.Clock;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Component;
@@ -37,6 +38,12 @@ class FactoryStep implements ContextualTask {
             "run-tests", RunKind.EVIDENCE,
             "secret-scan", RunKind.EVIDENCE,
             "push-branch", RunKind.PUSH);
+
+    /** Actions that publish the work: an eval work order is judged by its hidden tests instead. */
+    private static final Set<String> PUBLISHING = Set.of("push-branch", "open-draft-pr", "mark-pr-ready",
+            "request-review", "merge", "watch-pr");
+
+    static final String JUDGE = "judge";
 
     private final CurrentWorkOrder current;
     private final WorkflowCatalog catalog;
@@ -77,7 +84,9 @@ class FactoryStep implements ContextualTask {
         StepResult result = switch (step.kind()) {
             case agent -> runs(workOrder, step, RunKind.AGENT, step.roles());
             case gate -> gate(workOrder, step);
-            case factory -> WORKER_ACTIONS.containsKey(step.action())
+            case factory -> workOrder.eval() && PUBLISHING.contains(step.action())
+                    ? judge(workOrder, step)
+                    : WORKER_ACTIONS.containsKey(step.action())
                     ? runs(workOrder, step, WORKER_ACTIONS.get(step.action()), List.of(step.action()))
                     : action(workOrder, step);
         };
@@ -102,6 +111,8 @@ class FactoryStep implements ContextualTask {
             for (String task : tasks) {
                 String input = kind == RunKind.AGENT
                         ? RunInputs.agent(workOrder, repository, step.id(), task, earlier, json)
+                        : task.equals(JUDGE)
+                        ? RunInputs.judge(workOrder, repository, step.id(), earlier, json)
                         : RunInputs.evidence(workOrder, repository, step.id(), task, earlier, json);
                 runs.enqueue(workOrder.id(), step.id(), workOrder.currentVisit(), kind, task, input);
             }
@@ -131,6 +142,10 @@ class FactoryStep implements ContextualTask {
             workOrder.learn(Map.of("approval", "NOT_REQUIRED"), clock.instant());
             return StepResult.PROCEED;
         }
+        if (workOrder.eval()) {
+            workOrder.learn(Map.of("approval", "APPROVED"), clock.instant()); // evals measure the factory alone
+            return StepResult.PROCEED;
+        }
         var approval = approvals.findByWorkOrderIdAndStepIdAndVisit(workOrder.id(), step.id(), workOrder.currentVisit());
         if (approval.isEmpty()) {
             approvals.save(new Approval(workOrder.id(), step.id(), workOrder.currentVisit(), step.gate(), clock.instant()));
@@ -143,6 +158,14 @@ class FactoryStep implements ContextualTask {
         workOrder.learn(Map.of("approval", approval.get().decision().name()), clock.instant());
         workOrder.resumeRunning(clock.instant());
         return StepResult.PROCEED;
+    }
+
+    /** Runs the fixture's hidden tests on the work, then ends the eval work order: nothing is published. */
+    private StepResult judge(WorkOrder workOrder, Step step) {
+        if (runs(workOrder, step, RunKind.EVIDENCE, List.of(JUDGE)) == StepResult.PROCEED) {
+            workOrder.finish(Outcome.DONE, "eval: judged before " + step.action(), clock.instant());
+        }
+        return StepResult.WAIT;
     }
 
     private StepResult action(WorkOrder workOrder, Step step) {
