@@ -15,7 +15,7 @@ public interface FactoryAction {
     Result execute(Context context);
 
     /** What the action knows about the work order it acts on. */
-    record Context(UUID workOrderId, String repository, String title, String stepId, int visit,
+    record Context(UUID workOrderId, String repository, String branch, String title, String stepId, int visit,
                    Map<String, Object> facts, Map<String, Object> with) {}
 
     /** Proceed (with new facts), wait to be resumed, or fail the work order. */

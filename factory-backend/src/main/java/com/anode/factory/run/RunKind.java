@@ -5,5 +5,7 @@ public enum RunKind {
     /** An agent role (classifier, implementer...) producing a structured output. */
     AGENT,
     /** A factory action producing evidence (run-tests, secret-scan): no agent involved. */
-    EVIDENCE
+    EVIDENCE,
+    /** Pushes the work branch from a clean repository: the only kind given a write credential. */
+    PUSH
 }

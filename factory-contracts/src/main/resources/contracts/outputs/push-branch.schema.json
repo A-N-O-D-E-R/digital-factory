@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Pushed branch",
+  "description": "Produced by the factory's worker, not by an agent: the work branch pushed from a clean repository with a write credential asked just in time.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["branch", "commit"],
+  "properties": {
+    "branch": { "type": "string", "pattern": "^factory/" },
+    "commit": { "type": "string", "pattern": "^[0-9a-f]{40}$" }
+  }
+}

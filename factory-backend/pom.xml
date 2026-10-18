@@ -83,6 +83,16 @@
             <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
         </dependency>
 
+        <!-- Forges -->
+        <dependency>
+            <groupId>io.github.a-n-o-d-e-r</groupId>
+            <artifactId>spring-boot-starter-github</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.github.a-n-o-d-e-r</groupId>
+            <artifactId>spring-boot-starter-gitlab</artifactId>
+        </dependency>
+
         <!-- Contracts -->
         <dependency>
             <groupId>com.networknt</groupId>

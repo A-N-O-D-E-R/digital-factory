@@ -145,6 +145,11 @@ public class WorkOrder {
         return repository;
     }
 
+    /** The branch the factory pushes the work to, and opens the PR from. */
+    public String branch() {
+        return "factory/" + id;
+    }
+
     public String title() {
         return title;
     }

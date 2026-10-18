@@ -1,5 +1,7 @@
 package com.anode.factory.workorder;
 
+import com.anode.factory.repository.CodeRepository;
+import com.anode.factory.repository.Repositories;
 import com.anode.factory.run.Run;
 import com.anode.factory.run.RunKind;
 import com.anode.factory.run.RunQueue;
@@ -16,7 +18,6 @@ import java.time.Clock;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Component;
@@ -30,22 +31,27 @@ import tools.jackson.databind.json.JsonMapper;
 @Component(WorkflowCompiler.STEP)
 class FactoryStep implements ContextualTask {
 
-    /** Actions executed by the workers in the sandbox; their output is evidence. */
-    private static final Set<String> EVIDENCE_ACTIONS = Set.of("run-tests", "secret-scan");
+    /** Actions executed by the workers rather than by the control plane. */
+    private static final Map<String, RunKind> WORKER_ACTIONS = Map.of(
+            "run-tests", RunKind.EVIDENCE,
+            "secret-scan", RunKind.EVIDENCE,
+            "push-branch", RunKind.PUSH);
 
     private final CurrentWorkOrder current;
     private final WorkflowCatalog catalog;
     private final RunQueue runs;
+    private final Repositories repositories;
     private final ApprovalRepository approvals;
     private final Map<String, FactoryAction> actions;
     private final JsonMapper json;
     private final Clock clock;
 
-    FactoryStep(CurrentWorkOrder current, WorkflowCatalog catalog, RunQueue runs, ApprovalRepository approvals,
-                List<FactoryAction> actions, JsonMapper json, Clock clock) {
+    FactoryStep(CurrentWorkOrder current, WorkflowCatalog catalog, RunQueue runs, Repositories repositories,
+                ApprovalRepository approvals, List<FactoryAction> actions, JsonMapper json, Clock clock) {
         this.current = current;
         this.catalog = catalog;
         this.runs = runs;
+        this.repositories = repositories;
         this.approvals = approvals;
         this.actions = actions.stream().collect(Collectors.toMap(FactoryAction::name, Function.identity()));
         this.json = json;
@@ -66,8 +72,8 @@ class FactoryStep implements ContextualTask {
         StepResult result = switch (step.kind()) {
             case agent -> runs(workOrder, step, RunKind.AGENT, step.roles());
             case gate -> gate(workOrder, step);
-            case factory -> EVIDENCE_ACTIONS.contains(step.action())
-                    ? runs(workOrder, step, RunKind.EVIDENCE, List.of(step.action()))
+            case factory -> WORKER_ACTIONS.containsKey(step.action())
+                    ? runs(workOrder, step, WORKER_ACTIONS.get(step.action()), List.of(step.action()))
                     : action(workOrder, step);
         };
         return result.response();
@@ -78,10 +84,11 @@ class FactoryStep implements ContextualTask {
         List<Run> visitRuns = runs.runsOf(workOrder.id(), step.id(), workOrder.currentVisit());
         if (visitRuns.isEmpty()) {
             List<Run> earlier = runs.runsOf(workOrder.id());
+            CodeRepository repository = repositories.get(workOrder.repository());
             for (String task : tasks) {
                 String input = kind == RunKind.AGENT
-                        ? RunInputs.agent(workOrder, step.id(), task, earlier, json)
-                        : RunInputs.evidence(workOrder, step.id(), task, earlier, json);
+                        ? RunInputs.agent(workOrder, repository, step.id(), task, earlier, json)
+                        : RunInputs.evidence(workOrder, repository, step.id(), task, earlier, json);
                 runs.enqueue(workOrder.id(), step.id(), workOrder.currentVisit(), kind, task, input);
             }
             workOrder.resumeRunning(clock.instant());
@@ -131,7 +138,7 @@ class FactoryStep implements ContextualTask {
                     clock.instant());
             return StepResult.WAIT;
         }
-        var context = new FactoryAction.Context(workOrder.id(), workOrder.repository(), workOrder.title(), step.id(),
+        var context = new FactoryAction.Context(workOrder.id(), workOrder.repository(), workOrder.branch(), workOrder.title(), step.id(),
                 workOrder.currentVisit(), workOrder.facts(), step.with() == null ? Map.of() : step.with());
         return switch (action.execute(context)) {
             case FactoryAction.Result.Proceed proceed -> {

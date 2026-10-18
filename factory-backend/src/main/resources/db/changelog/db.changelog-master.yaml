@@ -105,3 +105,25 @@ databaseChangeLog:
               - column: { name: active, type: boolean, constraints: { nullable: false } }
               - column: { name: created_by, type: varchar(255), constraints: { nullable: false } }
               - column: { name: created_at, type: timestamptz, constraints: { nullable: false } }
+  - changeSet:
+      id: 004-repositories
+      author: digital-factory
+      changes:
+        - createTable:
+            tableName: repositories
+            columns:
+              - column: { name: key, type: varchar(255), constraints: { primaryKey: true } }
+              - column: { name: forge, type: varchar(16), constraints: { nullable: false } }
+              - column: { name: path, type: varchar(255), constraints: { nullable: false } }
+              - column: { name: default_branch, type: varchar(255), constraints: { nullable: false } }
+              - column: { name: test_command, type: text, constraints: { nullable: false } }
+              - column: { name: test_reports, type: varchar(255), constraints: { nullable: false } }
+              - column: { name: sandbox_image, type: varchar(255), constraints: { nullable: false } }
+              - column: { name: active, type: boolean, constraints: { nullable: false } }
+              - column: { name: created_at, type: timestamptz, constraints: { nullable: false } }
+        - addForeignKeyConstraint:
+            baseTableName: work_orders
+            baseColumnNames: repository
+            referencedTableName: repositories
+            referencedColumnNames: key
+            constraintName: fk_work_orders_repository

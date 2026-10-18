@@ -12,6 +12,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 
 import com.anode.factory.FakeWorker;
 import com.anode.factory.IntegrationTest;
+import com.anode.factory.TestRepository;
 import java.time.Duration;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -49,6 +50,7 @@ class WorkOrderExecutionTest {
 
     @BeforeEach
     void setUp() {
+        TestRepository.register(mvc);
         worker = new FakeWorker(mvc, "worker-" + WORKERS.incrementAndGet());
         mvc.post().uri("/api/workflows/mini/versions").with(admin()).with(csrf()).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"definition\":" + MINI + ",\"note\":\"test\"}").exchange();
@@ -66,8 +68,8 @@ class WorkOrderExecutionTest {
         var result = mvc.post().uri("/api/work-orders").with(developer()).with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
-                        {"repository":"acme/api","title":"Fix rounding","description":"Totals are off by a cent","workflow":"%s"}"""
-                        .formatted(workflow))
+                        {"repository":"%s","title":"Fix rounding","description":"Totals are off by a cent","workflow":"%s"}"""
+                        .formatted(TestRepository.KEY, workflow))
                 .exchange();
         assertThat(result).hasStatus(201);
         return UUID.fromString(json.readTree(result.getResponse().getContentAsByteArray()).get("id").asString());

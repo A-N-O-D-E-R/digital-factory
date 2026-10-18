@@ -117,6 +117,11 @@ public class RunQueue {
         }
     }
 
+    /** A run {@code workerId} is executing now; anything else is not found (or not running) for it. */
+    public Run running(UUID runId, UUID workerId) {
+        return ownedRunning(runId, workerId);
+    }
+
     /** The latest attempt of each run of a step visit. */
     public List<Run> runsOf(UUID workOrderId, String stepId, int visit) {
         return runs.findByWorkOrderIdAndStepIdAndVisitOrderByCreatedAt(workOrderId, stepId, visit);

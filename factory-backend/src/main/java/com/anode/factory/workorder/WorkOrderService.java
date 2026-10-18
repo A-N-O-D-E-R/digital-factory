@@ -1,5 +1,6 @@
 package com.anode.factory.workorder;
 
+import com.anode.factory.repository.Repositories;
 import com.anode.factory.run.RunQueue;
 import com.anode.factory.workflow.WorkflowCatalog;
 import java.time.Clock;
@@ -19,16 +20,19 @@ public class WorkOrderService {
     private final WorkflowCatalog catalog;
     private final WorkOrderExecution execution;
     private final RunQueue runs;
+    private final Repositories repositories;
     private final ApplicationEventPublisher events;
     private final Clock clock;
 
     WorkOrderService(WorkOrderRepository workOrders, ApprovalRepository approvals, WorkflowCatalog catalog,
-                     WorkOrderExecution execution, RunQueue runs, ApplicationEventPublisher events, Clock clock) {
+                     WorkOrderExecution execution, RunQueue runs, Repositories repositories,
+                     ApplicationEventPublisher events, Clock clock) {
         this.workOrders = workOrders;
         this.approvals = approvals;
         this.catalog = catalog;
         this.execution = execution;
         this.runs = runs;
+        this.repositories = repositories;
         this.events = events;
         this.clock = clock;
     }
@@ -36,6 +40,7 @@ public class WorkOrderService {
     /** Creates a work order on the latest version of {@code workflowName} (frozen from now on) and starts it. */
     @Transactional
     public WorkOrder create(String repository, String title, String description, String workflowName, String author) {
+        repositories.active(repository);
         String name = workflowName == null ? WorkflowCatalog.DEFAULT : workflowName;
         int version = catalog.latest(name)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNPROCESSABLE_CONTENT, "No workflow " + name))
