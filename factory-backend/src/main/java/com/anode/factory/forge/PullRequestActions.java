@@ -93,6 +93,9 @@ class PullRequestActions {
     @Bean
     FactoryAction merge() {
         return new Action("merge", (context, repository) -> {
+            if (!Boolean.TRUE.equals(context.facts().get("autonomy.allows"))) {
+                return Result.fail("the autonomy policy does not allow merging this work order");
+            }
             forge(repository).merge(repository, pullRequest(context), context.title());
             return Result.proceed();
         });

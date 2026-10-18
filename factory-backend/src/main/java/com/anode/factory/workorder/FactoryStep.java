@@ -1,5 +1,6 @@
 package com.anode.factory.workorder;
 
+import com.anode.factory.autonomy.AutonomyPolicies;
 import com.anode.factory.repository.CodeRepository;
 import com.anode.factory.repository.Repositories;
 import com.anode.factory.run.Run;
@@ -42,17 +43,20 @@ class FactoryStep implements ContextualTask {
     private final RunQueue runs;
     private final Repositories repositories;
     private final ApprovalRepository approvals;
+    private final AutonomyPolicies autonomy;
     private final Map<String, FactoryAction> actions;
     private final JsonMapper json;
     private final Clock clock;
 
     FactoryStep(CurrentWorkOrder current, WorkflowCatalog catalog, RunQueue runs, Repositories repositories,
-                ApprovalRepository approvals, List<FactoryAction> actions, JsonMapper json, Clock clock) {
+                ApprovalRepository approvals, AutonomyPolicies autonomy, List<FactoryAction> actions, JsonMapper json,
+                Clock clock) {
         this.current = current;
         this.catalog = catalog;
         this.runs = runs;
         this.repositories = repositories;
         this.approvals = approvals;
+        this.autonomy = autonomy;
         this.actions = actions.stream().collect(Collectors.toMap(FactoryAction::name, Function.identity()));
         this.json = json;
         this.clock = clock;
@@ -69,6 +73,11 @@ class FactoryStep implements ContextualTask {
                 .filter(s -> s.id().equals(stepId))
                 .findFirst()
                 .orElseThrow(() -> new IllegalStateException("No step " + stepId));
+        // decided afresh at every step: evidence and policies change
+        boolean allows = autonomy.allowsMerge(workOrder.facts());
+        if (!Boolean.valueOf(allows).equals(workOrder.facts().get("autonomy.allows"))) {
+            workOrder.learn(Map.of("autonomy.allows", allows), clock.instant());
+        }
         StepResult result = switch (step.kind()) {
             case agent -> runs(workOrder, step, RunKind.AGENT, step.roles());
             case gate -> gate(workOrder, step);

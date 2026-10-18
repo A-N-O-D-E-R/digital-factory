@@ -100,6 +100,18 @@ class WorkflowApiTest {
         }
 
         @Test
+        void mergingWithoutTheAutonomyPolicy() {
+            String merge = """
+                    , { "id": "merge", "kind": "factory", "action": "merge", "next": [{ "to": "@done" }] }""";
+            assertRefused(linear(IMPLEMENT + "," + VERIFY + "," + PUSH.replace("@done", "merge") + merge),
+                    "step 'push' next[0] leads to a merge without requiring");
+            String guarded = PUSH.replace("[{ \"to\": \"@done\" }]", "[{ \"when\": { \"allOf\": [{ \"fact\": "
+                    + "\"autonomy.allows\", \"equals\": true }] }, \"to\": \"merge\" }, { \"to\": \"@done\" }]");
+            assertThat(validate(linear(IMPLEMENT + "," + VERIFY + "," + guarded + merge))).hasStatusOk().bodyJson()
+                    .hasPathSatisfying("$.valid", v -> assertThat(v).isEqualTo(true));
+        }
+
+        @Test
         void aConditionalLastTransition() {
             assertRefused(linear("""
                     { "id": "implement", "kind": "agent", "roles": ["implementer"],

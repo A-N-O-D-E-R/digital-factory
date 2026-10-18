@@ -29,7 +29,7 @@ class PullRequestTest {
 
     private static final AtomicInteger WORKERS = new AtomicInteger();
 
-    /** implement -> verify -> push -> open draft PR -> ready -> merge */
+    /** implement -> verify -> push -> open draft PR -> final gate (unless autonomous) -> ready -> merge (if autonomous) */
     static final String SHIP = """
             { "start": "implement", "steps": [
               { "id": "implement", "kind": "agent", "roles": ["implementer"], "next": [{ "to": "verify" }] },
@@ -37,8 +37,11 @@ class PullRequestTest {
                 "next": [{ "when": { "fact": "tests.passed", "equals": false }, "to": "implement", "maxVisits": 1 },
                          { "to": "push" }] },
               { "id": "push", "kind": "factory", "action": "push-branch", "next": [{ "to": "open-pr" }] },
-              { "id": "open-pr", "kind": "factory", "action": "open-draft-pr", "next": [{ "to": "ready" }] },
-              { "id": "ready", "kind": "factory", "action": "mark-pr-ready", "next": [{ "to": "merge" }] },
+              { "id": "open-pr", "kind": "factory", "action": "open-draft-pr", "next": [{ "to": "final-gate" }] },
+              { "id": "final-gate", "kind": "gate", "gate": "final", "when": { "fact": "autonomy.allows", "equals": false },
+                "next": [{ "when": { "fact": "approval", "equals": "REJECTED" }, "to": "@cancelled" }, { "to": "ready" }] },
+              { "id": "ready", "kind": "factory", "action": "mark-pr-ready",
+                "next": [{ "when": { "fact": "autonomy.allows", "equals": true }, "to": "merge" }, { "to": "@done" }] },
               { "id": "merge", "kind": "factory", "action": "merge", "next": [{ "to": "@done" }] }
             ] }""";
 
@@ -80,7 +83,7 @@ class PullRequestTest {
     }
 
     @Test
-    void aProvenChangeIsPushedThenItsPullRequestOpenedMarkedReadyAndMerged() {
+    void aProvenChangeIsPushedAndItsDraftPullRequestWaitsForAHumanBeforeBeingMarkedReady() {
         MvcTestResult created = create(TestRepository.KEY);
         assertThat(created).hasStatus(201);
         UUID id = UUID.fromString(json.readTree(created.getResponse().getContentAsByteArray()).get("id").asString());
@@ -103,14 +106,24 @@ class PullRequestTest {
                 .hasPathSatisfying("$.password", token -> assertThat(token).isEqualTo("write-token"));
         worker.complete(push, "{\"branch\":\"factory/" + id + "\",\"commit\":\"" + "a".repeat(40) + "\"}");
 
-        await().atMost(Duration.ofSeconds(10)).until(() -> "DONE".equals(workOrder(id).get("status").asString()));
+        await().atMost(Duration.ofSeconds(10))
+                .until(() -> "WAITING_FOR_HUMAN".equals(workOrder(id).get("status").asString()));
         JsonNode facts = workOrder(id).get("facts");
         long number = facts.get("pr.number").asLong();
         assertThat(facts.get("pr.url").asString()).endsWith("/acme/api/pull/" + number);
-        assertThat(forge.calls()).containsSubsequence(
-                "openDraft acme/api factory/" + id + " -> main #" + number,
-                "markReady #" + number,
-                "merge #" + number + " Fix rounding");
+        assertThat(facts.get("autonomy.allows").asBoolean()).isFalse();
+        assertThat(forge.calls()).contains("openDraft acme/api factory/" + id + " -> main #" + number)
+                .doesNotContain("markReady #" + number);
+
+        String approval = json.readTree(mvc.get().uri("/api/work-orders/{id}", id).with(developer()).exchange()
+                .getResponse().getContentAsByteArray()).get("approvals").get(0).get("id").asString();
+        assertThat(mvc.post().uri("/api/work-orders/{id}/approvals/{a}", id, approval).with(developer()).with(csrf())
+                .contentType(MediaType.APPLICATION_JSON).content("{\"decision\":\"APPROVED\",\"comment\":\"ok\"}"))
+                .hasStatus(204);
+
+        await().atMost(Duration.ofSeconds(10)).until(() -> "DONE".equals(workOrder(id).get("status").asString()));
+        assertThat(forge.calls()).contains("markReady #" + number)
+                .noneMatch(call -> call.startsWith("merge #" + number));
     }
 
     @Test

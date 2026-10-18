@@ -96,6 +96,7 @@ public class WorkflowValidator {
         checkReachability(definition.start(), steps, errors);
         checkLoopsAreBounded(steps, errors);
         checkEvidenceBeforePublishing(steps, errors);
+        checkMergeOnlyThroughAutonomy(definition.start(), steps, errors);
         return errors;
     }
 
@@ -200,6 +201,34 @@ public class WorkflowValidator {
         path.removeLast();
         onPath.remove(id);
         return null;
+    }
+
+    /** A merge step is only entered through a transition requiring {@code autonomy.allows}. */
+    private static void checkMergeOnlyThroughAutonomy(String start, Map<String, Step> steps, List<String> errors) {
+        Set<String> merges = new HashSet<>();
+        steps.values().stream()
+                .filter(step -> step.kind() == WorkflowDefinition.Kind.factory && "merge".equals(step.action()))
+                .forEach(step -> merges.add(step.id()));
+        if (merges.contains(start)) {
+            errors.add("step '" + start + "' (merge) cannot be the start: merging requires the autonomy policy");
+        }
+        for (Step step : steps.values()) {
+            for (int i = 0; i < step.next().size(); i++) {
+                Transition t = step.next().get(i);
+                if ((merges.contains(t.to()) || merges.contains(t.exhaustedTarget())) && !requiresAutonomy(t.when())) {
+                    errors.add("step '" + step.id() + "' next[" + i + "] leads to a merge without requiring "
+                            + "{ \"fact\": \"autonomy.allows\", \"equals\": true }");
+                }
+            }
+        }
+    }
+
+    private static boolean requiresAutonomy(Condition when) {
+        return switch (when) {
+            case Condition.Fact fact -> "autonomy.allows".equals(fact.fact()) && Boolean.TRUE.equals(fact.equalTo());
+            case Condition.AllOf all -> all.allOf().stream().anyMatch(WorkflowValidator::requiresAutonomy);
+            case null, default -> false;
+        };
     }
 
     /** From a step that writes code, no path may reach a publishing action without running the tests. */
