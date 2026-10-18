@@ -50,6 +50,12 @@ public class FakeForge implements Forge {
         calls.add("merge #" + pullRequest.number() + " " + commitTitle);
     }
 
+    /** Only "maintainer" may write to the fake repositories. */
+    @Override
+    public boolean canWrite(CodeRepository repository, String login) {
+        return "maintainer".equals(login);
+    }
+
     @Override
     public void comment(CodeRepository repository, PullRequest pullRequest, String body) {
         calls.add("comment #" + pullRequest.number());

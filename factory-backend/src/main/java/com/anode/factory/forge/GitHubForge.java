@@ -116,6 +116,16 @@ class GitHubForge implements Forge {
     }
 
     @Override
+    public boolean canWrite(CodeRepository repository, String login) {
+        try {
+            GHPermissionType permission = repo(repository).getPermission(login);
+            return permission == GHPermissionType.ADMIN || permission == GHPermissionType.WRITE;
+        } catch (IOException notACollaborator) {
+            return false;
+        }
+    }
+
+    @Override
     public void comment(CodeRepository repository, PullRequest pullRequest, String body) {
         try {
             pr(repository, pullRequest).comment(body);

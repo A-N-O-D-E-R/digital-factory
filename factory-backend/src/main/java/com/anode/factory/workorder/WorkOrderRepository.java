@@ -16,4 +16,8 @@ interface WorkOrderRepository extends JpaRepository<WorkOrder, UUID> {
     Optional<WorkOrder> lock(UUID id);
 
     List<WorkOrder> findAllByOrderByCreatedAtDesc();
+
+    @Query(value = "select * from work_orders where repository = :repository and facts ->> 'pr.number' = :number",
+            nativeQuery = true)
+    Optional<WorkOrder> findByPullRequest(String repository, String number);
 }

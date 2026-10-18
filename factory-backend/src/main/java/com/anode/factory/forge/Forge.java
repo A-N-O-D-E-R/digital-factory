@@ -23,4 +23,7 @@ public interface Forge {
     void merge(CodeRepository repository, PullRequest pullRequest, String commitTitle);
 
     void comment(CodeRepository repository, PullRequest pullRequest, String body);
+
+    /** Whether {@code login} may write to the repository: only such authors steer the factory. */
+    boolean canWrite(CodeRepository repository, String login);
 }

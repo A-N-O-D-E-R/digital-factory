@@ -5,6 +5,7 @@ import com.anode.factory.run.RunQueue;
 import com.anode.factory.workflow.WorkflowCatalog;
 import java.time.Clock;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
@@ -53,6 +54,17 @@ public class WorkOrderService {
 
     public WorkOrder get(UUID id) {
         return workOrders.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+    }
+
+    /** The work order whose PR is {@code number} on {@code repository}. */
+    public Optional<WorkOrder> findByPullRequest(String repository, long number) {
+        return workOrders.findByPullRequest(repository, Long.toString(number));
+    }
+
+    /** Lets a waiting step of the work order look again (once the current transaction commits). */
+    @Transactional
+    public void wake(UUID workOrderId) {
+        events.publishEvent(new WorkOrderExecution.Resume(workOrderId));
     }
 
     public List<WorkOrder> all() {

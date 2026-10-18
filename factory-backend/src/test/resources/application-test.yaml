@@ -8,6 +8,9 @@ anode:
   security:
     env-oidc: false
     mock: false
+  github:
+    webhook:
+      secret: test-webhook-secret
 logging:
   structured:
     format:

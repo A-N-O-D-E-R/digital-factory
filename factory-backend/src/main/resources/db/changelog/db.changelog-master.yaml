@@ -140,3 +140,24 @@ databaseChangeLog:
               - column: { name: success_rate, type: "numeric(5,4)" }
               - column: { name: updated_by, type: varchar(255), constraints: { nullable: false } }
               - column: { name: updated_at, type: timestamptz, constraints: { nullable: false } }
+  - changeSet:
+      id: 006-forge-events
+      author: digital-factory
+      changes:
+        - createTable:
+            tableName: forge_events
+            columns:
+              - column: { name: id, type: varchar(255), constraints: { primaryKey: true } }
+              - column: { name: work_order_id, type: uuid, constraints: { nullable: false, foreignKeyName: fk_forge_events_work_order, references: work_orders(id) } }
+              - column: { name: kind, type: varchar(32), constraints: { nullable: false } }
+              - column: { name: author, type: varchar(255) }
+              - column: { name: trusted, type: boolean, constraints: { nullable: false } }
+              - column: { name: ignored_because, type: varchar(255) }
+              - column: { name: body, type: text }
+              - column: { name: url, type: text }
+              - column: { name: received_at, type: timestamptz, constraints: { nullable: false } }
+              - column: { name: consumed_at, type: timestamptz }
+        - createIndex:
+            tableName: forge_events
+            indexName: ix_forge_events_work_order
+            columns: [ { column: { name: work_order_id } }, { column: { name: received_at } } ]

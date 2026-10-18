@@ -8,6 +8,7 @@ import java.util.List;
 import org.gitlab4j.api.GitLabApi;
 import org.gitlab4j.api.GitLabApiException;
 import org.gitlab4j.api.models.AcceptMergeRequestParams;
+import org.gitlab4j.api.models.AccessLevel;
 import org.gitlab4j.api.models.MergeRequest;
 import org.gitlab4j.api.models.MergeRequestParams;
 import org.gitlab4j.models.Constants;
@@ -86,6 +87,18 @@ class GitLabForge implements Forge {
                     new AcceptMergeRequestParams().withSquash(true).withSquashCommitMessage(commitTitle));
         } catch (GitLabApiException e) {
             throw new IllegalStateException(e);
+        }
+    }
+
+    @Override
+    public boolean canWrite(CodeRepository repository, String login) {
+        try {
+            var user = gitlab.getUserApi().getUser(login);
+            return user != null && gitlab.getProjectApi().getOptionalMember(repository.path(), user.getId(), true)
+                    .map(member -> member.getAccessLevel().value >= AccessLevel.DEVELOPER.value)
+                    .orElse(false);
+        } catch (GitLabApiException e) {
+            return false;
         }
     }
 

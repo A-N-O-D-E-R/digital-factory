@@ -90,6 +90,7 @@
       "id": "watch", "kind": "factory", "action": "watch-pr",
       "next": [
         { "when": { "fact": "pr.event", "equals": "merged" }, "to": "@done" },
+        { "when": { "allOf": [{ "fact": "pr.event", "equals": "checks_passed" }, { "fact": "autonomy.allows", "equals": true }] }, "to": "merge", "maxVisits": 1 },
         { "when": { "fact": "pr.event", "equals": "closed" }, "to": "@cancelled" },
         { "when": { "fact": "pr.event", "in": ["changes_requested", "commented", "checks_failed", "conflict"] }, "to": "triage", "maxVisits": 5 },
         { "to": "watch", "maxVisits": 20 }

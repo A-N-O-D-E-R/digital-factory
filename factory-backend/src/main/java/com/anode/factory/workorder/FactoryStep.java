@@ -73,11 +73,7 @@ class FactoryStep implements ContextualTask {
                 .filter(s -> s.id().equals(stepId))
                 .findFirst()
                 .orElseThrow(() -> new IllegalStateException("No step " + stepId));
-        // decided afresh at every step: evidence and policies change
-        boolean allows = autonomy.allowsMerge(workOrder.facts());
-        if (!Boolean.valueOf(allows).equals(workOrder.facts().get("autonomy.allows"))) {
-            workOrder.learn(Map.of("autonomy.allows", allows), clock.instant());
-        }
+        decideAutonomy(workOrder); // the gate of this step may depend on it
         StepResult result = switch (step.kind()) {
             case agent -> runs(workOrder, step, RunKind.AGENT, step.roles());
             case gate -> gate(workOrder, step);
@@ -85,7 +81,16 @@ class FactoryStep implements ContextualTask {
                     ? runs(workOrder, step, WORKER_ACTIONS.get(step.action()), List.of(step.action()))
                     : action(workOrder, step);
         };
+        decideAutonomy(workOrder); // the transitions out of it too, with what the step learnt
         return result.response();
+    }
+
+    /** Decided afresh around every step: evidence and policies change. */
+    private void decideAutonomy(WorkOrder workOrder) {
+        boolean allows = autonomy.allowsMerge(workOrder.facts());
+        if (!Boolean.valueOf(allows).equals(workOrder.facts().get("autonomy.allows"))) {
+            workOrder.learn(Map.of("autonomy.allows", allows), clock.instant());
+        }
     }
 
     /** Queues one run per task on the first execution; proceeds once all of them succeeded. */
