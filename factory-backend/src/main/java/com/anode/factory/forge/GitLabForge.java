@@ -5,6 +5,7 @@ import com.anode.factory.repository.ForgeType;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import com.anode.factory.platform.IntegrationCheck;
 import org.gitlab4j.api.GitLabApi;
 import org.gitlab4j.api.GitLabApiException;
 import org.gitlab4j.api.models.AcceptMergeRequestParams;
@@ -18,7 +19,7 @@ import org.springframework.stereotype.Component;
 /** GitLab through gitlab4j (spring-boot-starter-gitlab). Merge requests are drafts by title. */
 @Component
 @ConditionalOnProperty(prefix = "anode.gitlab", name = "token") // as the starter's GitLabApi
-class GitLabForge implements Forge {
+class GitLabForge implements Forge, IntegrationCheck {
 
     private static final String DRAFT = "Draft: ";
 
@@ -26,6 +27,17 @@ class GitLabForge implements Forge {
 
     GitLabForge(GitLabApi gitlab) {
         this.gitlab = gitlab;
+    }
+
+    @Override
+    public String name() {
+        return "gitlab";
+    }
+
+    @Override
+    public String check() throws GitLabApiException {
+        return "Signed in as " + gitlab.getUserApi().getCurrentUser().getUsername() + " on "
+                + gitlab.getGitLabServerUrl();
     }
 
     @Override

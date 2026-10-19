@@ -1,6 +1,8 @@
 package com.anode.factory.forge;
 
+import com.anode.factory.platform.IntegrationCheck;
 import com.anode.factory.repository.CodeRepository;
+import com.anode.factory.repository.Repositories;
 import com.anode.factory.repository.ForgeType;
 import com.anode.github.GitHubApp;
 import java.io.IOException;
@@ -19,17 +21,36 @@ import org.springframework.web.client.RestClient;
 /** GitHub through the factory's GitHub App (spring-boot-starter-github). */
 @Component
 @ConditionalOnProperty(prefix = "anode.github", name = {"app-id", "private-key"}) // as the starter's GitHubApp
-class GitHubForge implements Forge {
+class GitHubForge implements Forge, IntegrationCheck {
 
     private final GitHubApp app;
+    private final Repositories repositories;
     private final String apiUrl;
     private final String webUrl;
 
-    GitHubForge(GitHubApp app, @Value("${anode.github.api-url:https://api.github.com}") String apiUrl,
+    GitHubForge(GitHubApp app, Repositories repositories, @Value("${anode.github.api-url:https://api.github.com}") String apiUrl,
                 @Value("${factory.github.web-url:https://github.com}") String webUrl) {
         this.app = app;
+        this.repositories = repositories;
         this.apiUrl = apiUrl;
         this.webUrl = webUrl;
+    }
+
+    @Override
+    public String name() {
+        return "github";
+    }
+
+    /** An installation token can only be had for a repository: the first active one is read. */
+    @Override
+    public String check() throws IOException {
+        var repository = repositories.all().stream()
+                .filter(r -> r.forge() == ForgeType.GITHUB && r.active())
+                .findFirst();
+        if (repository.isEmpty()) {
+            return "GitHub App configured; no repository registered to check it on";
+        }
+        return "GitHub App installed on " + repo(repository.get()).getFullName();
     }
 
     @Override

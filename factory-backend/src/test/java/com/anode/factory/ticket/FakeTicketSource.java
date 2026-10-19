@@ -1,5 +1,6 @@
 package com.anode.factory.ticket;
 
+import com.anode.factory.platform.IntegrationCheck;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -9,7 +10,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /** GitHub issues as the tests see them: issues they file, comments the factory posts. */
-public class FakeTicketSource implements TicketSource {
+public class FakeTicketSource implements TicketSource, IntegrationCheck {
 
     private static final Pattern URL = Pattern.compile("https://github.test/(\\w+/\\w+)/issues/(\\d+)");
 
@@ -18,6 +19,25 @@ public class FakeTicketSource implements TicketSource {
     private final Map<String, String> labels = new ConcurrentHashMap<>();
     private final List<String> comments = new CopyOnWriteArrayList<>();
     private final List<String> transitions = new CopyOnWriteArrayList<>();
+    private volatile String outage;
+
+    /** The integration check fails with {@code error} (null: works again). */
+    public void outage(String error) {
+        this.outage = error;
+    }
+
+    @Override
+    public String name() {
+        return type();
+    }
+
+    @Override
+    public String check() {
+        if (outage != null) {
+            throw new IllegalStateException(outage);
+        }
+        return "Fake GitHub";
+    }
 
     public Ticket file(String project, int number, String title, String label) {
         TicketRef ref = new TicketRef(type(), project, Integer.toString(number));

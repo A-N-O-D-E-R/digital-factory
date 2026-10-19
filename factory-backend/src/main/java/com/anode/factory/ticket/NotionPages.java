@@ -1,5 +1,6 @@
 package com.anode.factory.ticket;
 
+import com.anode.factory.platform.IntegrationCheck;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -35,7 +36,7 @@ import org.springframework.web.server.ResponseStatusException;
  */
 @Component
 @ConditionalOnProperty(prefix = "anode.notion", name = "token") // as the starter's NotionClient
-class NotionPages implements TicketSource {
+class NotionPages implements TicketSource, IntegrationCheck {
 
     private static final Pattern URL = Pattern.compile("https://(?:www\\.)?notion\\.so/(?:[^?#]*[/-])?([0-9a-f]{32})(?:[?#].*)?");
     private static final Pattern CONDITION = Pattern.compile("\\s*(.+?)\\s*=\\s*(.+?)\\s*");
@@ -52,6 +53,16 @@ class NotionPages implements TicketSource {
     @Override
     public String type() {
         return "notion";
+    }
+
+    @Override
+    public String name() {
+        return type();
+    }
+
+    @Override
+    public String check() {
+        return "Integration " + notion.retrieveBotUser().getName();
     }
 
     /** A page URL names no database: the page's parent does. */

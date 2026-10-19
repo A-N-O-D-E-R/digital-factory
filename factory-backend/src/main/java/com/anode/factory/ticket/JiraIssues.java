@@ -1,5 +1,6 @@
 package com.anode.factory.ticket;
 
+import com.anode.factory.platform.IntegrationCheck;
 import com.anode.jira.JiraClient;
 import com.anode.jira.JiraDocuments;
 import com.anode.jira.client.model.Comment;
@@ -22,7 +23,7 @@ import org.springframework.stereotype.Component;
  */
 @Component
 @ConditionalOnProperty(prefix = "anode.jira", name = {"base-url", "email", "api-token"}) // as the starter's JiraClient
-class JiraIssues implements TicketSource {
+class JiraIssues implements TicketSource, IntegrationCheck {
 
     private static final List<String> FIELDS = List.of("summary", "description");
 
@@ -39,6 +40,16 @@ class JiraIssues implements TicketSource {
     @Override
     public String type() {
         return "jira";
+    }
+
+    @Override
+    public String name() {
+        return type();
+    }
+
+    @Override
+    public String check() {
+        return "Signed in as " + jira.myself().getCurrentUser(null).getDisplayName() + " on " + baseUrl;
     }
 
     @Override
