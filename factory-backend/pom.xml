@@ -96,6 +96,14 @@
             <groupId>io.github.a-n-o-d-e-r</groupId>
             <artifactId>spring-boot-starter-jira</artifactId>
         </dependency>
+        <dependency>
+            <groupId>io.github.a-n-o-d-e-r</groupId>
+            <artifactId>spring-boot-starter-notion</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.github.seratch</groupId>
+            <artifactId>notion-sdk-jvm-httpclient</artifactId>
+        </dependency>
 
         <!-- Contracts -->
         <dependency>

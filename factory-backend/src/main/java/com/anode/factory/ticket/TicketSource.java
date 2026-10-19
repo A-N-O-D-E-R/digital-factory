@@ -17,7 +17,10 @@ public interface TicketSource {
 
     Ticket read(TicketRef ref);
 
-    /** Open tickets of {@code project} matching {@code filter} (a label), newest first, at most {@code limit}. */
+    /**
+     * Open tickets of {@code project} matching {@code filter} (its syntax is the source's: a label, JQL...),
+     * newest first, at most {@code limit}; their body may be left out, {@link #read} has it.
+     */
     List<Ticket> search(String project, String filter, int limit);
 
     void comment(TicketRef ref, String body);

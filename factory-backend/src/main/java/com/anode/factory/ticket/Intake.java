@@ -125,14 +125,15 @@ public class Intake {
 
     private Pass pass(UUID ruleId) {
         IntakeRule rule = rules.lock(ruleId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
-        List<Ticket> tickets = sources.of(rule.source()).search(rule.project(), rule.filter(), rule.maxRead());
+        TicketSource source = sources.of(rule.source());
+        List<Ticket> tickets = source.search(rule.project(), rule.filter(), rule.maxRead());
         int created = 0;
         for (Ticket ticket : tickets.subList(0, Math.min(tickets.size(), rule.maxRead()))) {
             if (created == rule.maxCreated()) {
                 break;
             }
             if (!imported.existsById(ticket.ref().key())) {
-                create(ticket, rule.repository(), rule.workflow(), rule.id(), "intake:" + rule.name(), Optional.empty());
+                create(source.read(ticket.ref()), rule.repository(), rule.workflow(), rule.id(), "intake:" + rule.name(), Optional.empty());
                 created++;
             }
         }

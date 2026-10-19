@@ -28,6 +28,8 @@
         <spring-modulith.version>2.1.1</spring-modulith.version>
         <json-schema-validator.version>3.0.8</json-schema-validator.version>
         <springdoc.version>3.1.1</springdoc.version>
+        <!-- as the starter collection's notion-sdk-jvm-core -->
+        <notion-sdk-jvm.version>1.11.1</notion-sdk-jvm.version>
     </properties>
 
     <dependencyManagement>
@@ -65,6 +67,11 @@
                 <groupId>org.springdoc</groupId>
                 <artifactId>springdoc-openapi-starter-webmvc-api</artifactId>
                 <version>${springdoc.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.github.seratch</groupId>
+                <artifactId>notion-sdk-jvm-httpclient</artifactId>
+                <version>${notion-sdk-jvm.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
