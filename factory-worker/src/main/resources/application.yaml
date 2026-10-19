@@ -1,0 +1,14 @@
+spring:
+  application:
+    name: factory-worker
+  main:
+    web-application-type: none
+logging:
+  structured:
+    format:
+      console: ecs
+factory:
+  worker:
+    control-plane-url: ${FACTORY_CONTROL_PLANE_URL:http://localhost:8080}
+    token: ${FACTORY_WORKER_TOKEN:}
+    anthropic-api-key: ${ANTHROPIC_API_KEY:}
