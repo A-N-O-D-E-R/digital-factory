@@ -141,5 +141,8 @@ class IntakeTest {
         await().until(() -> issues.comments().stream().anyMatch(c -> c.equals(
                 "github:acme/api#301: Work order " + id + " finished: CANCELLED — cancelled by dev")));
         assertThat(issues.comments().stream().filter(c -> c.startsWith("github:acme/api#301")).count()).isEqualTo(2);
+        // moved when started; not to done, the work order was cancelled
+        assertThat(issues.transitions()).filteredOn(t -> t.startsWith("github:acme/api#301"))
+                .containsExactly("github:acme/api#301: In Progress");
     }
 }

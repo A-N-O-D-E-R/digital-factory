@@ -92,6 +92,10 @@
             <groupId>io.github.a-n-o-d-e-r</groupId>
             <artifactId>spring-boot-starter-gitlab</artifactId>
         </dependency>
+        <dependency>
+            <groupId>io.github.a-n-o-d-e-r</groupId>
+            <artifactId>spring-boot-starter-jira</artifactId>
+        </dependency>
 
         <!-- Contracts -->
         <dependency>

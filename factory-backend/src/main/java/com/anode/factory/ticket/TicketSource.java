@@ -21,4 +21,7 @@ public interface TicketSource {
     List<Ticket> search(String project, String filter, int limit);
 
     void comment(TicketRef ref, String body);
+
+    /** Moves the ticket to {@code status} (a status or transition name); sources without statuses ignore it. */
+    default void transition(TicketRef ref, String status) {}
 }

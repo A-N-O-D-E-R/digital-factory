@@ -4,6 +4,7 @@ import com.anode.factory.repository.Repositories;
 import com.anode.factory.workflow.WorkflowCatalog;
 import com.anode.factory.workorder.WorkOrder;
 import com.anode.factory.workorder.WorkOrderService;
+import com.anode.factory.workorder.WorkOrderStatus;
 import java.time.Clock;
 import java.util.List;
 import java.util.Optional;
@@ -21,7 +22,7 @@ import org.springframework.web.server.ResponseStatusException;
 /**
  * Tickets become work orders: by hand from a reference, or when an intake rule's pass finds them.
  * A ticket is imported once (re-importing it is explicit); its work order's progress is commented
- * back on it, each step once.
+ * back on it, each step once, and the ticket moved to the status configured for that step.
  */
 @Service
 public class Intake {
@@ -41,11 +42,12 @@ public class Intake {
     private final Repositories repositories;
     private final WorkflowCatalog workflows;
     private final TransactionTemplate transaction;
+    private final TicketProperties properties;
     private final Clock clock;
 
     Intake(TicketSources sources, IntakeRuleRepository rules, ImportedTicketRepository imported,
            WorkOrderService workOrders, Repositories repositories, WorkflowCatalog workflows,
-           PlatformTransactionManager transactions, Clock clock) {
+           PlatformTransactionManager transactions, TicketProperties properties, Clock clock) {
         this.sources = sources;
         this.rules = rules;
         this.imported = imported;
@@ -53,6 +55,7 @@ public class Intake {
         this.repositories = repositories;
         this.workflows = workflows;
         this.transaction = new TransactionTemplate(transactions);
+        this.properties = properties;
         this.clock = clock;
     }
 
@@ -206,7 +209,21 @@ public class Intake {
                     + (workOrder.outcomeReason() == null ? "" : " — " + workOrder.outcomeReason());
         };
         TicketRef ref = sources.parse(key);
-        sources.of(ref.source()).comment(ref, message);
+        TicketSource source = sources.of(ref.source());
+        source.comment(ref, message);
         ticket.reported(progress);
+        String step = switch (progress) {
+            case STARTED -> "started";
+            case PR_OPENED -> "pr-opened";
+            case FINISHED -> workOrder.status() == WorkOrderStatus.DONE ? "done" : null;
+        };
+        String status = step == null ? null : properties.transition(ref.source(), step);
+        if (status != null) {
+            try {
+                source.transition(ref, status);
+            } catch (RuntimeException e) { // the comment is posted: moving the ticket is best effort
+                log.warn("Cannot move {} to {}", key, status, e);
+            }
+        }
     }
 }

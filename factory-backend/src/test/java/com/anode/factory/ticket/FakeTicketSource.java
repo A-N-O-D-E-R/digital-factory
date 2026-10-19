@@ -17,6 +17,7 @@ public class FakeTicketSource implements TicketSource {
     private final Map<String, Ticket> tickets = new ConcurrentHashMap<>();
     private final Map<String, String> labels = new ConcurrentHashMap<>();
     private final List<String> comments = new CopyOnWriteArrayList<>();
+    private final List<String> transitions = new CopyOnWriteArrayList<>();
 
     public Ticket file(String project, int number, String title, String label) {
         TicketRef ref = new TicketRef(type(), project, Integer.toString(number));
@@ -30,6 +31,11 @@ public class FakeTicketSource implements TicketSource {
     /** "key: comment" in order. */
     public List<String> comments() {
         return comments;
+    }
+
+    /** "key: status" in order. */
+    public List<String> transitions() {
+        return transitions;
     }
 
     @Override
@@ -72,5 +78,10 @@ public class FakeTicketSource implements TicketSource {
     @Override
     public void comment(TicketRef ref, String body) {
         comments.add(ref.key() + ": " + body);
+    }
+
+    @Override
+    public void transition(TicketRef ref, String status) {
+        transitions.add(ref.key() + ": " + status);
     }
 }
