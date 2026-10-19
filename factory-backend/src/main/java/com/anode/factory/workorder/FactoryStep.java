@@ -138,7 +138,8 @@ class FactoryStep implements ContextualTask {
             for (String task : tasks) {
                 JsonNode settings = roleSettings.get(task);
                 String input = kind == RunKind.AGENT
-                        ? RunInputs.agent(workOrder, repository, step.id(), task, settings, prompts.get(task), earlier, json)
+                        ? RunInputs.agent(workOrder, repository, step.id(), task, settings, prompts.get(task),
+                                roles.writesCode(task), earlier, json)
                         : task.equals(JUDGE)
                         ? RunInputs.judge(workOrder, repository, step.id(), earlier, json)
                         : RunInputs.evidence(workOrder, repository, step.id(), task, earlier, json);

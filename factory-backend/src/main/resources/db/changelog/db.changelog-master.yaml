@@ -299,3 +299,13 @@ databaseChangeLog:
               - column: { name: rule_id, type: uuid, constraints: { foreignKeyName: fk_imported_tickets_rule, references: intake_rules(id) } }
               - column: { name: reported, type: varchar(16) }
               - column: { name: imported_at, type: timestamptz, constraints: { nullable: false } }
+  - changeSet:
+      id: 012-run-bundles
+      author: digital-factory
+      comment: The work of code-writing runs as git bundles, the next run of the work order starting from the latest succeeded one
+      changes:
+        - createTable:
+            tableName: run_bundles
+            columns:
+              - column: { name: run_id, type: uuid, constraints: { primaryKey: true, foreignKeyName: fk_run_bundles_run, references: runs(id) } }
+              - column: { name: bundle, type: bytea, constraints: { nullable: false } }

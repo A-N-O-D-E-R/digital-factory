@@ -22,11 +22,15 @@ final class RunInputs {
 
     private RunInputs() {}
 
-    /** {@code settings}: the role's model, turns, effort, timeout, budget and resources for this run. */
+    /**
+     * {@code settings}: the role's model, turns, effort, timeout, budget and resources for this run;
+     * {@code writesCode}: whether the worker keeps the role's changes (as the run's bundle).
+     */
     static String agent(WorkOrder workOrder, CodeRepository repository, String stepId, String role, JsonNode settings,
-                        PromptVersion prompt, List<Run> earlier, JsonMapper json) {
+                        PromptVersion prompt, boolean writesCode, List<Run> earlier, JsonMapper json) {
         Map<String, Object> input = input(workOrder, repository, stepId, role, earlier, false, json);
         input.put("settings", settings);
+        input.put("writesCode", writesCode);
         input.put("prompt", Map.of("version", prompt.version(), "text", prompt.text()));
         return json.writeValueAsString(input);
     }

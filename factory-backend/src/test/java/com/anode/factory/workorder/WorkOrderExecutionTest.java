@@ -21,6 +21,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
+import org.springframework.test.web.servlet.assertj.MvcTestResult;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -132,6 +133,43 @@ class WorkOrderExecutionTest {
 
         FakeWorker.Job verify = claim("run-tests");
         assertThat(verify.input().get("artifacts").get("specifier").get("command").asString()).isEqualTo("node --test acceptance");
+    }
+
+    MvcTestResult putBundle(FakeWorker.Job job, String content) {
+        return mvc.put().uri("/internal/runs/{id}/bundle", job.runId()).header("Authorization", worker.bearer())
+                .contentType(MediaType.APPLICATION_OCTET_STREAM).content(content.getBytes()).exchange();
+    }
+
+    MvcTestResult getBundle(FakeWorker.Job job) {
+        return mvc.get().uri("/internal/runs/{id}/bundle", job.runId()).header("Authorization", worker.bearer())
+                .exchange();
+    }
+
+    @Test
+    void theWorkOfASucceededImplementerIsWhereTheNextRunsStart() {
+        UUID id = create("mini");
+        worker.complete(claim("classifier"), classification("BUG", "LOW"));
+        awaitStep(id, "specify");
+        FakeWorker.Job specify = claim("specifier");
+        assertThat(specify.input().get("writesCode").asBoolean()).isFalse();
+        worker.complete(specify, acceptance());
+        awaitStep(id, "implement");
+
+        FakeWorker.Job first = claim("implementer");
+        assertThat(first.input().get("writesCode").asBoolean()).isTrue();
+        assertThat(getBundle(first)).hasStatus(204);
+        assertThat(putBundle(first, "first attempt")).hasStatus(204);
+        worker.fail(first, "sandbox crashed");
+
+        FakeWorker.Job second = claim("implementer");
+        assertThat(getBundle(second)).as("a failed attempt's work is dropped").hasStatus(204);
+        assertThat(putBundle(second, "second attempt")).hasStatus(204);
+        worker.complete(second, implementation());
+        awaitStep(id, "verify");
+
+        FakeWorker.Job verify = claim("run-tests");
+        assertThat(getBundle(verify)).hasStatus(200).hasBodyTextEqualTo("second attempt");
+        assertThat(putBundle(verify, "evidence")).as("evidence runs write no code").hasStatus(403);
     }
 
     @Test
