@@ -58,6 +58,10 @@ public class Run {
     @Column(name = "lease_until")
     private Instant leaseUntil;
 
+    /** Budget reserved when dispatched; the cost replaces it once known. */
+    @Column(name = "reserved_usd")
+    private BigDecimal reservedUsd;
+
     @Column(name = "cost_usd")
     private BigDecimal costUsd;
 
@@ -85,8 +89,9 @@ public class Run {
         this.createdAt = now;
     }
 
-    void start(UUID workerId, Instant leaseUntil, Instant now) {
+    void start(UUID workerId, Instant leaseUntil, BigDecimal reservedUsd, Instant now) {
         this.status = RunStatus.RUNNING;
+        this.reservedUsd = reservedUsd;
         this.workerId = workerId;
         this.leaseUntil = leaseUntil;
         this.startedAt = now;

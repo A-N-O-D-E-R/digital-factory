@@ -10,6 +10,8 @@ import java.net.URI;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -35,11 +37,12 @@ class WorkOrderController {
 
     record WorkOrderView(UUID id, String repository, String title, String description, String workflow,
                          int workflowVersion, WorkOrderStatus status, String currentStep, int currentVisit,
-                         String outcomeReason, Map<String, Object> facts, String createdBy, Instant createdAt,
-                         Instant updatedAt) {
-        static WorkOrderView of(WorkOrder w) {
+                         String outcomeReason, String pauseReason, Map<String, Object> facts, String createdBy,
+                         Instant createdAt, Instant updatedAt) {
+        static WorkOrderView of(WorkOrder w, Optional<String> pauseReason) {
             return new WorkOrderView(w.id(), w.repository(), w.title(), w.description(), w.workflowName(),
-                    w.workflowVersion(), w.status(), w.currentStep(), w.currentVisit(), w.outcomeReason(), w.facts(),
+                    w.workflowVersion(), pauseReason.isPresent() ? WorkOrderStatus.PAUSED : w.status(),
+                    w.currentStep(), w.currentVisit(), w.outcomeReason(), pauseReason.orElse(null), w.facts(),
                     w.createdBy(), w.createdAt(), w.updatedAt());
         }
     }
@@ -60,7 +63,7 @@ class WorkOrderController {
         }
     }
 
-    record Detail(WorkOrderView workOrder, List<RunView> runs, List<ApprovalView> approvals) {}
+    record Detail(WorkOrderView workOrder, BigDecimal costUsd, List<RunView> runs, List<ApprovalView> approvals) {}
 
     record DecisionRequest(Approval.Decision decision, @Size(max = 2000) String comment) {}
 
@@ -78,21 +81,29 @@ class WorkOrderController {
         WorkOrder workOrder = service.create(request.repository(), request.title(), request.description(),
                 request.workflow(), author.getName());
         return ResponseEntity.created(URI.create("/api/work-orders/" + workOrder.id()))
-                .body(WorkOrderView.of(service.get(workOrder.id())));
+                .body(view(service.get(workOrder.id())));
     }
 
     @GetMapping("/work-orders")
     @PreAuthorize("hasAnyRole('ADMIN','DEVELOPER','VIEWER')")
     List<WorkOrderView> all() {
-        return service.all().stream().map(WorkOrderView::of).toList();
+        // ponytail: budget queries per running work order; one grouped query if the list grows large
+        return service.all().stream().map(this::view).toList();
     }
 
     @GetMapping("/work-orders/{id}")
     @PreAuthorize("hasAnyRole('ADMIN','DEVELOPER','VIEWER')")
     Detail get(@PathVariable UUID id) {
-        return new Detail(WorkOrderView.of(service.get(id)),
-                runs.runsOf(id).stream().map(RunView::of).toList(),
+        List<Run> workOrderRuns = runs.runsOf(id);
+        BigDecimal cost = workOrderRuns.stream().map(Run::costUsd).filter(Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        return new Detail(view(service.get(id)), cost, workOrderRuns.stream().map(RunView::of).toList(),
                 service.approvalsOf(id).stream().map(ApprovalView::of).toList());
+    }
+
+    private WorkOrderView view(WorkOrder workOrder) {
+        return WorkOrderView.of(workOrder, workOrder.status() == WorkOrderStatus.RUNNING
+                ? runs.pauseReason(workOrder.id()) : Optional.empty());
     }
 
     @PostMapping("/work-orders/{id}/cancel")

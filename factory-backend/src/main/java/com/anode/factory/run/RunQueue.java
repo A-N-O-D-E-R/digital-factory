@@ -27,19 +27,22 @@ public class RunQueue {
 
     private static final Logger log = LoggerFactory.getLogger(RunQueue.class);
 
-    /** What a worker receives when it claims a run. */
+    /** What a worker receives when it claims a run; an agent run must not spend more than {@code budgetUsd}. */
     public record Job(UUID runId, UUID workOrderId, RunKind kind, String task, int attempt,
-                      @JsonRawValue String input, @JsonRawValue String outputSchema, Instant leaseUntil) {}
+                      @JsonRawValue String input, @JsonRawValue String outputSchema, Instant leaseUntil,
+                      BigDecimal budgetUsd) {}
 
     private final RunRepository runs;
     private final OutputSchemas schemas;
     private final ApplicationEventPublisher events;
     private final RunProperties properties;
+    private final Budgets budgets;
     private final Clock clock;
     private final JsonMapper json;
 
     RunQueue(RunRepository runs, OutputSchemas schemas, ApplicationEventPublisher events, RunProperties properties,
-             Clock clock, JsonMapper json) {
+             Budgets budgets, Clock clock, JsonMapper json) {
+        this.budgets = budgets;
         this.json = json;
         this.runs = runs;
         this.schemas = schemas;
@@ -56,14 +59,35 @@ public class RunQueue {
         return runs.save(new Run(workOrderId, stepId, visit, kind, task, 1, input, clock.instant()));
     }
 
+    /** The oldest queued run its budgets allow, with its budget reserved; none while the factory is paused. */
     @Transactional
     public Optional<Job> claim(UUID workerId) {
-        return runs.lockNextQueued().map(run -> {
-            Instant now = clock.instant();
-            run.start(workerId, now.plus(properties.lease()), now);
-            return new Job(run.id(), run.workOrderId(), run.kind(), run.task(), run.attempt(), run.input(),
-                    schemas.text(run.task()), now.plus(properties.lease()));
-        });
+        runs.lockClaims();
+        if (budgets.paused()) {
+            return Optional.empty();
+        }
+        for (Run run : runs.lockQueued()) {
+            BigDecimal reservation = reservation(run);
+            if (budgets.refusal(run.workOrderId(), reservation).isEmpty()) {
+                Instant now = clock.instant();
+                run.start(workerId, now.plus(properties.lease()), reservation, now);
+                return Optional.of(new Job(run.id(), run.workOrderId(), run.kind(), run.task(), run.attempt(),
+                        run.input(), schemas.text(run.task()), now.plus(properties.lease()),
+                        run.kind() == RunKind.AGENT ? reservation : null));
+            }
+        }
+        return Optional.empty();
+    }
+
+    /** Why the next queued run of a work order is held back (budget, pause), if it is. */
+    public Optional<String> pauseReason(UUID workOrderId) {
+        return runs.findFirstByWorkOrderIdAndStatusOrderByCreatedAt(workOrderId, RunStatus.QUEUED)
+                .flatMap(run -> budgets.refusal(workOrderId, reservation(run)));
+    }
+
+    /** Only agents call a model. */
+    private BigDecimal reservation(Run run) {
+        return run.kind() == RunKind.AGENT ? properties.agentRunUsd() : BigDecimal.ZERO;
     }
 
     /** Extends the lease; tells the worker whether the run was cancelled meanwhile. */
