@@ -60,6 +60,33 @@ class WorkflowApiTest {
                 .hasPathSatisfying("$.valid", v -> assertThat(v).isEqualTo(true));
     }
 
+    tools.jackson.databind.JsonNode dryRun(String definition, String learnt) {
+        MvcTestResult result = mvc.post().uri("/api/workflows/dry-run").with(developer()).with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"definition\":" + definition + ",\"facts\":{},\"learnt\":" + learnt + "}").exchange();
+        assertThat(result).hasStatusOk();
+        return tools.jackson.databind.json.JsonMapper.builder().build()
+                .readTree(result.getResponse().getContentAsByteArray());
+    }
+
+    @Test
+    void aDryRunShowsThePathGivenWhatEachVisitWouldLearn() {
+        String workflow = linear(IMPLEMENT + "," + VERIFY + "," + PUSH);
+        var fixedOnSecondTry = dryRun(workflow, "{\"verify\":[{\"tests.passed\":false},{\"tests.passed\":true}]}");
+        assertThat(fixedOnSecondTry.get("result").get("outcome").asString()).isEqualTo("@done");
+        assertThat(fixedOnSecondTry.get("result").get("path").findValuesAsString("step"))
+                .containsExactly("implement", "verify", "implement", "verify", "push");
+
+        var neverFixed = dryRun(workflow, "{\"verify\":[{\"tests.passed\":false}]}");
+        assertThat(neverFixed.get("result").get("outcome").asString()).isEqualTo("@blocked");
+        assertThat(neverFixed.get("result").get("path").size()).isEqualTo(8); // 4 visits of each, the bound is 3
+        assertThat(neverFixed.get("result").get("path").get(7).get("reason").asString()).isEqualTo("taken 3 times already");
+
+        var invalid = dryRun(linear(IMPLEMENT), "{}");
+        assertThat(invalid.get("valid").asBoolean()).isFalse();
+        assertThat(invalid.get("result").isNull()).isTrue();
+    }
+
     @Nested
     class Refused {
 

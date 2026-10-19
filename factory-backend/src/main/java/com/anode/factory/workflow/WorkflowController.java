@@ -3,6 +3,7 @@ package com.anode.factory.workflow;
 import java.net.URI;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -25,6 +26,11 @@ class WorkflowController {
     record PublishRequest(JsonNode definition, String note) {}
 
     record ValidationView(boolean valid, List<String> errors) {}
+
+    /** {@code learnt}: per step id, what each visit of it learns (e.g. {"verify": [{"tests.passed": false}, {"tests.passed": true}]}). */
+    record DryRunRequest(JsonNode definition, Map<String, Object> facts, Map<String, List<Map<String, Object>>> learnt) {}
+
+    record DryRunView(boolean valid, List<String> errors, WorkflowDryRun.Path result) {}
 
     private final WorkflowCatalog catalog;
     private final JsonMapper json;
@@ -82,6 +88,18 @@ class WorkflowController {
     ValidationView validate(@RequestBody JsonNode definition) {
         var result = catalog.validate(json.writeValueAsString(definition));
         return new ValidationView(result.valid(), result.errors());
+    }
+
+    @PostMapping("/dry-run")
+    @PreAuthorize("hasAnyRole('ADMIN','DEVELOPER')")
+    DryRunView dryRun(@RequestBody DryRunRequest request) {
+        var result = catalog.validate(json.writeValueAsString(request.definition()));
+        if (!result.valid()) {
+            return new DryRunView(false, result.errors(), null);
+        }
+        return new DryRunView(true, List.of(), WorkflowDryRun.run(result.definition(),
+                request.facts() == null ? Map.of() : request.facts(),
+                request.learnt() == null ? Map.of() : request.learnt()));
     }
 
     private static ResponseStatusException notFound(String what) {
