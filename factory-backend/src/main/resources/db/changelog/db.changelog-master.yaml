@@ -379,3 +379,24 @@ databaseChangeLog:
                 for each row execute function record_work_order_event();
               create trigger approvals_events after insert or update on approvals
                 for each row execute function record_work_order_event();
+  - changeSet:
+      id: 015-pr-outcomes
+      author: digital-factory
+      comment: PRs merged or closed without merge, per work-order class; a class whose latest PRs fail too often loses merging
+      changes:
+        - createTable:
+            tableName: pr_outcomes
+            columns:
+              - column: { name: work_order_id, type: uuid, constraints: { primaryKey: true, foreignKeyName: fk_pr_outcomes_work_order, references: work_orders(id) } }
+              - column: { name: work_order_type, type: varchar(32), constraints: { nullable: false } }
+              - column: { name: merged, type: boolean, constraints: { nullable: false } }
+              - column: { name: at, type: timestamptz, constraints: { nullable: false } }
+        - createIndex:
+            tableName: pr_outcomes
+            indexName: ix_pr_outcomes_type
+            columns: [ { column: { name: work_order_type } }, { column: { name: at } } ]
+        - addColumn:
+            tableName: autonomy_policies
+            columns:
+              - column: { name: max_failure_rate, type: "numeric(5,4)", defaultValueNumeric: 0.25, constraints: { nullable: false } }
+              - column: { name: failure_rate, type: "numeric(5,4)" }

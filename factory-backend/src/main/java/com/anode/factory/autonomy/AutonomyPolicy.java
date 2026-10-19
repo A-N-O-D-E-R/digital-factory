@@ -34,6 +34,14 @@ public class AutonomyPolicy {
     @Column(name = "success_rate")
     private BigDecimal successRate;
 
+    /** Above it, among the class's latest PRs closed without merge, merging is taken back. Between 0 and 1. */
+    @Column(name = "max_failure_rate", nullable = false)
+    private BigDecimal maxFailureRate;
+
+    /** Measured on the class's latest PRs; unknown until there are enough. */
+    @Column(name = "failure_rate")
+    private BigDecimal failureRate;
+
     @Column(name = "updated_by", nullable = false)
     private String updatedBy;
 
@@ -46,15 +54,34 @@ public class AutonomyPolicy {
         this.type = type;
     }
 
-    void grant(AutonomyLevel level, BigDecimal minSuccessRate, String by, Instant now) {
+    void grant(AutonomyLevel level, BigDecimal minSuccessRate, BigDecimal maxFailureRate, String by, Instant now) {
         this.level = level;
         this.minSuccessRate = minSuccessRate;
+        this.maxFailureRate = maxFailureRate;
         this.updatedBy = by;
         this.updatedAt = now;
     }
 
     void measured(BigDecimal successRate) {
         this.successRate = successRate;
+    }
+
+    /** The real-world failure rate; merging is taken back (one level down) once it is too high. */
+    void failed(BigDecimal failureRate, String why, Instant now) {
+        this.failureRate = failureRate;
+        if (level == AutonomyLevel.MERGE && failureRate.compareTo(maxFailureRate) > 0) {
+            level = AutonomyLevel.DRAFT_PR;
+            updatedBy = "factory: " + why;
+            updatedAt = now;
+        }
+    }
+
+    public BigDecimal maxFailureRate() {
+        return maxFailureRate;
+    }
+
+    public BigDecimal failureRate() {
+        return failureRate;
     }
 
     /** Merging alone is earned: granted, and measured at least as reliable as required. */

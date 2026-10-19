@@ -1,5 +1,6 @@
 package com.anode.factory.workorder;
 
+import com.anode.factory.autonomy.AutonomyPolicies;
 import com.anode.factory.workflow.WorkflowCompiler;
 import com.anode.factory.workflow.WorkflowDefinition.Outcome;
 import com.anode.workflow.entities.steps.responses.TaskResponse;
@@ -13,10 +14,12 @@ import org.springframework.stereotype.Component;
 class FactoryOutcome implements ContextualTask {
 
     private final CurrentWorkOrder current;
+    private final AutonomyPolicies autonomy;
     private final Clock clock;
 
-    FactoryOutcome(CurrentWorkOrder current, Clock clock) {
+    FactoryOutcome(CurrentWorkOrder current, AutonomyPolicies autonomy, Clock clock) {
         this.current = current;
+        this.autonomy = autonomy;
         this.clock = clock;
     }
 
@@ -28,6 +31,11 @@ class FactoryOutcome implements ContextualTask {
                 .findFirst()
                 .orElseThrow(() -> new IllegalStateException("Unknown outcome step " + context.getStepName()));
         workOrder.finish(outcome, (String) workOrder.facts().get(Transitions.REASON_FACT), clock.instant());
+        Object prEvent = workOrder.facts().get("pr.event");
+        if (!workOrder.eval() && workOrder.facts().get("type") instanceof String type
+                && ("merged".equals(prEvent) || "closed".equals(prEvent))) {
+            autonomy.prOutcome(workOrder.id(), type, "merged".equals(prEvent));
+        }
         return StepResult.PROCEED.response();
     }
 }

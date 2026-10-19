@@ -1,5 +1,6 @@
 package com.anode.factory.prwatch;
 
+import static com.anode.factory.FakeWorker.Outputs.classification;
 import static com.anode.factory.FakeWorker.Outputs.implementation;
 import static com.anode.factory.FakeWorker.Outputs.tests;
 import static com.anode.factory.Users.admin;
@@ -94,11 +95,19 @@ class PrWatchTest {
     record Watched(UUID id, long number) {}
 
     Watched watchedPullRequest() {
+        return watchedPullRequest("watched");
+    }
+
+    Watched watchedPullRequest(String workflow) {
         var created = mvc.post().uri("/api/work-orders").with(developer()).with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"repository\":\"" + TestRepository.KEY + "\",\"title\":\"Fix\",\"description\":\"d\",\"workflow\":\"watched\"}")
+                .content("{\"repository\":\"" + TestRepository.KEY + "\",\"title\":\"Fix\",\"description\":\"d\",\"workflow\":\"" + workflow + "\"}")
                 .exchange();
         UUID id = UUID.fromString(json.readTree(created.getResponse().getContentAsByteArray()).get("id").asString());
+        if (workflow.equals("classified")) {
+            worker.complete(claim("classifier"), classification("REFACTOR", "LOW"));
+            awaitStep(id, "implement");
+        }
         worker.complete(claim("implementer"), implementation());
         awaitStep(id, "verify");
         worker.complete(claim("run-tests"), tests(1, 0));
@@ -182,6 +191,43 @@ class PrWatchTest {
 
         awaitStatus(pr.id(), "CANCELLED");
         assertThat(get("/api/work-orders/{id}/pr-events", pr.id()).size()).isEqualTo(1);
+    }
+
+    @Test
+    void aClassWhosePrsAreClosedTooOftenLosesMerging() {
+        assertThat(mvc.post().uri("/api/workflows/classified/versions").with(admin()).with(csrf())
+                .contentType(MediaType.APPLICATION_JSON).content("{\"definition\":" + WATCHED.replace(
+                        "\"start\": \"implement\", \"steps\": [", """
+                        "start": "classify", "steps": [
+                        { "id": "classify", "kind": "agent", "roles": ["classifier"], "next": [{ "to": "implement" }] },""")
+                        + ",\"note\":\"test\"}")).hasStatus(201);
+        assertThat(mvc.put().uri("/api/autonomy-policy/REFACTOR").with(admin()).with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"level\":\"MERGE\",\"minSuccessRate\":0,\"maxFailureRate\":0.25}")).hasStatusOk();
+
+        for (boolean merged : new boolean[] {true, false, true, true}) {
+            Watched pr = watchedPullRequest("classified");
+            deliver("pull_request", GitHubWebhook.closed(pr.number(), merged));
+            awaitStatus(pr.id(), merged ? "DONE" : "CANCELLED");
+        }
+        assertThat(policy("REFACTOR").get("level").asString()).as("4 PRs are not enough to judge").isEqualTo("MERGE");
+
+        Watched fifth = watchedPullRequest("classified");
+        deliver("pull_request", GitHubWebhook.closed(fifth.number(), false));
+        awaitStatus(fifth.id(), "CANCELLED");
+        JsonNode policy = policy("REFACTOR");
+        assertThat(policy.get("failureRate").decimalValue()).isEqualByComparingTo("0.4");
+        assertThat(policy.get("level").asString()).isEqualTo("DRAFT_PR");
+        assertThat(policy.get("updatedBy").asString()).isEqualTo("factory: 2 of the last 5 PRs closed without merge");
+    }
+
+    JsonNode policy(String type) {
+        for (JsonNode policy : get("/api/autonomy-policy")) {
+            if (policy.get("type").asString().equals(type)) {
+                return policy;
+            }
+        }
+        throw new AssertionError("no policy " + type);
     }
 
     @Test
