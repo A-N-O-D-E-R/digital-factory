@@ -268,3 +268,34 @@ databaseChangeLog:
             tableName: runs
             columns:
               - column: { name: output_schema, type: varchar(63), constraints: { nullable: false } }
+  - changeSet:
+      id: 011-intake
+      author: digital-factory
+      comment: Intake rules polled for new tickets; every ticket imported at most once (re-import is explicit), with what was reported back on it
+      changes:
+        - createTable:
+            tableName: intake_rules
+            columns:
+              - column: { name: id, type: uuid, constraints: { primaryKey: true } }
+              - column: { name: name, type: varchar(63), constraints: { nullable: false, unique: true } }
+              - column: { name: source, type: varchar(32), constraints: { nullable: false } }
+              - column: { name: project, type: varchar(255), constraints: { nullable: false } }
+              - column: { name: filter, type: varchar(2000), constraints: { nullable: false } }
+              - column: { name: repository, type: varchar(255), constraints: { nullable: false, foreignKeyName: fk_intake_rules_repository, references: repositories(key) } }
+              - column: { name: workflow, type: varchar(63) }
+              - column: { name: max_read, type: int, constraints: { nullable: false } }
+              - column: { name: max_created, type: int, constraints: { nullable: false } }
+              - column: { name: enabled, type: boolean, constraints: { nullable: false } }
+              - column: { name: last_polled_at, type: timestamptz }
+              - column: { name: last_error, type: text }
+              - column: { name: created_by, type: varchar(255), constraints: { nullable: false } }
+              - column: { name: created_at, type: timestamptz, constraints: { nullable: false } }
+        - createTable:
+            tableName: imported_tickets
+            columns:
+              - column: { name: ticket, type: varchar(500), constraints: { primaryKey: true } }
+              - column: { name: url, type: varchar(2000), constraints: { nullable: false } }
+              - column: { name: work_order_id, type: uuid, constraints: { nullable: false, foreignKeyName: fk_imported_tickets_work_order, references: work_orders(id) } }
+              - column: { name: rule_id, type: uuid, constraints: { foreignKeyName: fk_imported_tickets_rule, references: intake_rules(id) } }
+              - column: { name: reported, type: varchar(16) }
+              - column: { name: imported_at, type: timestamptz, constraints: { nullable: false } }
