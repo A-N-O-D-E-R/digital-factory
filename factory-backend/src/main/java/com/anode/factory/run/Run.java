@@ -58,6 +58,10 @@ public class Run {
     @Column(name = "lease_until")
     private Instant leaseUntil;
 
+    /** The most the run may spend (agent runs only): reserved when dispatched. */
+    @Column(name = "budget_usd")
+    private BigDecimal budgetUsd;
+
     /** Budget reserved when dispatched; the cost replaces it once known. */
     @Column(name = "reserved_usd")
     private BigDecimal reservedUsd;
@@ -76,8 +80,10 @@ public class Run {
 
     protected Run() {}
 
-    Run(UUID workOrderId, String stepId, int visit, RunKind kind, String task, int attempt, String input, Instant now) {
+    Run(UUID workOrderId, String stepId, int visit, RunKind kind, String task, int attempt, String input,
+        BigDecimal budgetUsd, Instant now) {
         this.id = UUID.randomUUID();
+        this.budgetUsd = budgetUsd;
         this.workOrderId = workOrderId;
         this.stepId = stepId;
         this.visit = visit;
@@ -156,6 +162,10 @@ public class Run {
 
     public UUID workerId() {
         return workerId;
+    }
+
+    public BigDecimal budgetUsd() {
+        return budgetUsd;
     }
 
     public BigDecimal costUsd() {

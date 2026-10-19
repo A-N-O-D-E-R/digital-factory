@@ -20,7 +20,7 @@ import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
-/** Agent runs reserve 2.00 USD when dispatched (the default); the fake worker reports 0.01 USD per run. */
+/** Agent runs reserve their role's budget (built-in: classifier 0.20, analyst 2.00 USD); the fake worker reports 0.01. */
 @IntegrationTest
 class BudgetTest {
 
@@ -77,9 +77,9 @@ class BudgetTest {
         budgets("{\"workOrderUsd\":2.005}");
         UUID id = create();
 
-        FakeWorker.Job classify = worker.claim(); // reserves 2.00 of 2.005
+        FakeWorker.Job classify = worker.claim(); // reserves 0.20 of 2.005
         assertThat(classify.task()).isEqualTo("classifier");
-        worker.complete(classify, classification("BUG", "LOW")); // costs 0.01: 0.01 + 2.00 no longer fits
+        worker.complete(classify, classification("BUG", "LOW")); // costs 0.01: the analyst's 0.01 + 2.00 no longer fits
 
         org.awaitility.Awaitility.await().until(() -> "PAUSED".equals(workOrder(id).get("workOrder").get("status").asString()));
         JsonNode paused = workOrder(id);
@@ -96,9 +96,9 @@ class BudgetTest {
     void parallelRunsCannotOvershootTheDailyBudgetTogether() {
         UUID first = create();
         UUID second = create();
-        budgets("{\"dailyUsd\":" + spentToday().add(new BigDecimal("2.005")) + "}");
+        budgets("{\"dailyUsd\":" + spentToday().add(new BigDecimal("0.205")) + "}");
 
-        FakeWorker.Job job = worker.claim(); // reserves 2.00: the other run no longer fits
+        FakeWorker.Job job = worker.claim(); // reserves 0.20: the other classifier no longer fits
         assertThat(job.input().get("workOrder").get("id").asString()).isEqualTo(first.toString());
         assertThat(worker.hasNothingToClaim()).isTrue();
         assertThat(workOrder(second).get("workOrder").get("pauseReason").asString()).contains("daily budget");

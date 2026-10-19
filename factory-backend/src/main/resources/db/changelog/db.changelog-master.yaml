@@ -203,3 +203,37 @@ databaseChangeLog:
             columns:
               - column: { name: id, valueNumeric: 1 }
               - column: { name: paused, valueBoolean: false }
+  - changeSet:
+      id: 009-settings
+      author: digital-factory
+      comment: Settings layers (merge patches over the built-in defaults), their audited changes, the settings frozen on each work order
+      changes:
+        - createTable:
+            tableName: settings_layers
+            columns:
+              - column: { name: scope, type: varchar(300), constraints: { primaryKey: true } }
+              - column: { name: document, type: jsonb, constraints: { nullable: false } }
+              - column: { name: updated_by, type: varchar(255), constraints: { nullable: false } }
+              - column: { name: updated_at, type: timestamptz, constraints: { nullable: false } }
+        - createTable:
+            tableName: settings_changes
+            columns:
+              - column: { name: id, type: uuid, constraints: { primaryKey: true } }
+              - column: { name: scope, type: varchar(300), constraints: { nullable: false } }
+              - column: { name: before, type: jsonb, constraints: { nullable: false } }
+              - column: { name: after, type: jsonb, constraints: { nullable: false } }
+              - column: { name: reason, type: varchar(2000), constraints: { nullable: false } }
+              - column: { name: changed_by, type: varchar(255), constraints: { nullable: false } }
+              - column: { name: changed_at, type: timestamptz, constraints: { nullable: false } }
+        - createIndex:
+            tableName: settings_changes
+            indexName: ix_settings_changes_scope
+            columns: [ { column: { name: scope } }, { column: { name: changed_at } } ]
+        - addColumn:
+            tableName: work_orders
+            columns:
+              - column: { name: settings, type: jsonb, constraints: { nullable: false } }
+        - addColumn:
+            tableName: runs
+            columns:
+              - column: { name: budget_usd, type: "numeric(12,4)" }

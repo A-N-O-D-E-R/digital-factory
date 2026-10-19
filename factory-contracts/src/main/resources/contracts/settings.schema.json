@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://a-n-o-d-e-r.github.io/digital-factory/contracts/settings.schema.json",
+  "title": "Effective factory settings",
+  "description": "Built-in defaults, then the global layer, then the repository layer, each layer applied as a JSON Merge Patch (RFC 7396): objects merged, arrays replaced, null removes.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["models", "roles"],
+  "properties": {
+    "models": {
+      "description": "Logical model names to provider model IDs: switching models is a settings change.",
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": { "pattern": "^[a-z][a-z0-9-]*$" },
+      "additionalProperties": { "type": "string", "minLength": 1 }
+    },
+    "roles": {
+      "description": "Run settings per agent role; 'default' applies to every role, a role's entry overrides it.",
+      "type": "object",
+      "required": ["default"],
+      "propertyNames": { "pattern": "^[a-z][a-z0-9-]*$" },
+      "properties": {
+        "default": {
+          "$ref": "#/$defs/role",
+          "required": ["model", "maxTurns", "effort", "timeoutMinutes", "budgetUsd", "cpus", "memoryMb"]
+        }
+      },
+      "additionalProperties": { "$ref": "#/$defs/role" }
+    }
+  },
+  "$defs": {
+    "role": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "model": { "description": "A logical name from 'models'.", "type": "string" },
+        "maxTurns": { "type": "integer", "minimum": 1, "maximum": 500 },
+        "effort": { "enum": ["low", "medium", "high", "max"] },
+        "timeoutMinutes": { "type": "integer", "minimum": 1, "maximum": 720 },
+        "budgetUsd": { "description": "Reserved when the run is dispatched; the runner's own cap.", "type": "number", "minimum": 0, "maximum": 100 },
+        "cpus": { "type": "number", "minimum": 0.25, "maximum": 64 },
+        "memoryMb": { "type": "integer", "minimum": 256, "maximum": 262144 }
+      }
+    }
+  }
+}

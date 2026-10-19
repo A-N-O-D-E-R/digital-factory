@@ -1,0 +1,12 @@
+{
+  "models": {
+    "opus": "claude-opus-5-5",
+    "sonnet": "claude-sonnet-5-5",
+    "haiku": "claude-haiku-5-5"
+  },
+  "roles": {
+    "default": { "model": "opus", "maxTurns": 60, "effort": "high", "timeoutMinutes": 30, "budgetUsd": 2.00, "cpus": 2, "memoryMb": 4096 },
+    "classifier": { "model": "haiku", "maxTurns": 5, "effort": "low", "timeoutMinutes": 5, "budgetUsd": 0.20, "cpus": 1, "memoryMb": 1024 },
+    "feedback-triage": { "model": "sonnet", "maxTurns": 10, "effort": "medium", "timeoutMinutes": 10, "budgetUsd": 0.50 }
+  }
+}

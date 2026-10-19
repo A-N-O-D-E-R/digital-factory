@@ -51,12 +51,14 @@ public class RunQueue {
         this.clock = clock;
     }
 
+    /** {@code budgetUsd}: the most an agent run may spend, null for runs calling no model. */
     @Transactional
-    public Run enqueue(UUID workOrderId, String stepId, int visit, RunKind kind, String task, String input) {
+    public Run enqueue(UUID workOrderId, String stepId, int visit, RunKind kind, String task, String input,
+                       BigDecimal budgetUsd) {
         if (!schemas.exists(task)) {
             throw new IllegalArgumentException("No output schema for task '" + task + "'");
         }
-        return runs.save(new Run(workOrderId, stepId, visit, kind, task, 1, input, clock.instant()));
+        return runs.save(new Run(workOrderId, stepId, visit, kind, task, 1, input, budgetUsd, clock.instant()));
     }
 
     /** The oldest queued run its budgets allow, with its budget reserved; none while the factory is paused. */
@@ -72,8 +74,7 @@ public class RunQueue {
                 Instant now = clock.instant();
                 run.start(workerId, now.plus(properties.lease()), reservation, now);
                 return Optional.of(new Job(run.id(), run.workOrderId(), run.kind(), run.task(), run.attempt(),
-                        run.input(), schemas.text(run.task()), now.plus(properties.lease()),
-                        run.kind() == RunKind.AGENT ? reservation : null));
+                        run.input(), schemas.text(run.task()), now.plus(properties.lease()), run.budgetUsd()));
             }
         }
         return Optional.empty();
@@ -85,9 +86,8 @@ public class RunQueue {
                 .flatMap(run -> budgets.refusal(workOrderId, reservation(run)));
     }
 
-    /** Only agents call a model. */
-    private BigDecimal reservation(Run run) {
-        return run.kind() == RunKind.AGENT ? properties.agentRunUsd() : BigDecimal.ZERO;
+    private static BigDecimal reservation(Run run) {
+        return run.budgetUsd() == null ? BigDecimal.ZERO : run.budgetUsd();
     }
 
     /** Extends the lease; tells the worker whether the run was cancelled meanwhile. */
@@ -161,7 +161,7 @@ public class RunQueue {
             ObjectNode input = (ObjectNode) json.readTree(run.input());
             input.put("previousAttemptError", run.error());
             runs.save(new Run(run.workOrderId(), run.stepId(), run.visit(), run.kind(), run.task(), run.attempt() + 1,
-                    json.writeValueAsString(input), clock.instant()));
+                    json.writeValueAsString(input), run.budgetUsd(), clock.instant()));
         } else {
             finished(run);
         }

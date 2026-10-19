@@ -7,6 +7,7 @@ import com.anode.factory.run.Run;
 import com.anode.factory.run.RunKind;
 import com.anode.factory.run.RunQueue;
 import com.anode.factory.run.RunStatus;
+import com.anode.factory.settings.RoleSettings;
 import com.anode.factory.workflow.Conditions;
 import com.anode.factory.workflow.WorkflowCatalog;
 import com.anode.factory.workflow.WorkflowCompiler;
@@ -23,6 +24,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Component;
+import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
@@ -106,15 +108,27 @@ class FactoryStep implements ContextualTask {
     private StepResult runs(WorkOrder workOrder, Step step, RunKind kind, List<String> tasks) {
         List<Run> visitRuns = runs.runsOf(workOrder.id(), step.id(), workOrder.currentVisit());
         if (visitRuns.isEmpty()) {
+            Map<String, JsonNode> roleSettings = new LinkedHashMap<>();
+            if (kind == RunKind.AGENT) {
+                JsonNode frozen = json.readTree(workOrder.settings());
+                try {
+                    tasks.forEach(role -> roleSettings.put(role, RoleSettings.of(frozen, role, step.settings(), json)));
+                } catch (IllegalArgumentException e) {
+                    workOrder.finish(Outcome.FAILED, step.id() + ": " + e.getMessage(), clock.instant());
+                    return StepResult.WAIT;
+                }
+            }
             List<Run> earlier = runs.runsOf(workOrder.id());
             CodeRepository repository = repositories.get(workOrder.repository());
             for (String task : tasks) {
+                JsonNode settings = roleSettings.get(task);
                 String input = kind == RunKind.AGENT
-                        ? RunInputs.agent(workOrder, repository, step.id(), task, earlier, json)
+                        ? RunInputs.agent(workOrder, repository, step.id(), task, settings, earlier, json)
                         : task.equals(JUDGE)
                         ? RunInputs.judge(workOrder, repository, step.id(), earlier, json)
                         : RunInputs.evidence(workOrder, repository, step.id(), task, earlier, json);
-                runs.enqueue(workOrder.id(), step.id(), workOrder.currentVisit(), kind, task, input);
+                runs.enqueue(workOrder.id(), step.id(), workOrder.currentVisit(), kind, task, input,
+                        settings == null ? null : settings.get("budgetUsd").decimalValue());
             }
             workOrder.resumeRunning(clock.instant());
             return StepResult.WAIT;

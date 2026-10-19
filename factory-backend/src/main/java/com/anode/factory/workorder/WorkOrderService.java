@@ -2,6 +2,7 @@ package com.anode.factory.workorder;
 
 import com.anode.factory.repository.Repositories;
 import com.anode.factory.run.RunQueue;
+import com.anode.factory.settings.Settings;
 import com.anode.factory.workflow.WorkflowCatalog;
 import java.time.Clock;
 import java.util.List;
@@ -12,6 +13,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+import tools.jackson.databind.json.JsonMapper;
 
 @Service
 public class WorkOrderService {
@@ -22,12 +24,16 @@ public class WorkOrderService {
     private final WorkOrderExecution execution;
     private final RunQueue runs;
     private final Repositories repositories;
+    private final Settings settings;
+    private final JsonMapper json;
     private final ApplicationEventPublisher events;
     private final Clock clock;
 
     WorkOrderService(WorkOrderRepository workOrders, ApprovalRepository approvals, WorkflowCatalog catalog,
-                     WorkOrderExecution execution, RunQueue runs, Repositories repositories,
-                     ApplicationEventPublisher events, Clock clock) {
+                     WorkOrderExecution execution, RunQueue runs, Repositories repositories, Settings settings,
+                     JsonMapper json, ApplicationEventPublisher events, Clock clock) {
+        this.settings = settings;
+        this.json = json;
         this.workOrders = workOrders;
         this.approvals = approvals;
         this.catalog = catalog;
@@ -49,11 +55,12 @@ public class WorkOrderService {
     public WorkOrder create(String repository, String title, String description, String workflowName, String author,
                             UUID evalRunId, String judgeCommand) {
         repositories.active(repository);
+        String frozen = json.writeValueAsString(settings.effective(repository));
         String name = workflowName == null ? WorkflowCatalog.DEFAULT : workflowName;
         int version = catalog.latest(name)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNPROCESSABLE_CONTENT, "No workflow " + name))
                 .version();
-        WorkOrder workOrder = workOrders.save(new WorkOrder(repository, title, description, name, version, author,
+        WorkOrder workOrder = workOrders.save(new WorkOrder(repository, title, description, name, version, frozen, author,
                 evalRunId, judgeCommand, clock.instant()));
         execution.start(workOrder);
         return workOrder;

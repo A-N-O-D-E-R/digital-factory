@@ -7,6 +7,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
@@ -20,9 +21,12 @@ final class RunInputs {
 
     private RunInputs() {}
 
-    static String agent(WorkOrder workOrder, CodeRepository repository, String stepId, String role, List<Run> earlier,
-                        JsonMapper json) {
-        return json.writeValueAsString(input(workOrder, repository, stepId, role, earlier, false, json));
+    /** {@code settings}: the role's model, turns, effort, timeout, budget and resources for this run. */
+    static String agent(WorkOrder workOrder, CodeRepository repository, String stepId, String role, JsonNode settings,
+                        List<Run> earlier, JsonMapper json) {
+        Map<String, Object> input = input(workOrder, repository, stepId, role, earlier, false, json);
+        input.put("settings", settings);
+        return json.writeValueAsString(input);
     }
 
     /** Evidence and push runs: no agent involved, they see every artifact. */

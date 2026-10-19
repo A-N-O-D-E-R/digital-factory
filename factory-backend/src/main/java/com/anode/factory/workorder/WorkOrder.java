@@ -66,6 +66,11 @@ public class WorkOrder {
     @Column(name = "transition_counts", nullable = false)
     private Map<String, Integer> transitionCounts = new HashMap<>();
 
+    /** The effective settings when created: changing a setting never alters work in flight. */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(nullable = false)
+    private String settings;
+
     /** Set on the work orders of an eval run: gates approve themselves, publishing is replaced by the judge. */
     @Column(name = "eval_run_id")
     private UUID evalRunId;
@@ -86,8 +91,9 @@ public class WorkOrder {
     protected WorkOrder() {}
 
     WorkOrder(String repository, String title, String description, String workflowName, int workflowVersion,
-              String createdBy, Instant now) {
+              String settings, String createdBy, Instant now) {
         this.id = UUID.randomUUID();
+        this.settings = settings;
         this.repository = repository;
         this.title = title;
         this.description = description;
@@ -100,8 +106,8 @@ public class WorkOrder {
     }
 
     WorkOrder(String repository, String title, String description, String workflowName, int workflowVersion,
-              String createdBy, UUID evalRunId, String judgeCommand, Instant now) {
-        this(repository, title, description, workflowName, workflowVersion, createdBy, now);
+              String settings, String createdBy, UUID evalRunId, String judgeCommand, Instant now) {
+        this(repository, title, description, workflowName, workflowVersion, settings, createdBy, now);
         this.evalRunId = evalRunId;
         this.judgeCommand = judgeCommand;
     }
@@ -175,6 +181,10 @@ public class WorkOrder {
     /** The branch the factory pushes the work to, and opens the PR from. */
     public String branch() {
         return "factory/" + id;
+    }
+
+    public String settings() {
+        return settings;
     }
 
     public String title() {
