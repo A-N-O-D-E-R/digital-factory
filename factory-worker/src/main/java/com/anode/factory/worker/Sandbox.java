@@ -15,6 +15,7 @@ import com.github.dockerjava.core.DockerClientImpl;
 import com.github.dockerjava.zerodep.ZerodepDockerHttpClient;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
@@ -63,6 +64,10 @@ class Sandbox {
         if (properties.egressProxy() != null) {
             env.putIfAbsent("HTTPS_PROXY", properties.egressProxy());
             env.putIfAbsent("HTTP_PROXY", properties.egressProxy());
+            // Maven and the JVM ignore the variables above
+            URI proxy = URI.create(properties.egressProxy());
+            env.putIfAbsent("JAVA_TOOL_OPTIONS", "-Dhttps.proxyHost=%1$s -Dhttps.proxyPort=%2$d -Dhttp.proxyHost=%1$s -Dhttp.proxyPort=%2$d"
+                    .formatted(proxy.getHost(), proxy.getPort() == -1 ? 3128 : proxy.getPort()));
         }
         List<Bind> binds = spec.mounts().stream()
                 .map(m -> new Bind(m.host().toAbsolutePath().toString(), new Volume(m.container()),

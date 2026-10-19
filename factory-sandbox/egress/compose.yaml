@@ -1,0 +1,18 @@
+# The sandboxes' network and its egress proxy. Workers run sandboxes with
+#   factory.worker.network: factory-sandboxes
+#   factory.worker.egress-proxy: http://factory-egress:3128
+services:
+  factory-egress:
+    image: ubuntu/squid:6.13-25.04_beta
+    container_name: factory-egress
+    restart: unless-stopped
+    volumes:
+      - ./squid.conf:/etc/squid/squid.conf:ro
+      - ./allowed-extra.txt:/etc/squid/allowed-extra.txt:ro
+    networks: [factory-sandboxes, outside]
+
+networks:
+  factory-sandboxes:
+    name: factory-sandboxes
+    internal: true # no route out but the proxy
+  outside: {}

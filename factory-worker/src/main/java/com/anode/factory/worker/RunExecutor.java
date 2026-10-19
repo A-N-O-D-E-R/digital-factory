@@ -75,6 +75,7 @@ class RunExecutor {
                 "budgetUsd", job.budgetUsd() == null ? BigDecimal.ZERO : job.budgetUsd())));
         JsonNode settings = job.input().path("settings");
         Map<String, String> env = new LinkedHashMap<>();
+        env.put("CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC", "1"); // nothing but the API through the egress proxy
         if (properties.anthropicApiKey() != null) {
             env.put("ANTHROPIC_API_KEY", properties.anthropicApiKey());
         }
