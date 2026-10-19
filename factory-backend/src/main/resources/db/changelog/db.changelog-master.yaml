@@ -320,3 +320,62 @@ databaseChangeLog:
               - column: { name: last_step, type: varchar(63) }
               - column: { name: reworks, type: int, defaultValueNumeric: 0, constraints: { nullable: false } }
               - column: { name: rework_step, type: varchar(63) }
+  - changeSet:
+      id: 014-work-order-events
+      author: digital-factory
+      comment: The timeline of work orders, written by triggers on what changes (status and step, runs, approvals); the id orders the live event streams (Last-Event-ID)
+      changes:
+        - createTable:
+            tableName: work_order_events
+            columns:
+              - column: { name: id, type: bigint, autoIncrement: true, constraints: { primaryKey: true } }
+              - column: { name: work_order_id, type: uuid, constraints: { nullable: false } }
+              - column: { name: eval, type: boolean, constraints: { nullable: false } }
+              - column: { name: type, type: varchar(32), constraints: { nullable: false } }
+              - column: { name: data, type: jsonb, constraints: { nullable: false } }
+              - column: { name: at, type: timestamptz, defaultValueComputed: now(), constraints: { nullable: false } }
+              # the writing transaction: rows are streamed once every transaction before them committed
+              - column: { name: tx, type: xid8, defaultValueComputed: pg_current_xact_id(), constraints: { nullable: false } }
+        - createIndex:
+            tableName: work_order_events
+            indexName: ix_work_order_events_tx
+            columns: [ { column: { name: tx } } ]
+        - createIndex:
+            tableName: work_order_events
+            indexName: ix_work_order_events_work_order
+            columns: [ { column: { name: work_order_id } }, { column: { name: id } } ]
+        - sql:
+            splitStatements: false
+            sql: |
+              create function record_work_order_event() returns trigger language plpgsql as $$
+              begin
+                if TG_TABLE_NAME = 'work_orders' then
+                  if TG_OP = 'INSERT' or new.status is distinct from old.status or new.current_step is distinct from old.current_step
+                     or new.current_visit is distinct from old.current_visit then
+                    insert into work_order_events (work_order_id, eval, type, data) values (new.id, new.eval_run_id is not null,
+                      'work-order', jsonb_build_object('status', new.status, 'step', new.current_step, 'visit', new.current_visit,
+                                                       'reason', new.outcome_reason));
+                  end if;
+                elsif TG_TABLE_NAME = 'runs' then
+                  if TG_OP = 'INSERT' or new.status is distinct from old.status then
+                    insert into work_order_events (work_order_id, eval, type, data)
+                    select new.work_order_id, w.eval_run_id is not null, 'run',
+                           jsonb_build_object('run', new.id, 'step', new.step_id, 'task', new.task, 'attempt', new.attempt,
+                                              'status', new.status, 'error', new.error, 'costUsd', new.cost_usd)
+                    from work_orders w where w.id = new.work_order_id;
+                  end if;
+                elsif TG_OP = 'INSERT' or new.decision is distinct from old.decision then -- approvals
+                  insert into work_order_events (work_order_id, eval, type, data)
+                  select new.work_order_id, w.eval_run_id is not null, 'approval',
+                         jsonb_build_object('approval', new.id, 'step', new.step_id, 'gate', new.gate, 'decision', new.decision,
+                                            'by', new.decided_by, 'comment', new.comment)
+                  from work_orders w where w.id = new.work_order_id;
+                end if;
+                return new;
+              end $$;
+              create trigger work_orders_events after insert or update on work_orders
+                for each row execute function record_work_order_event();
+              create trigger runs_events after insert or update on runs
+                for each row execute function record_work_order_event();
+              create trigger approvals_events after insert or update on approvals
+                for each row execute function record_work_order_event();
