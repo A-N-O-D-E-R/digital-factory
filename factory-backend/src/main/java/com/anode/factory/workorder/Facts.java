@@ -19,7 +19,7 @@ final class Facts {
         List<String> verdicts = new java.util.ArrayList<>();
         for (Run run : runs) {
             JsonNode out = json.readTree(run.output());
-            switch (run.task()) {
+            switch (run.outputSchema()) {
                 case "classifier" -> {
                     facts.put("type", out.get("type").asString());
                     facts.put("risk", out.get("risk").asString());

@@ -55,7 +55,7 @@ public class WorkOrderService {
     public WorkOrder create(String repository, String title, String description, String workflowName, String author,
                             UUID evalRunId, String judgeCommand) {
         repositories.active(repository);
-        String frozen = json.writeValueAsString(settings.effective(repository));
+        String frozen = json.writeValueAsString(settings.frozen(repository));
         String name = workflowName == null ? WorkflowCatalog.DEFAULT : workflowName;
         int version = catalog.latest(name)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNPROCESSABLE_CONTENT, "No workflow " + name))

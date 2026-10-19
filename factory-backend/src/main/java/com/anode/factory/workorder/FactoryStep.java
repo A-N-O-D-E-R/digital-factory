@@ -1,6 +1,8 @@
 package com.anode.factory.workorder;
 
 import com.anode.factory.autonomy.AutonomyPolicies;
+import com.anode.factory.prompt.AgentRoles;
+import com.anode.factory.prompt.PromptVersion;
 import com.anode.factory.repository.CodeRepository;
 import com.anode.factory.repository.Repositories;
 import com.anode.factory.run.Run;
@@ -20,6 +22,7 @@ import java.time.Clock;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -53,13 +56,15 @@ class FactoryStep implements ContextualTask {
     private final Repositories repositories;
     private final ApprovalRepository approvals;
     private final AutonomyPolicies autonomy;
+    private final AgentRoles roles;
     private final Map<String, FactoryAction> actions;
     private final JsonMapper json;
     private final Clock clock;
 
     FactoryStep(CurrentWorkOrder current, WorkflowCatalog catalog, RunQueue runs, Repositories repositories,
-                ApprovalRepository approvals, AutonomyPolicies autonomy, List<FactoryAction> actions, JsonMapper json,
-                Clock clock) {
+                ApprovalRepository approvals, AutonomyPolicies autonomy, AgentRoles roles, List<FactoryAction> actions,
+                JsonMapper json, Clock clock) {
+        this.roles = roles;
         this.current = current;
         this.catalog = catalog;
         this.runs = runs;
@@ -109,13 +114,23 @@ class FactoryStep implements ContextualTask {
         List<Run> visitRuns = runs.runsOf(workOrder.id(), step.id(), workOrder.currentVisit());
         if (visitRuns.isEmpty()) {
             Map<String, JsonNode> roleSettings = new LinkedHashMap<>();
+            Map<String, PromptVersion> prompts = new LinkedHashMap<>();
             if (kind == RunKind.AGENT) {
                 JsonNode frozen = json.readTree(workOrder.settings());
-                try {
-                    tasks.forEach(role -> roleSettings.put(role, RoleSettings.of(frozen, role, step.settings(), json)));
-                } catch (IllegalArgumentException e) {
-                    workOrder.finish(Outcome.FAILED, step.id() + ": " + e.getMessage(), clock.instant());
-                    return StepResult.WAIT;
+                for (String role : tasks) {
+                    try {
+                        JsonNode settings = RoleSettings.of(frozen, role, step.settings(), json);
+                        roleSettings.put(role, settings);
+                        // pinned at creation; a role created since runs its latest prompt
+                        Optional<PromptVersion> prompt = settings.has("promptVersion")
+                                ? roles.prompt(role, settings.get("promptVersion").asInt())
+                                : roles.latest(role);
+                        prompts.put(role, prompt.orElseThrow(() -> new IllegalArgumentException(
+                                "no prompt version " + settings.path("promptVersion").asString("") + " for role " + role)));
+                    } catch (IllegalArgumentException e) {
+                        workOrder.finish(Outcome.FAILED, step.id() + ": " + e.getMessage(), clock.instant());
+                        return StepResult.WAIT;
+                    }
                 }
             }
             List<Run> earlier = runs.runsOf(workOrder.id());
@@ -123,11 +138,12 @@ class FactoryStep implements ContextualTask {
             for (String task : tasks) {
                 JsonNode settings = roleSettings.get(task);
                 String input = kind == RunKind.AGENT
-                        ? RunInputs.agent(workOrder, repository, step.id(), task, settings, earlier, json)
+                        ? RunInputs.agent(workOrder, repository, step.id(), task, settings, prompts.get(task), earlier, json)
                         : task.equals(JUDGE)
                         ? RunInputs.judge(workOrder, repository, step.id(), earlier, json)
                         : RunInputs.evidence(workOrder, repository, step.id(), task, earlier, json);
-                runs.enqueue(workOrder.id(), step.id(), workOrder.currentVisit(), kind, task, input,
+                runs.enqueue(workOrder.id(), step.id(), workOrder.currentVisit(), kind, task,
+                        kind == RunKind.AGENT ? roles.outputSchema(task) : task, input,
                         settings == null ? null : settings.get("budgetUsd").decimalValue());
             }
             workOrder.resumeRunning(clock.instant());

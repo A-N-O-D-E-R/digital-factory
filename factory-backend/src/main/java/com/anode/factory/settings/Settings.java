@@ -1,5 +1,6 @@
 package com.anode.factory.settings;
 
+import com.anode.factory.prompt.AgentRoles;
 import com.anode.factory.repository.Repositories;
 import com.networknt.schema.InputFormat;
 import com.networknt.schema.Schema;
@@ -23,6 +24,7 @@ import org.springframework.web.server.ResponseStatusException;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.node.JsonNodeFactory;
+import tools.jackson.databind.node.ObjectNode;
 
 /**
  * Settings in layers: the built-in defaults ({@code settings/defaults.json}), the global layer, then
@@ -41,13 +43,15 @@ public class Settings {
     private final SettingsLayerRepository layers;
     private final SettingsChangeRepository changes;
     private final Repositories repositories;
+    private final AgentRoles roles;
     private final JsonMapper json;
     private final Clock clock;
     private final JsonNode defaults;
     private final Schema schema;
 
     Settings(SettingsLayerRepository layers, SettingsChangeRepository changes, Repositories repositories,
-             JsonMapper json, Clock clock) {
+             AgentRoles roles, JsonMapper json, Clock clock) {
+        this.roles = roles;
         this.layers = layers;
         this.changes = changes;
         this.repositories = repositories;
@@ -80,13 +84,23 @@ public class Settings {
                 layer.map(SettingsLayer::updatedBy).orElse(null), layer.map(SettingsLayer::updatedAt).orElse(null));
     }
 
-    /** What a work order on {@code repository} runs with; refused if a later change broke it. */
-    public JsonNode effective(String repository) {
+    /**
+     * What a work order on {@code repository} runs with from now on, every role's prompt version
+     * pinned; refused if a later change broke the settings.
+     */
+    public JsonNode frozen(String repository) {
         JsonNode effective = merged(repository);
         List<String> errors = errors(effective);
         if (!errors.isEmpty()) {
             throw new InvalidSettingsException(errors);
         }
+        ObjectNode roleSettings = (ObjectNode) effective.get("roles");
+        roles.latestVersions().forEach((role, version) -> {
+            if (!roleSettings.path(role).has("promptVersion")) {
+                roleSettings.set(role, MergePatch.apply(roleSettings.get(role),
+                        JsonNodeFactory.instance.objectNode().put("promptVersion", version)));
+            }
+        });
         return effective;
     }
 
@@ -158,7 +172,7 @@ public class Settings {
         return repository == null ? global : MergePatch.apply(global, document(scope(repository)));
     }
 
-    /** Schema violations, then roles naming a model missing from the catalog. */
+    /** Schema violations, then roles naming a model or a prompt version that does not exist. */
     private List<String> errors(JsonNode effective) {
         List<String> errors = new ArrayList<>(schema.validate(json.writeValueAsString(effective), InputFormat.JSON)
                 .stream().map(error -> error.getInstanceLocation() + ": " + error.getMessage()).toList());
@@ -167,6 +181,11 @@ public class Settings {
                 JsonNode model = role.getValue().get("model");
                 if (model != null && !effective.get("models").has(model.asString())) {
                     errors.add("/roles/" + role.getKey() + "/model: unknown model '" + model.asString() + "'");
+                }
+                JsonNode prompt = role.getValue().get("promptVersion");
+                if (prompt != null && (role.getKey().equals("default") || roles.prompt(role.getKey(), prompt.asInt()).isEmpty())) {
+                    errors.add("/roles/" + role.getKey() + "/promptVersion: no prompt version " + prompt.asInt()
+                            + " for role " + role.getKey());
                 }
             }
         }

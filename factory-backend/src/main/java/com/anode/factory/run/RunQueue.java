@@ -53,12 +53,13 @@ public class RunQueue {
 
     /** {@code budgetUsd}: the most an agent run may spend, null for runs calling no model. */
     @Transactional
-    public Run enqueue(UUID workOrderId, String stepId, int visit, RunKind kind, String task, String input,
-                       BigDecimal budgetUsd) {
-        if (!schemas.exists(task)) {
-            throw new IllegalArgumentException("No output schema for task '" + task + "'");
+    public Run enqueue(UUID workOrderId, String stepId, int visit, RunKind kind, String task, String outputSchema,
+                       String input, BigDecimal budgetUsd) {
+        if (!schemas.exists(outputSchema)) {
+            throw new IllegalArgumentException("No output schema '" + outputSchema + "'");
         }
-        return runs.save(new Run(workOrderId, stepId, visit, kind, task, 1, input, budgetUsd, clock.instant()));
+        return runs.save(new Run(workOrderId, stepId, visit, kind, task, outputSchema, 1, input, budgetUsd,
+                clock.instant()));
     }
 
     /** The oldest queued run its budgets allow, with its budget reserved; none while the factory is paused. */
@@ -74,7 +75,7 @@ public class RunQueue {
                 Instant now = clock.instant();
                 run.start(workerId, now.plus(properties.lease()), reservation, now);
                 return Optional.of(new Job(run.id(), run.workOrderId(), run.kind(), run.task(), run.attempt(),
-                        run.input(), schemas.text(run.task()), now.plus(properties.lease()), run.budgetUsd()));
+                        run.input(), schemas.text(run.outputSchema()), now.plus(properties.lease()), run.budgetUsd()));
             }
         }
         return Optional.empty();
@@ -104,7 +105,7 @@ public class RunQueue {
     @Transactional
     public void complete(UUID runId, UUID workerId, String output, BigDecimal costUsd) {
         Run run = ownedRunning(runId, workerId);
-        List<String> violations = schemas.violations(run.task(), output);
+        List<String> violations = schemas.violations(run.outputSchema(), output);
         if (violations.isEmpty()) {
             run.finish(RunStatus.SUCCEEDED, output, null, costUsd, clock.instant());
             finished(run);
@@ -160,7 +161,8 @@ public class RunQueue {
             // the next attempt is told what went wrong (e.g. the schema violations)
             ObjectNode input = (ObjectNode) json.readTree(run.input());
             input.put("previousAttemptError", run.error());
-            runs.save(new Run(run.workOrderId(), run.stepId(), run.visit(), run.kind(), run.task(), run.attempt() + 1,
+            runs.save(new Run(run.workOrderId(), run.stepId(), run.visit(), run.kind(), run.task(), run.outputSchema(),
+                    run.attempt() + 1,
                     json.writeValueAsString(input), run.budgetUsd(), clock.instant()));
         } else {
             finished(run);

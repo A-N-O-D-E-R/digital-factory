@@ -1,5 +1,6 @@
 package com.anode.factory.workorder;
 
+import com.anode.factory.prompt.PromptVersion;
 import com.anode.factory.repository.CodeRepository;
 import com.anode.factory.run.Run;
 import com.anode.factory.run.RunStatus;
@@ -23,9 +24,10 @@ final class RunInputs {
 
     /** {@code settings}: the role's model, turns, effort, timeout, budget and resources for this run. */
     static String agent(WorkOrder workOrder, CodeRepository repository, String stepId, String role, JsonNode settings,
-                        List<Run> earlier, JsonMapper json) {
+                        PromptVersion prompt, List<Run> earlier, JsonMapper json) {
         Map<String, Object> input = input(workOrder, repository, stepId, role, earlier, false, json);
         input.put("settings", settings);
+        input.put("prompt", Map.of("version", prompt.version(), "text", prompt.text()));
         return json.writeValueAsString(input);
     }
 

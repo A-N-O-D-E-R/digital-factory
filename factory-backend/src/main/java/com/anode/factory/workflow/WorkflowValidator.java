@@ -3,6 +3,7 @@ package com.anode.factory.workflow;
 import com.anode.factory.workflow.WorkflowDefinition.Outcome;
 import com.anode.factory.workflow.WorkflowDefinition.Step;
 import com.anode.factory.workflow.WorkflowDefinition.Transition;
+import com.anode.factory.prompt.AgentRoles;
 import com.networknt.schema.InputFormat;
 import com.networknt.schema.Schema;
 import com.networknt.schema.SchemaRegistry;
@@ -38,8 +39,10 @@ public class WorkflowValidator {
 
     private final Schema schema;
     private final JsonMapper json;
+    private final AgentRoles roles;
 
-    public WorkflowValidator(JsonMapper json) {
+    public WorkflowValidator(JsonMapper json, AgentRoles roles) {
+        this.roles = roles;
         this.json = json;
         try (InputStream in = getClass().getResourceAsStream("/contracts/workflow-definition.schema.json")) {
             // messages are part of the API: always in English, whatever the server locale
@@ -70,7 +73,7 @@ public class WorkflowValidator {
         return new Result(definition, checkGraph(definition));
     }
 
-    private static List<String> checkGraph(WorkflowDefinition definition) {
+    private List<String> checkGraph(WorkflowDefinition definition) {
         List<String> errors = new ArrayList<>();
         Map<String, Step> steps = new LinkedHashMap<>();
         for (Step step : definition.steps()) {
@@ -85,9 +88,9 @@ public class WorkflowValidator {
             checkTransitions(step, steps, errors);
             if (step.kind() == WorkflowDefinition.Kind.agent) {
                 step.roles().stream()
-                        .filter(role -> !AgentRoles.exists(role))
+                        .filter(role -> !roles.exists(role))
                         .forEach(role -> errors.add("step '" + step.id() + "': unknown agent role '" + role
-                                + "' (known: " + new java.util.TreeSet<>(AgentRoles.names()) + ")"));
+                                + "' (known: " + roles.names() + ")"));
             }
         }
         if (!errors.isEmpty()) {
@@ -232,10 +235,10 @@ public class WorkflowValidator {
     }
 
     /** From a step that writes code, no path may reach a publishing action without running the tests. */
-    private static void checkEvidenceBeforePublishing(Map<String, Step> steps, List<String> errors) {
+    private void checkEvidenceBeforePublishing(Map<String, Step> steps, List<String> errors) {
         for (Step writer : steps.values()) {
             if (writer.kind() != WorkflowDefinition.Kind.agent
-                    || writer.roles().stream().noneMatch(AgentRoles::writesCode)) {
+                    || writer.roles().stream().noneMatch(roles::writesCode)) {
                 continue;
             }
             Set<String> seen = new HashSet<>();

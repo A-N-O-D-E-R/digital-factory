@@ -237,3 +237,34 @@ databaseChangeLog:
             tableName: runs
             columns:
               - column: { name: budget_usd, type: "numeric(12,4)" }
+  - changeSet:
+      id: 010-agent-roles-prompts
+      author: digital-factory
+      comment: Agent roles (built-in ones seeded at startup), their immutable prompt versions, the output schema of each run
+      changes:
+        - createTable:
+            tableName: agent_roles
+            columns:
+              - column: { name: name, type: varchar(63), constraints: { primaryKey: true } }
+              - column: { name: description, type: varchar(500), constraints: { nullable: false } }
+              - column: { name: writes_code, type: boolean, constraints: { nullable: false } }
+              - column: { name: output_schema, type: varchar(63), constraints: { nullable: false } }
+              - column: { name: built_in, type: boolean, constraints: { nullable: false } }
+              - column: { name: created_by, type: varchar(255), constraints: { nullable: false } }
+              - column: { name: created_at, type: timestamptz, constraints: { nullable: false } }
+        - createTable:
+            tableName: prompt_versions
+            columns:
+              - column: { name: role, type: varchar(63), constraints: { nullable: false, foreignKeyName: fk_prompt_versions_role, references: agent_roles(name) } }
+              - column: { name: version, type: int, constraints: { nullable: false } }
+              - column: { name: text, type: text, constraints: { nullable: false } }
+              - column: { name: note, type: varchar(200), constraints: { nullable: false } }
+              - column: { name: created_by, type: varchar(255), constraints: { nullable: false } }
+              - column: { name: created_at, type: timestamptz, constraints: { nullable: false } }
+        - addPrimaryKey:
+            tableName: prompt_versions
+            columnNames: role, version
+        - addColumn:
+            tableName: runs
+            columns:
+              - column: { name: output_schema, type: varchar(63), constraints: { nullable: false } }

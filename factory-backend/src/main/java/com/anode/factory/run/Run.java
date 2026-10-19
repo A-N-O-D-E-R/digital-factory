@@ -36,6 +36,10 @@ public class Run {
     @Column(nullable = false)
     private String task;
 
+    /** What the output must match ({@code contracts/outputs/<schema>.schema.json}); custom roles share one. */
+    @Column(name = "output_schema", nullable = false)
+    private String outputSchema;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private RunStatus status;
@@ -80,8 +84,9 @@ public class Run {
 
     protected Run() {}
 
-    Run(UUID workOrderId, String stepId, int visit, RunKind kind, String task, int attempt, String input,
-        BigDecimal budgetUsd, Instant now) {
+    Run(UUID workOrderId, String stepId, int visit, RunKind kind, String task, String outputSchema, int attempt,
+        String input, BigDecimal budgetUsd, Instant now) {
+        this.outputSchema = outputSchema;
         this.id = UUID.randomUUID();
         this.budgetUsd = budgetUsd;
         this.workOrderId = workOrderId;
@@ -138,6 +143,10 @@ public class Run {
 
     public String task() {
         return task;
+    }
+
+    public String outputSchema() {
+        return outputSchema;
     }
 
     public RunStatus status() {
