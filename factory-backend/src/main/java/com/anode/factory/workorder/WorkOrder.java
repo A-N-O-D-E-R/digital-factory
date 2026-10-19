@@ -52,6 +52,17 @@ public class WorkOrder {
     @Column(name = "outcome_reason")
     private String outcomeReason;
 
+    /** The step entered last: where a blocked work order stopped. */
+    @Column(name = "last_step")
+    private String lastStep;
+
+    /** Times the work order was reworked: each rework is a new engine case, started at {@link #reworkStep}. */
+    @Column(nullable = false)
+    private int reworks;
+
+    @Column(name = "rework_step")
+    private String reworkStep;
+
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(nullable = false)
     private Map<String, Object> facts = new HashMap<>();
@@ -116,6 +127,7 @@ public class WorkOrder {
     void enter(String step, Instant now) {
         int visit = visits.merge(step, 1, Integer::sum);
         currentStep = step;
+        lastStep = step;
         currentVisit = visit;
         status = WorkOrderStatus.RUNNING;
         updatedAt = now;
@@ -144,6 +156,29 @@ public class WorkOrder {
     void resumeRunning(Instant now) {
         status = WorkOrderStatus.RUNNING;
         updatedAt = now;
+    }
+
+    /** A blocked work order goes on from {@code step}, its facts and visits kept, the instructions learnt. */
+    void rework(String step, String instructions, Instant now) {
+        reworks++;
+        reworkStep = step;
+        facts.put("rework.instructions", instructions);
+        status = WorkOrderStatus.RUNNING;
+        outcomeReason = null;
+        updatedAt = now;
+    }
+
+    /** The engine case of the work order: its id, then one per rework. */
+    String caseId() {
+        return reworks == 0 ? id.toString() : id + "#" + reworks;
+    }
+
+    String lastStep() {
+        return lastStep;
+    }
+
+    String reworkStep() {
+        return reworkStep;
     }
 
     void finish(Outcome outcome, String reason, Instant now) {

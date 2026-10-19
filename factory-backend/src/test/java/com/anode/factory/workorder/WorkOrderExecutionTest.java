@@ -207,6 +207,39 @@ class WorkOrderExecutionTest {
         awaitStatus(id, "BLOCKED");
     }
 
+    MvcTestResult rework(UUID id, String body) {
+        return mvc.post().uri("/api/work-orders/{id}/rework", id).with(developer()).with(csrf())
+                .contentType(MediaType.APPLICATION_JSON).content(body).exchange();
+    }
+
+    @Test
+    void aBlockedWorkOrderIsReworkedFromAStepWithMoreInstructions() {
+        UUID id = create("mini");
+        assertThat(rework(id, "{\"instructions\":\"x\"}")).as("not blocked").hasStatus(409);
+        worker.complete(claim("classifier"), classification("BUG", "LOW"));
+        awaitStep(id, "specify");
+        worker.complete(claim("specifier"), acceptance());
+        awaitStep(id, "implement");
+        worker.complete(claim("implementer"), implementation());
+        awaitStep(id, "verify");
+        worker.complete(claim("run-tests"), tests(0, 0));
+        awaitStatus(id, "BLOCKED");
+
+        assertThat(rework(id, "{\"instructions\":\"x\",\"step\":\"nope\"}")).hasStatus(422);
+        assertThat(rework(id, "{\"instructions\":\" \"}")).hasStatus(400);
+        assertThat(rework(id, "{\"instructions\":\"The fix belongs in Totals.round\",\"step\":\"implement\"}"))
+                .hasStatus(204);
+
+        FakeWorker.Job implement = claim("implementer");
+        assertThat(implement.input().get("facts").get("rework.instructions").asString())
+                .startsWith("The fix belongs in Totals.round");
+        worker.complete(implement, implementation());
+        awaitStep(id, "verify");
+        worker.complete(claim("run-tests"), tests(2, 0));
+        JsonNode done = awaitStatus(id, "DONE");
+        assertThat(done.get("runs")).hasSize(6); // nothing before the reworked step ran again
+    }
+
     @Test
     void aRiskyPlanWaitsForApproval() {
         UUID id = create("mini");

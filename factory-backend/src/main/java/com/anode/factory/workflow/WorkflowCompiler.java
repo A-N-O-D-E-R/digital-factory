@@ -32,9 +32,15 @@ public final class WorkflowCompiler {
     private WorkflowCompiler() {}
 
     public static com.anode.workflow.entities.workflows.WorkflowDefinition compile(String name, WorkflowDefinition workflow) {
+        return compile(name, workflow, workflow.start());
+    }
+
+    /** {@code start}: the step the case starts at (a reworked work order goes on from where it stopped). */
+    public static com.anode.workflow.entities.workflows.WorkflowDefinition compile(String name, WorkflowDefinition workflow,
+                                                                                   String start) {
         var engine = new com.anode.workflow.entities.workflows.WorkflowDefinition();
         engine.setName(name);
-        engine.addStep(new Task("start", START, stepName(workflow.start()), null));
+        engine.addStep(new Task("start", START, stepName(start), null));
         for (Step step : workflow.steps()) {
             engine.addStep(new Task(stepName(step.id()), STEP, routeName(step.id()), step.id()));
             Map<String, Branch> branches = new HashMap<>();

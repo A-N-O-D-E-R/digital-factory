@@ -114,6 +114,27 @@ public class WorkOrderService {
         events.publishEvent(new WorkOrderExecution.Resume(workOrderId));
     }
 
+    /** A blocked work order goes on with more instructions, from {@code step} or the step it stopped at. */
+    @Transactional
+    public void rework(UUID workOrderId, String instructions, String step, String by) {
+        WorkOrder workOrder = workOrders.lock(workOrderId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        if (workOrder.status() != WorkOrderStatus.BLOCKED) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Only a blocked work order is reworked; it is "
+                    + workOrder.status());
+        }
+        if (instructions == null || instructions.isBlank() || instructions.length() > 20_000) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Instructions are required (20000 characters at most)");
+        }
+        String from = step != null ? step : workOrder.lastStep();
+        boolean exists = catalog.definition(workOrder.workflowName(), workOrder.workflowVersion()).steps().stream()
+                .anyMatch(s -> s.id().equals(from));
+        if (!exists) {
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_CONTENT, "No step " + from + " in its workflow");
+        }
+        workOrder.rework(from, instructions.strip() + "\n(by " + by + ")", clock.instant());
+        execution.start(workOrder);
+    }
+
     @Transactional
     public void cancel(UUID workOrderId, String by) {
         WorkOrder workOrder = workOrders.lock(workOrderId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));

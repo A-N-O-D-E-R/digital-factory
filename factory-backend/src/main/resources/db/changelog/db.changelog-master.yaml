@@ -309,3 +309,14 @@ databaseChangeLog:
             columns:
               - column: { name: run_id, type: uuid, constraints: { primaryKey: true, foreignKeyName: fk_run_bundles_run, references: runs(id) } }
               - column: { name: bundle, type: bytea, constraints: { nullable: false } }
+  - changeSet:
+      id: 013-rework
+      author: digital-factory
+      comment: A blocked work order is reworked from a step (by default the one it stopped at), as a new engine case
+      changes:
+        - addColumn:
+            tableName: work_orders
+            columns:
+              - column: { name: last_step, type: varchar(63) }
+              - column: { name: reworks, type: int, defaultValueNumeric: 0, constraints: { nullable: false } }
+              - column: { name: rework_step, type: varchar(63) }

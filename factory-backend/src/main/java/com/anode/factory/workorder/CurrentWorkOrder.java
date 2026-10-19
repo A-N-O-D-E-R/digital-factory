@@ -5,7 +5,8 @@ import java.util.UUID;
 import org.springframework.stereotype.Component;
 
 /**
- * The work order an engine callback is about (the engine case id is the work order id). It is
+ * The work order an engine callback is about (the engine case id is the work order id, with
+ * "#n" after a rework). It is
  * already locked by {@link WorkOrderExecution}, which drives every engine operation.
  */
 @Component
@@ -18,7 +19,8 @@ class CurrentWorkOrder {
     }
 
     WorkOrder of(WorkflowContext context) {
-        UUID id = UUID.fromString(context.getCaseId());
+        String caseId = context.getCaseId();
+        UUID id = UUID.fromString(caseId.contains("#") ? caseId.substring(0, caseId.indexOf('#')) : caseId);
         return workOrders.findById(id).orElseThrow(() -> new IllegalStateException("No work order " + id));
     }
 }

@@ -106,6 +106,16 @@ class WorkOrderController {
                 ? runs.pauseReason(workOrder.id()) : Optional.empty());
     }
 
+    record ReworkRequest(String instructions, String step) {}
+
+    /** {@code step}: where to go on from; by default the step the work order stopped at. */
+    @PostMapping("/work-orders/{id}/rework")
+    @PreAuthorize("hasAnyRole('ADMIN','DEVELOPER')")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    void rework(@PathVariable UUID id, @RequestBody ReworkRequest request, Authentication user) {
+        service.rework(id, request.instructions(), request.step(), user.getName());
+    }
+
     @PostMapping("/work-orders/{id}/cancel")
     @PreAuthorize("hasAnyRole('ADMIN','DEVELOPER')")
     @ResponseStatus(HttpStatus.NO_CONTENT)

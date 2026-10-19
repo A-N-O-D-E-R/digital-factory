@@ -33,12 +33,13 @@ class WorkOrderExecution {
         this.engine = engine;
     }
 
-    /** Starts the workflow of a work order created in the current transaction. */
+    /** Starts the workflow of a work order created (or reworked) in the current transaction. */
     void start(WorkOrder workOrder) {
         workOrders.lock(workOrder.id());
         var workflow = catalog.definition(workOrder.workflowName(), workOrder.workflowVersion());
         String name = workOrder.workflowName() + "@" + workOrder.workflowVersion();
-        engine.startWorkflow(workOrder.id().toString(), ENGINE, WorkflowCompiler.compile(name, workflow),
+        String start = workOrder.reworkStep() != null ? workOrder.reworkStep() : workflow.start();
+        engine.startWorkflow(workOrder.caseId(), ENGINE, WorkflowCompiler.compile(name, workflow, start),
                 new WorkflowVariables());
     }
 
@@ -46,7 +47,7 @@ class WorkOrderExecution {
     public void resume(UUID workOrderId) {
         WorkOrder workOrder = workOrders.lock(workOrderId).orElseThrow();
         if (!workOrder.status().terminal()) {
-            engine.resumeWorkflow(workOrderId.toString(), ENGINE, null);
+            engine.resumeWorkflow(workOrder.caseId(), ENGINE, null);
         }
     }
 

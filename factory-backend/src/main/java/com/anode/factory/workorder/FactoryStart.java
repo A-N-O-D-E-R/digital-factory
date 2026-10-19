@@ -25,7 +25,8 @@ class FactoryStart implements ContextualTask {
     @Override
     public TaskResponse execute(WorkflowContext context) {
         WorkOrder workOrder = current.of(context);
-        String start = catalog.definition(workOrder.workflowName(), workOrder.workflowVersion()).start();
+        String start = workOrder.reworkStep() != null ? workOrder.reworkStep()
+                : catalog.definition(workOrder.workflowName(), workOrder.workflowVersion()).start();
         workOrder.enter(start, clock.instant());
         return StepResult.PROCEED.response();
     }
