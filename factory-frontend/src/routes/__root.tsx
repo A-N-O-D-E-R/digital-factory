@@ -4,6 +4,7 @@ import { Toaster } from "sonner";
 import { useLiveEvents } from "../api/live";
 import { CommandPalette } from "../components/CommandPalette";
 import { GateNotifications } from "../components/GateNotifications";
+import { Shortcuts } from "../components/Shortcuts";
 import { Sidebar } from "../components/Sidebar";
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({ component: Root });
@@ -28,6 +29,7 @@ function Signedin() {
       </main>
       <CommandPalette />
       <GateNotifications />
+      <Shortcuts />
     </div>
   );
 }

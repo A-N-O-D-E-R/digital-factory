@@ -1,7 +1,9 @@
 import { useNavigate } from "@tanstack/react-router";
 import { Command } from "cmdk";
 import { useEffect, useState } from "react";
-import { useCurrentUser, useWorkOrders } from "../api/queries";
+import { useQuery } from "@tanstack/react-query";
+import { api, type Schemas } from "../api/client";
+import { useCan, useChange, useCurrentUser, useWorkOrders } from "../api/queries";
 
 /** Mod+K: jump to a work order or a page without the mouse. */
 export function CommandPalette() {
@@ -9,6 +11,11 @@ export function CommandPalette() {
   const navigate = useNavigate();
   const workOrders = useWorkOrders().data ?? [];
   const admin = useCurrentUser().data?.roles.includes("ADMIN");
+  const write = useCan("work-order:write");
+  const repositories = useQuery({ queryKey: ["repositories"], queryFn: () => api.get("repositories").json<Schemas["RepositoryView"][]>(),
+    enabled: open && admin === true }).data ?? [];
+  const budgets = useQuery({ queryKey: ["budgets"], queryFn: () => api.get("budgets").json<Schemas["State"]>(), enabled: open && admin === true }).data;
+  const pause = useChange((paused: boolean) => api.post(paused ? "factory/pause" : "factory/resume"), "Usine mise à jour");
   useEffect(() => {
     const toggle = (e: KeyboardEvent) => {
       if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
@@ -19,9 +26,9 @@ export function CommandPalette() {
     document.addEventListener("keydown", toggle);
     return () => document.removeEventListener("keydown", toggle);
   }, []);
-  const go = (to: string, params?: Record<string, string>) => {
+  const go = (to: string, params?: Record<string, string>, search?: Record<string, string>) => {
     setOpen(false);
-    void navigate({ to, params } as never);
+    void navigate({ to, params, search } as never);
   };
   return (
     <Command.Dialog open={open} onOpenChange={setOpen} label="Palette de commandes"
@@ -29,6 +36,15 @@ export function CommandPalette() {
       <Command.Input placeholder="Aller à…" className="w-full border-b bg-transparent px-3 py-2.5 outline-none" />
       <Command.List className="max-h-80 overflow-y-auto p-1">
         <Command.Empty className="p-3 text-muted-foreground">Rien trouvé.</Command.Empty>
+        <Command.Group heading="Actions" className="text-xs text-muted-foreground [&_[cmdk-item]]:text-sm [&_[cmdk-item]]:text-foreground">
+          {write && <Item onSelect={() => go("/", undefined, { action: "new-work-order" })}>Nouveau work order</Item>}
+          {write && <Item onSelect={() => go("/", undefined, { action: "import-ticket" })}>Importer un ticket</Item>}
+          {admin && budgets && (
+            <Item onSelect={() => { setOpen(false); pause.mutate(!budgets.paused); }}>
+              {budgets.paused ? "Reprendre l'usine" : "Mettre l'usine en pause"}
+            </Item>
+          )}
+        </Command.Group>
         <Command.Group heading="Pages" className="text-xs text-muted-foreground [&_[cmdk-item]]:text-sm [&_[cmdk-item]]:text-foreground">
           <Item onSelect={() => go("/")}>Tableau</Item>
           <Item onSelect={() => go("/approvals")}>Approbations</Item>
@@ -37,6 +53,11 @@ export function CommandPalette() {
           {admin && <Item onSelect={() => go("/admin/workers")}>Workers</Item>}
           {admin && <Item onSelect={() => go("/admin/autonomy")}>Autonomie</Item>}
         </Command.Group>
+        {repositories.length > 0 && (
+          <Command.Group heading="Dépôts" className="text-xs text-muted-foreground [&_[cmdk-item]]:text-sm [&_[cmdk-item]]:text-foreground">
+            {repositories.map((r) => <Item key={r.key} value={`dépôt ${r.key}`} onSelect={() => go("/admin/repositories")}>{r.key}</Item>)}
+          </Command.Group>
+        )}
         <Command.Group heading="Work orders" className="text-xs text-muted-foreground [&_[cmdk-item]]:text-sm [&_[cmdk-item]]:text-foreground">
           {workOrders.map((w) => (
             <Item key={w.id} value={`${w.title} ${w.repository} ${w.id}`} onSelect={() => go("/work-orders/$id", { id: w.id })}>

@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 @PreAuthorize("hasRole('WORKER')")
 class WorkerHeartbeatController {
 
-    record Heartbeat(String version, int slots, int busy) {}
+    record Heartbeat(String version, String image, int slots, int busy) {}
 
     private final WorkerRegistry registry;
 
@@ -24,6 +24,6 @@ class WorkerHeartbeatController {
     @PostMapping("/internal/workers/heartbeat")
     Map<String, Boolean> heartbeat(@RequestBody Heartbeat heartbeat, Authentication worker) {
         return Map.of("draining", registry.heartbeat(UUID.fromString(worker.getName()), heartbeat.version(),
-                heartbeat.slots(), heartbeat.busy()));
+                heartbeat.image(), heartbeat.slots(), heartbeat.busy()));
     }
 }

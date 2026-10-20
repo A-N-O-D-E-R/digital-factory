@@ -40,13 +40,14 @@ function Workers() {
       )}
       <table className="w-full text-left text-xs">
         <thead className="text-muted-foreground">
-          <tr><th className="py-1">Nom</th><th>Version</th><th>Runs</th><th>Signe de vie</th><th>État</th><th /></tr>
+          <tr><th className="py-1">Nom</th><th>Version</th><th>Image</th><th>Runs</th><th>Signe de vie</th><th>État</th><th /></tr>
         </thead>
         <tbody>
           {workers.data?.map((w) => (
             <tr key={w.id} className="border-t">
               <td className="py-1.5">{w.name}</td>
               <td>{w.version ?? "—"}</td>
+              <td className="font-mono">{w.image ?? "—"}</td>
               <td>{w.slots == null ? "—" : `${w.busy}/${w.slots}`}</td>
               <td>{w.lastHeartbeatAt ? formatDistanceToNow(new Date(w.lastHeartbeatAt), { addSuffix: true, locale: fr }) : "jamais"}</td>
               <td>{!w.active ? "Révoqué" : w.draining ? "En vidange" : "Actif"}</td>

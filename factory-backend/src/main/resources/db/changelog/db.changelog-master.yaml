@@ -512,3 +512,12 @@ databaseChangeLog:
             tableName: runs
             columns:
               - column: { name: logs, type: text }
+  - changeSet:
+      id: 025-worker-image
+      author: digital-factory
+      comment: The image a worker runs as, as it reports it
+      changes:
+        - addColumn:
+            tableName: workers
+            columns:
+              - column: { name: image, type: varchar(255) }

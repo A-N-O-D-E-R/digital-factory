@@ -29,6 +29,8 @@ public class Worker {
     /** What the worker last reported: its version, run slots and runs in progress. */
     private String version;
 
+    private String image;
+
     private Integer slots;
 
     private Integer busy;
@@ -54,8 +56,9 @@ public class Worker {
         this.active = false;
     }
 
-    void heartbeat(String version, int slots, int busy, Instant now) {
+    void heartbeat(String version, String image, int slots, int busy, Instant now) {
         this.version = version;
+        this.image = image;
         this.slots = slots;
         this.busy = busy;
         this.lastHeartbeatAt = now;
@@ -67,6 +70,10 @@ public class Worker {
 
     public String version() {
         return version;
+    }
+
+    public String image() {
+        return image;
     }
 
     public Integer slots() {

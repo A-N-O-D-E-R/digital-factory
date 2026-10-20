@@ -424,7 +424,7 @@ class WorkOrderExecutionTest {
     @Test
     void workersReportThemselvesAndADrainedWorkerClaimsNothing() {
         var heartbeat = mvc.post().uri("/internal/workers/heartbeat").header("Authorization", worker.bearer())
-                .contentType(MediaType.APPLICATION_JSON).content("{\"version\":\"1.2.3\",\"slots\":4,\"busy\":1}")
+                .contentType(MediaType.APPLICATION_JSON).content("{\"version\":\"1.2.3\",\"image\":\"factory-worker:1.2.3\",\"slots\":4,\"busy\":1}")
                 .exchange();
         assertThat(heartbeat).hasStatusOk().bodyJson().extractingPath("$.draining").isEqualTo(false);
         JsonNode workers = json.readTree(mvc.get().uri("/api/workers").with(admin()).exchange().getResponse()
@@ -437,6 +437,7 @@ class WorkOrderExecutionTest {
         }
         assertThat(self.get("version").asString()).isEqualTo("1.2.3");
         assertThat(self.get("slots").asInt()).isEqualTo(4);
+        assertThat(self.get("image").asString()).isEqualTo("factory-worker:1.2.3");
         assertThat(self.get("lastHeartbeatAt").isNull()).isFalse();
 
         assertThat(mvc.post().uri("/api/workers/{id}/drain", worker.id()).with(admin()).with(csrf())).hasStatusOk();

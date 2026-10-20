@@ -950,6 +950,7 @@ export interface components {
         };
         Heartbeat: {
             version: string;
+            image: string;
             /** Format: int32 */
             slots: number;
             /** Format: int32 */
@@ -1065,6 +1066,7 @@ export interface components {
             active: boolean;
             draining: boolean;
             version: string;
+            image: string;
             /** Format: int32 */
             slots: number;
             /** Format: int32 */

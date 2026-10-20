@@ -75,7 +75,7 @@ class Dispatcher implements SmartLifecycle {
         try {
             String version = WorkerApplication.class.getPackage().getImplementationVersion();
             draining = Boolean.TRUE.equals(controlPlane.heartbeat(new ControlPlane.Heartbeat(
-                    version == null ? "dev" : version, properties.slots(), busy.get())).get("draining"));
+                    version == null ? "dev" : version, properties.image(), properties.slots(), busy.get())).get("draining"));
         } catch (RuntimeException e) {
             log.warn("Cannot report to the control plane: {}", e.getMessage());
         }

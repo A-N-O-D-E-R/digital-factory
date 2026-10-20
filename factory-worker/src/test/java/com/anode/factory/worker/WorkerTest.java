@@ -111,7 +111,7 @@ class WorkerTest {
         });
         server.start();
         WorkerProperties properties = new WorkerProperties("http://localhost:" + server.getAddress().getPort(), "t",
-                1, tmp.resolve("work"), Duration.ofMillis(100), Duration.ofSeconds(1), "none", null, null,
+                1, tmp.resolve("work"), Duration.ofMillis(100), Duration.ofSeconds(1), "none", null, null, "factory-worker:test",
                 List.of("sh", "-c", AGENT), Duration.ofMinutes(2), 1.0, 256);
         ControlPlane controlPlane = HttpServiceProxyFactory.builderFor(RestClientAdapter.create(
                         RestClient.builder().baseUrl(properties.controlPlaneUrl())
@@ -198,6 +198,7 @@ class WorkerTest {
             Thread.sleep(1500);
             assertThat(heartbeats).isNotEmpty();
             assertThat(json.readTree(heartbeats.getFirst()).get("slots").asInt()).isEqualTo(1);
+            assertThat(json.readTree(heartbeats.getFirst()).get("image").asString()).isEqualTo("factory-worker:test");
             assertThat(claims.get()).as("draining from the first heartbeat on").isLessThanOrEqualTo(1);
             int before = claims.get();
             Thread.sleep(500);

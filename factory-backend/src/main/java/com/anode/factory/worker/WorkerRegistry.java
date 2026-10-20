@@ -75,9 +75,9 @@ public class WorkerRegistry {
 
     /** What a worker reports of itself; whether it is draining. */
     @Transactional
-    public boolean heartbeat(UUID id, String version, int slots, int busy) {
+    public boolean heartbeat(UUID id, String version, String image, int slots, int busy) {
         Worker worker = workers.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
-        worker.heartbeat(version, slots, busy, clock.instant());
+        worker.heartbeat(version, image, slots, busy, clock.instant());
         return worker.draining();
     }
 

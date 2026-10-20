@@ -44,6 +44,7 @@ services:
       FACTORY_WORKER_TOKEN: ${FACTORY_WORKER_TOKEN:-}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       FACTORY_WORKER_SLOTS: ${FACTORY_WORKER_SLOTS:-2}
+      FACTORY_WORKER_IMAGE: factory-worker
       # sandboxes are bind-mounted from here: the same path on the host and in the worker
       FACTORY_WORKER_WORKDIR: ${FACTORY_WORKER_DIR:-/var/lib/factory-worker}
       FACTORY_WORKER_NETWORK: factory-sandboxes

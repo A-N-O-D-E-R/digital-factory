@@ -197,4 +197,21 @@ describe("the factory UI", () => {
     await vi.waitFor(() => expect(calls.find((c) => c.what === "POST /api/intake-rules")?.body).toEqual({
       name: "docs", source: "github", project: "acme/api", filter: "factory-docs", repository: "github:acme/api", maxRead: 50, maxCreated: 5 }));
   });
+
+  it("moves around from the keyboard and groups the board by step", async () => {
+    fakeApi({
+      "GET /api/user": user(["work-order:read", "work-order:write"]),
+      "GET /api/work-orders": [workOrder(), workOrder({ id: "wo-2", title: "Add docs", currentStep: "review" })],
+      "GET /api/approvals": [],
+      "GET /api/repositories": [],
+    });
+    await renderApp("/");
+    fireEvent.click(await screen.findByRole("button", { name: "Par étape" }));
+    expect(within(screen.getByRole("region", { name: "Étape review" })).getByText("Add docs")).toBeInTheDocument();
+    fireEvent.keyDown(document, { key: "n" });
+    expect(await screen.findByRole("form", { name: "Nouveau work order" })).toBeInTheDocument();
+    fireEvent.keyDown(document, { key: "g" });
+    fireEvent.keyDown(document, { key: "a" });
+    expect(await screen.findByRole("heading", { name: "Approbations" })).toBeInTheDocument();
+  });
 });

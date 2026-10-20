@@ -24,6 +24,8 @@ public record WorkerProperties(
         String egressProxy,
         /* given to agent sandboxes only */
         String anthropicApiKey,
+        /* what the worker runs as (its image tag), shown in the worker registry */
+        String image,
         /* the command of agent sandboxes; empty: the image's own (the runner) */
         List<String> agentCommand,
         /* limits of the sandboxes running no agent (tests, judge) */

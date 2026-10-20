@@ -4,9 +4,9 @@ import { api, type Schemas } from "../api/client";
 import { useCan, useChange } from "../api/queries";
 
 /** A ticket (key or URL) becomes a work order, on its own repository unless one is chosen. */
-export function ImportTicket() {
+export function ImportTicket({ initiallyOpen = false }: { initiallyOpen?: boolean }) {
   const can = useCan("work-order:write");
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(initiallyOpen);
   const navigate = useNavigate();
   const importTicket = useChange(
     (ticket: string) => api.post("tickets/import", { json: { ticket } }).json<Schemas["ImportedView"]>(),

@@ -38,7 +38,7 @@ public interface ControlPlane {
 
     record Failure(String error, BigDecimal costUsd, Usage usage, String logs) {}
 
-    record Heartbeat(String version, int slots, int busy) {}
+    record Heartbeat(String version, String image, int slots, int busy) {}
 
     /** What the worker is; whether it is draining (it claims nothing then). */
     @PostExchange("/workers/heartbeat")

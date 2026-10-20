@@ -20,10 +20,10 @@ import org.springframework.web.bind.annotation.RestController;
 @PreAuthorize("hasRole('ADMIN')")
 class WorkerController {
 
-    record WorkerView(UUID id, String name, boolean active, boolean draining, String version, Integer slots,
-                      Integer busy, Instant lastHeartbeatAt, Instant createdAt, String createdBy) {
+    record WorkerView(UUID id, String name, boolean active, boolean draining, String version, String image,
+                      Integer slots, Integer busy, Instant lastHeartbeatAt, Instant createdAt, String createdBy) {
         static WorkerView of(Worker w) {
-            return new WorkerView(w.id(), w.name(), w.active(), w.draining(), w.version(), w.slots(), w.busy(),
+            return new WorkerView(w.id(), w.name(), w.active(), w.draining(), w.version(), w.image(), w.slots(), w.busy(),
                     w.lastHeartbeatAt(), w.createdAt(), w.createdBy());
         }
     }

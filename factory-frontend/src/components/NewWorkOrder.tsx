@@ -5,9 +5,9 @@ import { api, type Schemas } from "../api/client";
 import { useCan, useCreateWorkOrder } from "../api/queries";
 
 // ponytail: plain controlled form; TanStack Form + Zod once forms have more than three fields
-export function NewWorkOrder() {
+export function NewWorkOrder({ initiallyOpen = false }: { initiallyOpen?: boolean }) {
   const can = useCan("work-order:write");
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(initiallyOpen);
   const repositories = useQuery({
     queryKey: ["repositories"],
     queryFn: () => api.get("repositories").json<Schemas["RepositoryView"][]>(),
