@@ -89,7 +89,12 @@ public class Settings {
      * pinned; refused if a later change broke the settings.
      */
     public JsonNode frozen(String repository) {
-        JsonNode effective = merged(repository);
+        return frozen(repository, null);
+    }
+
+    /** Frozen with {@code candidate} (a sparse overlay, as an eval tries it) merged over the effective settings. */
+    public JsonNode frozen(String repository, JsonNode candidate) {
+        JsonNode effective = candidate == null ? merged(repository) : MergePatch.apply(merged(repository), candidate);
         List<String> errors = errors(effective);
         if (!errors.isEmpty()) {
             throw new InvalidSettingsException(errors);
@@ -107,6 +112,14 @@ public class Settings {
     @Transactional
     public Layer update(String repository, JsonNode document, String reason, String by) {
         return replace(scope(repository), document, reason, by);
+    }
+
+    /** A candidate that did better in evaluation becomes part of the global layer; recorded as a change. */
+    @Transactional
+    public Layer promote(JsonNode candidate, String reason, String by) {
+        JsonNode global = layer(null).document();
+        return replace(scope(null), MergePatch.apply(global == null ? JsonNodeFactory.instance.objectNode() : global,
+                candidate), reason, by);
     }
 
     /** Puts the layer back as it was before {@code changeId}; recorded as a change itself. */

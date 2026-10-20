@@ -1,0 +1,8 @@
+{
+  "description": "The fast evaluation suite: classification and analysis only, judged on what they found.",
+  "start": "classify",
+  "steps": [
+    { "id": "classify", "kind": "agent", "roles": ["classifier"], "next": [{ "to": "analyze" }] },
+    { "id": "analyze", "kind": "agent", "roles": ["analyst"], "next": [{ "to": "@done" }] }
+  ]
+}

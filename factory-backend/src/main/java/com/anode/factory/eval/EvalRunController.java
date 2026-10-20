@@ -14,18 +14,20 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import tools.jackson.databind.JsonNode;
 
 @RestController
 @RequestMapping("/api/eval-runs")
 class EvalRunController {
 
-    record StartRequest(String workflow) {}
+    /** {@code suite}: fast or complete (default); {@code candidate}: a settings overlay to try. */
+    record StartRequest(String workflow, String suite, JsonNode candidate) {}
 
-    record EvalRunView(UUID id, String workflow, boolean finished, List<Map<String, Object>> results, String createdBy,
-                       Instant createdAt, Instant finishedAt) {
+    record EvalRunView(UUID id, String workflow, String suite, String candidate, boolean finished,
+                       List<Map<String, Object>> results, String createdBy, Instant createdAt, Instant finishedAt) {
         static EvalRunView of(EvalRun r) {
-            return new EvalRunView(r.id(), r.workflow(), r.finished(), r.results(), r.createdBy(), r.createdAt(),
-                    r.finishedAt());
+            return new EvalRunView(r.id(), r.workflow(), r.suite(), r.candidate(), r.finished(), r.results(),
+                    r.createdBy(), r.createdAt(), r.finishedAt());
         }
     }
 
@@ -39,7 +41,16 @@ class EvalRunController {
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasRole('ADMIN')")
     EvalRunView start(@RequestBody(required = false) StartRequest request, Authentication admin) {
-        return EvalRunView.of(evals.start(request == null ? null : request.workflow(), admin.getName()));
+        return EvalRunView.of(request == null ? evals.start(null, null, null, admin.getName())
+                : evals.start(request.workflow(), request.suite(), request.candidate(), admin.getName()));
+    }
+
+    /** The run's candidate settings become the current ones (global layer), as a recorded settings change. */
+    @PostMapping("/{id}/promote")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize("hasRole('ADMIN')")
+    void promote(@PathVariable UUID id, Authentication admin) {
+        evals.promote(id, admin.getName());
     }
 
     @GetMapping

@@ -21,6 +21,8 @@ import tools.jackson.databind.json.JsonMapper;
 public class WorkflowCatalog {
 
     public static final String DEFAULT = "default";
+    /** The fast evaluation suite's workflow: classification and analysis only. */
+    public static final String EVAL_FAST = "eval-fast";
 
     private final WorkflowVersionRepository versions;
     private final WorkflowValidator validator;
@@ -87,13 +89,19 @@ public class WorkflowCatalog {
     @EventListener(ApplicationReadyEvent.class)
     @Transactional
     public void installDefault() {
-        if (versions.findFirstByNameOrderByVersionDesc(DEFAULT).isEmpty()) {
-            publish(DEFAULT, builtIn(), "Built-in workflow", "factory");
+        for (String name : List.of(DEFAULT, EVAL_FAST)) {
+            if (versions.findFirstByNameOrderByVersionDesc(name).isEmpty()) {
+                publish(name, builtIn(name), "Built-in workflow", "factory");
+            }
         }
     }
 
     static String builtIn() {
-        try (InputStream in = WorkflowCatalog.class.getResourceAsStream("/workflows/default.json")) {
+        return builtIn(DEFAULT);
+    }
+
+    static String builtIn(String name) {
+        try (InputStream in = WorkflowCatalog.class.getResourceAsStream("/workflows/" + name + ".json")) {
             return new String(in.readAllBytes(), StandardCharsets.UTF_8);
         } catch (IOException e) {
             throw new UncheckedIOException(e);

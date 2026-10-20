@@ -453,3 +453,13 @@ databaseChangeLog:
               - column: { name: model, type: varchar(255) }
               - column: { name: input_tokens, type: bigint }
               - column: { name: output_tokens, type: bigint }
+  - changeSet:
+      id: 021-eval-suites-candidates
+      author: digital-factory
+      comment: Eval runs of the fast or complete suite, of the current settings or of a candidate overlay
+      changes:
+        - addColumn:
+            tableName: eval_runs
+            columns:
+              - column: { name: suite, type: varchar(16), defaultValue: complete, constraints: { nullable: false } }
+              - column: { name: candidate, type: jsonb }

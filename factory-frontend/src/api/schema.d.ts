@@ -484,6 +484,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/eval-runs/{id}/promote": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["promote"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/agent-roles": {
         parameters: {
             query?: never;
@@ -1125,11 +1141,16 @@ export interface components {
         };
         StartRequest: {
             workflow: string;
+            suite: string;
+            /** @description Any JSON value */
+            candidate: Record<string, unknown>;
         };
         EvalRunView: {
             /** Format: uuid */
             id: string;
             workflow: string;
+            suite: string;
+            candidate: string;
             finished: boolean;
             results: {
                 [key: string]: unknown;
@@ -2185,6 +2206,26 @@ export interface operations {
                 content: {
                     "*/*": components["schemas"]["EvalRunView"];
                 };
+            };
+        };
+    };
+    promote: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

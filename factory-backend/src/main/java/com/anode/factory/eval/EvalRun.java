@@ -39,10 +39,20 @@ public class EvalRun {
     @Column(name = "finished_at")
     private Instant finishedAt;
 
+    /** fast (classification and analysis, judged on what they found) or complete (judged by the hidden tests). */
+    @Column(nullable = false)
+    private String suite;
+
+    /** A sparse settings overlay tried instead of the current settings; null: the current ones. */
+    @JdbcTypeCode(SqlTypes.JSON)
+    private String candidate;
+
     protected EvalRun() {}
 
-    EvalRun(String workflow, String createdBy, Instant now) {
+    EvalRun(String workflow, String suite, String candidate, String createdBy, Instant now) {
         this.id = UUID.randomUUID();
+        this.suite = suite;
+        this.candidate = candidate;
         this.workflow = workflow;
         this.createdBy = createdBy;
         this.createdAt = now;
@@ -57,6 +67,18 @@ public class EvalRun {
         this.results = judged;
         this.finished = true;
         this.finishedAt = now;
+    }
+
+    public String suite() {
+        return suite;
+    }
+
+    public String candidate() {
+        return candidate;
+    }
+
+    boolean fast() {
+        return "fast".equals(suite);
     }
 
     public UUID id() {

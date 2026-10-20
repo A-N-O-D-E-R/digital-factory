@@ -16,6 +16,7 @@ import com.anode.factory.GitHubWebhook;
 import com.anode.factory.IntegrationTest;
 import com.anode.factory.TestRepository;
 import com.anode.factory.forge.FakeForge;
+import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -167,5 +168,51 @@ class EvalTest {
         GitHubWebhook.deliver(mvc, "pull_request", GitHubWebhook.closed(number, true));
         await().atMost(Duration.ofSeconds(10))
                 .until(() -> "DONE".equals(get("/api/work-orders/{id}", id).get("workOrder").get("status").asString()));
+    }
+
+    @Test
+    void aCandidateIsTriedOnTheFastSuiteComparedAndPromoted() {
+        BigDecimal measured = policyRate("DOCUMENTATION");
+        var started = mvc.post().uri("/api/eval-runs").with(admin()).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"suite\":\"fast\",\"candidate\":{\"roles\":{\"classifier\":{\"effort\":\"max\"}}}}").exchange();
+        assertThat(started).hasStatus(201);
+        JsonNode run = json.readTree(started.getResponse().getContentAsByteArray());
+        assertThat(run.get("workflow").asString()).isEqualTo("eval-fast");
+
+        await().atMost(Duration.ofSeconds(20)).pollInterval(Duration.ofMillis(50)).until(() -> {
+            var claimed = mvc.post().uri("/internal/runs/claim").header("Authorization", worker.bearer()).exchange();
+            if (claimed.getResponse().getStatus() == 200) {
+                JsonNode job = json.readTree(claimed.getResponse().getContentAsByteArray());
+                if (job.get("task").asString().equals("classifier")) {
+                    assertThat(job.get("input").get("settings").get("effort").asString()).as("the candidate's").isEqualTo("max");
+                }
+                assertThat(job.get("task").asString()).as("fast: no implementation").isIn("classifier", "analyst");
+                answer(new FakeWorker.Job(job.get("runId").asString(), job.get("task").asString(),
+                        job.get("attempt").asInt(), job.get("input")));
+            }
+            return get("/api/eval-runs/{id}", run.get("id").asString()).get("finished").asBoolean();
+        });
+        JsonNode results = get("/api/eval-runs/{id}", run.get("id").asString()).get("results");
+        assertThat(results.findValues("passed")).as("classified and analysed right").allMatch(JsonNode::asBoolean);
+        assertThat(policyRate("DOCUMENTATION")).as("a candidate does not measure the factory").isEqualTo(measured);
+
+        assertThat(mvc.post().uri("/api/eval-runs/{id}/promote", run.get("id").asString()).with(admin()).with(csrf()))
+                .hasStatus(204);
+        try {
+            assertThat(get("/api/settings").get("document").get("roles").get("classifier").get("effort").asString())
+                    .isEqualTo("max");
+        } finally {
+            mvc.put().uri("/api/settings").with(admin()).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                    .content("{\"document\":{},\"reason\":\"test done\"}").exchange();
+        }
+    }
+
+    BigDecimal policyRate(String type) {
+        for (JsonNode policy : get("/api/autonomy-policy")) {
+            if (policy.get("type").asString().equals(type)) {
+                return policy.get("successRate").isNull() ? null : policy.get("successRate").decimalValue();
+            }
+        }
+        return null;
     }
 }

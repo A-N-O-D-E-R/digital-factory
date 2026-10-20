@@ -15,6 +15,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 @Service
@@ -49,7 +50,7 @@ public class WorkOrderService {
     /** Creates a work order on the latest version of {@code workflowName} (frozen from now on) and starts it. */
     @Transactional
     public WorkOrder create(String repository, String title, String description, String workflowName, String author) {
-        return create(repository, title, description, workflowName, author, null, null);
+        return create(repository, title, description, workflowName, author, null, null, null);
     }
 
     /**
@@ -59,20 +60,23 @@ public class WorkOrderService {
     @Transactional
     public WorkOrder create(String repository, String title, String description, String workflowName, String author,
                             Consumer<WorkOrder> beforeStart) {
-        return create(repository, title, description, workflowName, author, null, null, beforeStart);
+        return create(repository, title, description, workflowName, author, null, null, null, beforeStart);
     }
 
-    /** A work order of an eval run, judged by {@code judgeCommand} instead of being published. */
+    /**
+     * A work order of an eval run, judged by {@code judgeCommand} instead of being published, with
+     * the eval's {@code candidate} settings overlay (null: the current settings).
+     */
     @Transactional
     public WorkOrder create(String repository, String title, String description, String workflowName, String author,
-                            UUID evalRunId, String judgeCommand) {
-        return create(repository, title, description, workflowName, author, evalRunId, judgeCommand, w -> {});
+                            UUID evalRunId, String judgeCommand, JsonNode candidate) {
+        return create(repository, title, description, workflowName, author, evalRunId, judgeCommand, candidate, w -> {});
     }
 
     private WorkOrder create(String repository, String title, String description, String workflowName, String author,
-                             UUID evalRunId, String judgeCommand, Consumer<WorkOrder> beforeStart) {
+                             UUID evalRunId, String judgeCommand, JsonNode candidate, Consumer<WorkOrder> beforeStart) {
         repositories.active(repository);
-        String frozen = json.writeValueAsString(settings.frozen(repository));
+        String frozen = json.writeValueAsString(settings.frozen(repository, candidate));
         String name = workflowName == null ? WorkflowCatalog.DEFAULT : workflowName;
         int version = catalog.latest(name)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNPROCESSABLE_CONTENT, "No workflow " + name))
