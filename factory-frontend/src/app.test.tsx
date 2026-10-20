@@ -170,4 +170,29 @@ describe("the factory UI", () => {
     expect(screen.getByText(/risque HIGH/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Approuver" })).toBeInTheDocument();
   });
+
+  it("lets an admin register a repository and create an intake rule", async () => {
+    document.cookie = "XSRF-TOKEN=t";
+    const calls = fakeApi({
+      "GET /api/user": { name: "ada", roles: ["ADMIN"], permissions: ["work-order:read", "settings:write"] },
+      "GET /api/work-orders": [], "GET /api/approvals": [], "GET /api/repositories": [],
+      "GET /api/intake-rules": [], "GET /api/tickets": [],
+    });
+    const page = await renderApp("/admin/repositories");
+    fireEvent.change(await screen.findByLabelText("Chemin"), { target: { value: "acme/api" } });
+    fireEvent.click(screen.getByRole("button", { name: "Enregistrer" }));
+    await vi.waitFor(() => expect(calls.find((c) => c.what === "POST /api/repositories")?.body).toEqual({
+      forge: "GITHUB", path: "acme/api", settings: { defaultBranch: "main", testCommand: "mvn -B verify",
+        testReports: "**/target/surefire-reports/*.xml", sandboxImage: "factory-sandbox" } }));
+    page.unmount();
+
+    await renderApp("/admin/intake");
+    const rule = await screen.findByRole("form", { name: "Nouvelle règle" });
+    for (const [label, value] of [["Nom", "docs"], ["Projet", "acme/api"], ["Filtre", "factory-docs"], ["Dépôt cible", "github:acme/api"]]) {
+      fireEvent.change(within(rule).getByLabelText(label), { target: { value } });
+    }
+    fireEvent.click(within(rule).getByRole("button", { name: "Créer la règle" }));
+    await vi.waitFor(() => expect(calls.find((c) => c.what === "POST /api/intake-rules")?.body).toEqual({
+      name: "docs", source: "github", project: "acme/api", filter: "factory-docs", repository: "github:acme/api", maxRead: 50, maxCreated: 5 }));
+  });
 });

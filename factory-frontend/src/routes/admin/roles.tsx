@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { type FormEvent, useState } from "react";
+import { Field, formValues } from "../../components/Field";
 import { api, type Schemas } from "../../api/client";
 import { useAdminChange } from "../../api/useAdminChange";
 
@@ -13,6 +14,12 @@ function Roles() {
   const roles = useQuery({ queryKey: ["roles"], queryFn: () => api.get("agent-roles").json<Schemas["RoleView"][]>() }).data;
   const [role, setRole] = useState<string>();
   const current = role ?? roles?.[0]?.name;
+  const create = useAdminChange(["roles"], (body: Record<string, string>) => api.post("agent-roles", { json: body }), "Rôle créé");
+  const submit = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const body = formValues(e.currentTarget);
+    create.mutate(body, { onSuccess: () => { setRole(body.name); (e.target as HTMLFormElement).reset(); } });
+  };
   return (
     <section className="grid grid-cols-[14rem_1fr] gap-4">
       <ul className="flex flex-col gap-0.5">
@@ -23,6 +30,14 @@ function Roles() {
             </button>
           </li>
         ))}
+        <li>
+          <form onSubmit={submit} aria-label="Nouveau rôle de revue" className="mt-3 flex flex-col gap-2 border-t pt-3">
+            <Field label="Nouveau rôle de revue" name="name" required pattern="[a-z][a-z0-9\-]{0,62}" placeholder="perf-reviewer" />
+            <Field label="Description" name="description" required />
+            <Field label="Prompt"><textarea name="prompt" required className="min-h-24 rounded-md border bg-transparent p-2 text-xs" /></Field>
+            <button className="w-fit rounded-md border px-2 py-1 hover:bg-accent">Créer</button>
+          </form>
+        </li>
       </ul>
       {current && <Prompts key={current} role={current} />}
     </section>
