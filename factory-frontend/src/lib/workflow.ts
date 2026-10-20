@@ -7,7 +7,7 @@ export type Condition =
 export type Transition = { when?: Condition; to: string; maxVisits?: number; onExhausted?: string };
 export type Step = {
   id: string; kind: "agent" | "factory" | "gate"; roles?: string[]; join?: string; action?: string;
-  gate?: string; when?: Condition; next: Transition[];
+  gate?: string; when?: Condition; next: Transition[]; enabled?: boolean;
 };
 export type WorkflowDefinition = { description?: string; start: string; steps: Step[] };
 
@@ -22,7 +22,7 @@ export function describe(condition: Condition | undefined): string {
 }
 
 export function what(step: Step): string {
-  return step.kind === "agent" ? `agent ${step.roles?.join(" + ")}${step.join && step.join !== "all" ? ` (${step.join})` : ""}`
+  return (step.enabled === false ? "désactivée · " : "") + (step.kind === "agent" ? `agent ${step.roles?.join(" + ")}${step.join && step.join !== "all" ? ` (${step.join})` : ""}`
     : step.kind === "factory" ? `action ${step.action}`
-    : `barrière ${step.gate}${step.when ? ` si ${describe(step.when)}` : ""}`;
+    : `barrière ${step.gate}${step.when ? ` si ${describe(step.when)}` : ""}`);
 }

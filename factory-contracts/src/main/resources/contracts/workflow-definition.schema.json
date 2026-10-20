@@ -5,62 +5,117 @@
   "description": "A workflow: steps (agent, factory action, human gate) linked by ordered transitions. The first transition whose condition holds is taken; a step's last transition must be unconditional.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["start", "steps"],
+  "required": [
+    "start",
+    "steps"
+  ],
   "properties": {
-    "description": { "type": "string" },
-    "start": { "$ref": "#/$defs/stepId" },
+    "description": {
+      "type": "string"
+    },
+    "start": {
+      "$ref": "#/$defs/stepId"
+    },
     "steps": {
       "type": "array",
       "minItems": 1,
-      "items": { "$ref": "#/$defs/step" }
+      "items": {
+        "$ref": "#/$defs/step"
+      }
     }
   },
   "$defs": {
-    "stepId": { "type": "string", "pattern": "^[a-z][a-z0-9-]{0,62}$" },
+    "stepId": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]{0,62}$"
+    },
     "target": {
       "description": "A step id, or a terminal outcome.",
       "anyOf": [
-        { "$ref": "#/$defs/stepId" },
-        { "enum": ["@done", "@blocked", "@failed", "@cancelled", "@merged", "@closed"] }
+        {
+          "$ref": "#/$defs/stepId"
+        },
+        {
+          "enum": [
+            "@done",
+            "@blocked",
+            "@failed",
+            "@cancelled",
+            "@merged",
+            "@closed"
+          ]
+        }
       ]
     },
     "step": {
       "type": "object",
-      "required": ["id", "kind", "next"],
+      "required": [
+        "id",
+        "kind",
+        "next"
+      ],
       "properties": {
-        "id": { "$ref": "#/$defs/stepId" },
-        "kind": { "enum": ["agent", "factory", "gate"] },
+        "id": {
+          "$ref": "#/$defs/stepId"
+        },
+        "kind": {
+          "enum": [
+            "agent",
+            "factory",
+            "gate"
+          ]
+        },
         "next": {
           "type": "array",
           "minItems": 1,
-          "items": { "$ref": "#/$defs/transition" }
+          "items": {
+            "$ref": "#/$defs/transition"
+          }
         },
         "settings": {
           "description": "Per-step overrides: model, maxTurns, effort, timeout, retries, resources, tools.",
           "type": "object"
+        },
+        "enabled": {
+          "description": "false: the step is passed through (its transitions taken on what is known); a disabled run-tests step proves nothing.",
+          "type": "boolean",
+          "default": true
         }
       },
       "oneOf": [
         {
           "properties": {
-            "kind": { "const": "agent" },
+            "kind": {
+              "const": "agent"
+            },
             "roles": {
               "description": "Agent roles run in parallel for this step (one run each).",
               "type": "array",
               "minItems": 1,
-              "items": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" }
+              "items": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9-]*$"
+              }
             },
             "join": {
               "description": "How the verdicts of parallel runs combine.",
-              "enum": ["all", "majority", "any"],
+              "enum": [
+                "all",
+                "majority",
+                "any"
+              ],
               "default": "all"
             }
           },
-          "required": ["roles"]
+          "required": [
+            "roles"
+          ]
         },
         {
           "properties": {
-            "kind": { "const": "factory" },
+            "kind": {
+              "const": "factory"
+            },
             "action": {
               "enum": [
                 "run-tests",
@@ -78,37 +133,60 @@
                 "watch-pr"
               ]
             },
-            "with": { "type": "object" }
+            "with": {
+              "type": "object"
+            }
           },
-          "required": ["action"]
+          "required": [
+            "action"
+          ]
         },
         {
           "properties": {
-            "kind": { "const": "gate" },
-            "gate": { "description": "What the human decides on.", "enum": ["plan", "final"] },
+            "kind": {
+              "const": "gate"
+            },
+            "gate": {
+              "description": "What the human decides on.",
+              "enum": [
+                "plan",
+                "final"
+              ]
+            },
             "when": {
               "description": "The gate only waits for a human when this holds; otherwise it is passed through.",
               "$ref": "#/$defs/condition"
             }
           },
-          "required": ["gate"]
+          "required": [
+            "gate"
+          ]
         }
       ]
     },
     "transition": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["to"],
+      "required": [
+        "to"
+      ],
       "properties": {
-        "when": { "$ref": "#/$defs/condition" },
-        "to": { "$ref": "#/$defs/target" },
+        "when": {
+          "$ref": "#/$defs/condition"
+        },
+        "to": {
+          "$ref": "#/$defs/target"
+        },
         "maxVisits": {
           "description": "How many times this transition may be taken for one work order; beyond, onExhausted applies.",
           "type": "integer",
           "minimum": 1,
           "maximum": 20
         },
-        "onExhausted": { "$ref": "#/$defs/target", "default": "@blocked" }
+        "onExhausted": {
+          "$ref": "#/$defs/target",
+          "default": "@blocked"
+        }
       }
     },
     "fact": {
@@ -140,13 +218,36 @@
         {
           "type": "object",
           "additionalProperties": false,
-          "required": ["fact"],
+          "required": [
+            "fact"
+          ],
           "properties": {
-            "fact": { "$ref": "#/$defs/fact" },
-            "equals": { "type": ["string", "number", "boolean"] },
-            "in": { "type": "array", "minItems": 1, "items": { "type": ["string", "number"] } },
-            "greaterThan": { "type": "number" },
-            "lessThan": { "type": "number" }
+            "fact": {
+              "$ref": "#/$defs/fact"
+            },
+            "equals": {
+              "type": [
+                "string",
+                "number",
+                "boolean"
+              ]
+            },
+            "in": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": [
+                  "string",
+                  "number"
+                ]
+              }
+            },
+            "greaterThan": {
+              "type": "number"
+            },
+            "lessThan": {
+              "type": "number"
+            }
           },
           "minProperties": 2,
           "maxProperties": 2
@@ -154,20 +255,46 @@
         {
           "type": "object",
           "additionalProperties": false,
-          "required": ["allOf"],
-          "properties": { "allOf": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/condition" } } }
+          "required": [
+            "allOf"
+          ],
+          "properties": {
+            "allOf": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "$ref": "#/$defs/condition"
+              }
+            }
+          }
         },
         {
           "type": "object",
           "additionalProperties": false,
-          "required": ["anyOf"],
-          "properties": { "anyOf": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/condition" } } }
+          "required": [
+            "anyOf"
+          ],
+          "properties": {
+            "anyOf": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "$ref": "#/$defs/condition"
+              }
+            }
+          }
         },
         {
           "type": "object",
           "additionalProperties": false,
-          "required": ["not"],
-          "properties": { "not": { "$ref": "#/$defs/condition" } }
+          "required": [
+            "not"
+          ],
+          "properties": {
+            "not": {
+              "$ref": "#/$defs/condition"
+            }
+          }
         }
       ]
     }

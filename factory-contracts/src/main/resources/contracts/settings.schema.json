@@ -129,6 +129,29 @@
           "description": "The role's prompt version; work orders pin the latest one when unset.",
           "type": "integer",
           "minimum": 1
+        },
+        "maxAttempts": {
+          "description": "Attempts of a run before its step fails (invalid output, worker error, expired lease); factory.runs.max-attempts when unset.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5
+        },
+        "tools": {
+          "description": "The tools the agent may use, instead of its role's.",
+          "type": "array",
+          "items": {
+            "enum": [
+              "Read",
+              "Glob",
+              "Grep",
+              "Bash",
+              "Write",
+              "Edit",
+              "WebFetch",
+              "WebSearch"
+            ]
+          },
+          "uniqueItems": true
         }
       }
     }

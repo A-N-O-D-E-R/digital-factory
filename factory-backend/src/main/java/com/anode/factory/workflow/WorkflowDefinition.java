@@ -56,7 +56,14 @@ public record WorkflowDefinition(String description, String start, List<Step> st
             String gate,
             Condition when,
             List<Transition> next,
-            Map<String, Object> settings) {}
+            Map<String, Object> settings,
+            Boolean enabled) {
+
+        /** A disabled step is passed through: its transitions are taken on what is known already. */
+        public boolean disabled() {
+            return Boolean.FALSE.equals(enabled);
+        }
+    }
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public record Transition(Condition when, String to, Integer maxVisits, String onExhausted) {

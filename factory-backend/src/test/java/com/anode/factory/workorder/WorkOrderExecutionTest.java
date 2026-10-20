@@ -354,6 +354,22 @@ class WorkOrderExecutionTest {
     }
 
     @Test
+    void aDisabledStepIsPassedThroughAndAStepCanAllowOneAttempt() {
+        publish("trimmed", """
+                { "start": "classify", "steps": [
+                  { "id": "classify", "kind": "agent", "roles": ["classifier"], "enabled": false, "next": [{ "to": "implement" }] },
+                  { "id": "implement", "kind": "agent", "roles": ["implementer"], "settings": { "maxAttempts": 1 },
+                    "next": [{ "to": "@done" }] }
+                ] }""");
+        UUID id = create("trimmed");
+        FakeWorker.Job implement = claim("implementer"); // no classifier: switched off
+        assertThat(implement.input().get("settings").get("maxAttempts").asInt()).isEqualTo(1);
+        worker.fail(implement, "sandbox crashed");
+        assertThat(awaitStatus(id, "FAILED").get("workOrder").get("outcomeReason").asString())
+                .contains("after 1 attempt(s)");
+    }
+
+    @Test
     void aRiskyPlanWaitsForApproval() {
         UUID id = create("mini");
         worker.complete(claim("classifier"), classification("SECURITY", "HIGH"));

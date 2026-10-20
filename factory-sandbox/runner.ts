@@ -8,7 +8,7 @@ type Job = {
   task: string;
   input: {
     writesCode?: boolean;
-    settings: { modelId: string; maxTurns: number; effort: Options["effort"] };
+    settings: { modelId: string; maxTurns: number; effort: Options["effort"]; tools?: string[] };
     prompt: { version: number; text: string };
     [key: string]: unknown;
   };
@@ -36,8 +36,9 @@ export function usage(message: { usage?: Tokens; modelUsage?: Record<string, unk
 
 const READ = ["Read", "Glob", "Grep"];
 
-/** Tools per role: the classifier only reads; the others run commands; code writers edit. */
+/** Tools per role (the classifier only reads; the others run commands; code writers edit), or the run's settings'. */
 export function tools(job: Job): string[] {
+  if (job.input.settings.tools) return job.input.settings.tools;
   if (job.task === "classifier") return READ;
   return job.input.writesCode ? [...READ, "Bash", "Write", "Edit"] : [...READ, "Bash"];
 }

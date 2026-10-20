@@ -89,6 +89,9 @@ class FactoryStep implements ContextualTask {
                 .findFirst()
                 .orElseThrow(() -> new IllegalStateException("No step " + stepId));
         decideAutonomy(workOrder); // the gate of this step may depend on it
+        if (step.disabled()) {
+            return StepResult.PROCEED.response(); // switched off: on to its transitions
+        }
         StepResult result = switch (step.kind()) {
             case agent -> runs(workOrder, step, RunKind.AGENT, step.roles());
             case gate -> gate(workOrder, step);

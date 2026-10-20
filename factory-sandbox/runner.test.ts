@@ -63,6 +63,11 @@ describe("runner", () => {
     await run(job("classifier", false), "/w");
     expect(query.mock.calls[0][0].options.tools).toEqual(["Read", "Glob", "Grep", "Bash"]);
     expect(query.mock.calls[1][0].options.tools).toEqual(["Read", "Glob", "Grep"]);
+
+    const narrowed = job("implementer", true);
+    narrowed.input.settings = { ...narrowed.input.settings, tools: ["Read", "Edit"] } as typeof narrowed.input.settings;
+    await run(narrowed, "/w");
+    expect(query.mock.calls[2][0].options.allowedTools).toEqual(["Read", "Edit"]);
   });
 
   it("reports why there is no output, with what was spent", async () => {

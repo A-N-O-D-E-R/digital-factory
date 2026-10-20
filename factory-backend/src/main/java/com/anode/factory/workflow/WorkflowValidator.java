@@ -258,7 +258,7 @@ public class WorkflowValidator {
                     continue;
                 }
                 Step step = steps.get(id);
-                if (step.kind() == WorkflowDefinition.Kind.factory && EVIDENCE.equals(step.action())) {
+                if (step.kind() == WorkflowDefinition.Kind.factory && EVIDENCE.equals(step.action()) && !step.disabled()) {
                     continue; // the change is proven here
                 }
                 if (step.kind() == WorkflowDefinition.Kind.factory && PUBLISHING.contains(step.action())) {

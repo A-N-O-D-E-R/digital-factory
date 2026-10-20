@@ -165,8 +165,10 @@ public class RunQueue {
         return runs.findByWorkOrderIdOrderByCreatedAt(workOrderId);
     }
 
+    /** Retried up to the run's own settings.maxAttempts (role or step), else factory.runs.max-attempts. */
     private void retryOrFinish(Run run) {
-        if (run.attempt() < properties.maxAttempts()) {
+        int maxAttempts = json.readTree(run.input()).path("settings").path("maxAttempts").asInt(properties.maxAttempts());
+        if (run.attempt() < maxAttempts) {
             // the next attempt is told what went wrong (e.g. the schema violations)
             ObjectNode input = (ObjectNode) json.readTree(run.input());
             input.put("previousAttemptError", run.error());

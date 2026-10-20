@@ -147,6 +147,12 @@ class WorkflowApiTest {
         }
 
         @Test
+        void aDisabledTestStepProvesNothing() {
+            assertRefused(linear(IMPLEMENT + "," + VERIFY.replace("\"action\": \"run-tests\",", "\"action\": \"run-tests\", \"enabled\": false,")
+                    + "," + PUSH), "without the change being tested");
+        }
+
+        @Test
         void unknownFacts() {
             assertRefused(linear("""
                     { "id": "implement", "kind": "agent", "roles": ["implementer"],
