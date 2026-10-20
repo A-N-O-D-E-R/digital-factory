@@ -107,7 +107,11 @@
     },
     {
       "id": "triage", "kind": "agent", "roles": ["feedback-triage"],
-      "next": [{ "to": "implement" }]
+      "next": [{ "when": { "fact": "triage.changes", "equals": false }, "to": "answer" }, { "to": "implement" }]
+    },
+    {
+      "id": "answer", "kind": "factory", "action": "reply-feedback",
+      "next": [{ "to": "watch" }]
     }
   ]
 }

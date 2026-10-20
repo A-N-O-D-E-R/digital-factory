@@ -54,6 +54,14 @@ final class Facts {
                     }
                 }
                 case "secret-scan" -> facts.put("secrets.found", !out.get("findings").isEmpty());
+                case "feedback-triage" -> {
+                    // feedback asking for no change (questions, out of scope, done) is answered, not coded
+                    boolean changes = false;
+                    for (JsonNode item : out.get("items")) {
+                        changes |= "CHANGE".equals(item.get("decision").asString());
+                    }
+                    facts.put("triage.changes", changes);
+                }
                 case "update-branch" -> {
                     // the conflicting files: the next implementer run starts from the merge, markers in place
                     facts.put("branch.conflicted", !out.get("updated").asBoolean());
@@ -61,7 +69,7 @@ final class Facts {
                 }
                 case "judge" -> facts.put("eval.passed", passed(out.get("tests")));
                 default -> {
-                    // specifier, implementer, feedback-triage: their outputs are artifacts, not facts
+                    // specifier, implementer: their outputs are artifacts, not facts
                 }
             }
         }

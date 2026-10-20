@@ -56,7 +56,9 @@ class PrWatchTest {
                          { "to": "watch", "maxVisits": 10 }] },
               { "id": "update", "kind": "factory", "action": "update-branch",
                 "next": [{ "when": { "fact": "branch.conflicted", "equals": true }, "to": "implement" }, { "to": "verify" }] },
-              { "id": "triage", "kind": "agent", "roles": ["feedback-triage"], "next": [{ "to": "implement" }] }
+              { "id": "triage", "kind": "agent", "roles": ["feedback-triage"],
+                "next": [{ "when": { "fact": "triage.changes", "equals": false }, "to": "answer" }, { "to": "implement" }] },
+              { "id": "answer", "kind": "factory", "action": "reply-feedback", "next": [{ "to": "watch" }] }
             ] }""";
 
     @Autowired MockMvcTester mvc;
@@ -96,6 +98,18 @@ class PrWatchTest {
         FakeWorker.Job job = worker.claim();
         assertThat(job.task()).isEqualTo(task);
         return job;
+    }
+
+    /** The next job of {@code id}'s work order: a push makes every watched PR of the repository behind, other tests' too. */
+    FakeWorker.Job claimFor(UUID id, String task) {
+        while (true) {
+            FakeWorker.Job job = worker.claim();
+            if (job.input().get("workOrder").get("id").asString().equals(id.toString())) {
+                assertThat(job.task()).isEqualTo(task);
+                return job;
+            }
+            // another test's leftover: abandoned, its lease expires
+        }
     }
 
     /** Implemented, tested, pushed: its draft PR is open and watched. Returns the work order and its PR number. */
@@ -254,16 +268,16 @@ class PrWatchTest {
         deliver("push", push("refs/heads/feature"));
         deliver("push", push("refs/heads/main"));
         awaitStep(pr.id(), "update");
-        FakeWorker.Job update = claim("update-branch");
+        FakeWorker.Job update = claimFor(pr.id(), "update-branch");
         worker.complete(update, "{\"updated\":false,\"conflicts\":[\"src/Totals.java\"]}");
         awaitStep(pr.id(), "implement");
-        FakeWorker.Job implement = claim("implementer");
+        FakeWorker.Job implement = claimFor(pr.id(), "implementer");
         assertThat(implement.input().get("facts").get("branch.conflicts").get(0).asString()).isEqualTo("src/Totals.java");
         assertThat(get("/api/work-orders/{id}/pr-events", pr.id()).findValuesAsString("kind")).containsExactly("branch_behind");
     }
 
     @Test
-    void reviewCommentsAreAnsweredInTheirThread() {
+    void questionsAreAnsweredInTheirThreadWithoutChangingTheCode() {
         Watched pr = watchedPullRequest();
         deliver("pull_request_review_comment", """
                 {"action":"created","repository":{"full_name":"acme/api"},"pull_request":{"number":%d},
@@ -274,14 +288,11 @@ class PrWatchTest {
         String id = triage.input().get("facts").get("pr.feedback").get("id").asString();
         worker.complete(triage, "{\"summary\":\"none\",\"items\":[{\"id\":\"" + id
                 + "\",\"decision\":\"ANSWER\",\"answer\":\"Banking rounding, as the ticket asks.\"}]}");
-        awaitStep(pr.id(), "implement");
-        worker.complete(claim("implementer"), implementation());
-        awaitStep(pr.id(), "verify");
-        worker.complete(claim("run-tests"), tests(1, 0));
-        awaitStep(pr.id(), "push");
-        worker.complete(claim("push-branch"), "{\"branch\":\"factory/" + pr.id() + "\",\"commit\":\"" + "d".repeat(40) + "\"}");
+        await().atMost(Duration.ofSeconds(10)).until(() -> forge.comments().contains(
+                "#" + pr.number() + " in 4242: Banking rounding, as the ticket asks."));
         awaitStep(pr.id(), "watch");
-        assertThat(forge.comments()).contains("#" + pr.number() + " in 4242: Banking rounding, as the ticket asks.");
+        assertThat(worker.hasNothingToClaim()).as("no implementer, no evidence: nothing to change").isTrue();
+        assertThat(workOrder(pr.id()).get("facts").get("triage.changes").asBoolean()).isFalse();
     }
 
     @Test
