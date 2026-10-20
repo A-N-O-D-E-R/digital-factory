@@ -22,6 +22,10 @@ spring:
       jdbc:
         schema-initialization:
           enabled: true
+  web:
+    resources:
+      # the frontend is served by FrontendPages (with its routes' fallback to index.html)
+      add-mappings: false
   security:
     oauth2:
       resourceserver:

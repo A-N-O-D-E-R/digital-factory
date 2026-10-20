@@ -11,5 +11,5 @@ export default defineConfig({
   server: {
     proxy: Object.fromEntries(["/api", "/oauth2", "/login/oauth2", "/logout"].map((path) => [path, backend])),
   },
-  test: { environment: "jsdom", setupFiles: ["./src/test-setup.ts"] },
+  test: { environment: "jsdom", setupFiles: ["./src/test-setup.ts"], include: ["src/**/*.test.{ts,tsx}"] },
 });
