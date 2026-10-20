@@ -110,3 +110,25 @@ function SplitDiff({ patch }: { patch: string }) {
     </div>
   );
 }
+
+type Analysis = { valid: boolean; reproduced: boolean | null; plan: string; acceptanceCriteria: string[] };
+
+/** The analyst's plan and acceptance criteria: what a plan gate approves, what the work was asked to do. */
+export function Plan({ workOrderId, runs }: { workOrderId: string; runs: Run[] }) {
+  const analysis = useOutput<Analysis>(workOrderId, runs.filter((r) => r.task === "analyst" && r.status === "SUCCEEDED").at(-1)).data;
+  if (!analysis) {
+    return null;
+  }
+  return (
+    <section className="flex flex-col gap-2">
+      <h2 className="font-medium">Plan</h2>
+      {!analysis.valid && <p className="text-blocked">L'analyste juge la demande invalide.</p>}
+      {analysis.reproduced === false && <p className="text-blocked">Le bug n'a pas été reproduit.</p>}
+      <p className="whitespace-pre-wrap">{analysis.plan}</p>
+      <ul className="list-disc pl-5 text-muted-foreground">
+        {analysis.acceptanceCriteria.map((c) => <li key={c}>{c}</li>)}
+      </ul>
+    </section>
+  );
+}
+

@@ -151,4 +151,23 @@ describe("the factory UI", () => {
     await vi.waitFor(() => expect(calls.find((c) => c.what === "PUT /api/settings")?.body)
       .toEqual({ document: { roles: { default: { effort: "medium" } } }, reason: "moins cher" }));
   });
+
+  it("shows the plan next to the decision in the approvals inbox", async () => {
+    const analyst = { id: "r-a", stepId: "analyze", visit: 1, kind: "AGENT", task: "analyst", status: "SUCCEEDED",
+      attempt: 1, error: null, costUsd: 0.01, createdAt: "2026-10-20T10:00:00Z", finishedAt: "2026-10-20T10:01:00Z" };
+    fakeApi({
+      "GET /api/user": user(["work-order:read", "approval:decide"]),
+      "GET /api/work-orders": [workOrder({ status: "WAITING_FOR_HUMAN" })],
+      "GET /api/approvals": [gate],
+      "GET /api/work-orders/wo-1": { ...detail([gate]), runs: [analyst],
+        workOrder: workOrder({ status: "WAITING_FOR_HUMAN", facts: { type: "BUG", risk: "HIGH", "analysis.valid": true } }) },
+      "GET /api/work-orders/wo-1/runs/r-a": { run: analyst, output: { valid: true, reproduced: true, risk: "HIGH",
+        plan: "Round once, on the total.", acceptanceCriteria: ["Totals of 3 lines at 0.005 are 0.02"] } },
+    });
+    await renderApp("/approvals");
+    expect(await screen.findByText("Round once, on the total.")).toBeInTheDocument();
+    expect(screen.getByText("Totals of 3 lines at 0.005 are 0.02")).toBeInTheDocument();
+    expect(screen.getByText(/risque HIGH/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Approuver" })).toBeInTheDocument();
+  });
 });
