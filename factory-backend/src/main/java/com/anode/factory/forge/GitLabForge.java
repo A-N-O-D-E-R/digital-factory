@@ -25,6 +25,8 @@ class GitLabForge implements Forge, IntegrationCheck {
     private static final String DRAFT = "Draft: ";
 
     private final GitLabApi gitlab;
+    /** The token's user, asked once. */
+    private volatile String self;
 
     GitLabForge(GitLabApi gitlab) {
         this.gitlab = gitlab;
@@ -159,6 +161,56 @@ class GitLabForge implements Forge, IntegrationCheck {
         } catch (GitLabApiException e) {
             throw new IllegalStateException(e);
         }
+    }
+
+    /** Ids as GitLabEvents gives the webhook deliveries of the same things. */
+    @Override
+    public List<PrActivity> activity(CodeRepository repository, PullRequest pullRequest) {
+        try {
+            String prefix = "gitlab:" + repository.path() + "!" + pullRequest.number();
+            List<PrActivity> activity = new ArrayList<>();
+            String state = gitlab.getMergeRequestApi().getMergeRequest(repository.path(), pullRequest.number()).getState();
+            if ("merged".equals(state) || "closed".equals(state)) {
+                activity.add(PrActivity.system(prefix + ":" + state, state));
+            }
+            for (var discussion : gitlab.getDiscussionsApi().getMergeRequestDiscussions(repository.path(),
+                    pullRequest.number())) {
+                for (var note : discussion.getNotes()) {
+                    if (Boolean.TRUE.equals(note.getSystem())) {
+                        continue;
+                    }
+                    String username = note.getAuthor().getUsername();
+                    activity.add(new PrActivity("gitlab:note:" + note.getId(), "commented", username,
+                            username.contains("_bot"), note.getBody(), null, discussion.getId()));
+                }
+            }
+            var pipelines = gitlab.getMergeRequestApi().getMergeRequestPipelines(repository.path(), pullRequest.number());
+            if (!pipelines.isEmpty()) {
+                String kind = switch (String.valueOf(pipelines.getFirst().getStatus()).toLowerCase()) {
+                    case "success" -> "checks_passed";
+                    case "failed", "canceled" -> "checks_failed";
+                    default -> null;
+                };
+                if (kind != null) {
+                    activity.add(PrActivity.system("gitlab:pipeline:" + pipelines.getFirst().getId() + ":" + kind, kind));
+                }
+            }
+            return activity;
+        } catch (GitLabApiException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    @Override
+    public String self() {
+        if (self == null) {
+            try {
+                self = gitlab.getUserApi().getCurrentUser().getUsername();
+            } catch (GitLabApiException e) {
+                throw new IllegalStateException(e);
+            }
+        }
+        return self;
     }
 
     @Override

@@ -14,11 +14,14 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Stream;
 import org.kohsuke.github.GHCheckRun;
+import org.kohsuke.github.GHIssueComment;
 import org.kohsuke.github.GHIssueState;
 import org.kohsuke.github.GHPermissionType;
 import org.kohsuke.github.GHPullRequest;
+import org.kohsuke.github.GHPullRequestReview;
 import org.kohsuke.github.GHPullRequestReviewComment;
 import org.kohsuke.github.GHRepository;
+import org.kohsuke.github.GHUser;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
@@ -202,6 +205,62 @@ class GitHubForge implements Forge, IntegrationCheck {
     // ponytail: GitHub resolves review threads through GraphQL only (resolveReviewThread); left to reviewers
     @Override
     public void resolve(CodeRepository repository, PullRequest pullRequest, String thread) {}
+
+    /** Ids as GitHubEvents gives the webhook deliveries of the same things. */
+    @Override
+    public List<PrActivity> activity(CodeRepository repository, PullRequest pullRequest) {
+        try {
+            GHRepository repo = repo(repository);
+            GHPullRequest pr = repo.getPullRequest((int) pullRequest.number());
+            String prefix = "github:" + repository.path() + "#" + pullRequest.number();
+            List<PrActivity> activity = new ArrayList<>();
+            if (pr.isMerged()) {
+                activity.add(PrActivity.system(prefix + ":merged", "merged"));
+            } else if (pr.getState() == GHIssueState.CLOSED) {
+                activity.add(PrActivity.system(prefix + ":closed", "closed"));
+            }
+            for (GHPullRequestReview review : pr.listReviews()) {
+                String kind = switch (review.getState()) {
+                    case APPROVED -> "approved";
+                    case CHANGES_REQUESTED -> "changes_requested";
+                    case COMMENTED -> "commented";
+                    default -> null;
+                };
+                if (kind != null) {
+                    activity.add(authored("github:review:" + review.getId(), kind, review.getUser(), review.getBody(),
+                            review.getHtmlUrl(), null));
+                }
+            }
+            for (GHIssueComment comment : pr.listComments()) {
+                activity.add(authored("github:comment:" + comment.getId(), "commented", comment.getUser(),
+                        comment.getBody(), comment.getHtmlUrl(), null));
+            }
+            for (GHPullRequestReviewComment comment : pr.listReviewComments()) {
+                long thread = comment.getInReplyToId() > 0 ? comment.getInReplyToId() : comment.getId();
+                activity.add(authored("github:review-comment:" + comment.getId(), "commented", comment.getUser(),
+                        comment.getBody(), comment.getHtmlUrl(), Long.toString(thread)));
+            }
+            String head = pr.getHead().getSha();
+            List<GHCheckRun> checks = repo.getCheckRuns(head).toList();
+            if (!checks.isEmpty() && checks.stream().allMatch(c -> c.getStatus() == GHCheckRun.Status.COMPLETED)) {
+                boolean failed = checks.stream().anyMatch(c -> c.getConclusion() == GHCheckRun.Conclusion.FAILURE
+                        || c.getConclusion() == GHCheckRun.Conclusion.TIMED_OUT
+                        || c.getConclusion() == GHCheckRun.Conclusion.CANCELLED);
+                String kind = failed ? "checks_failed" : "checks_passed";
+                activity.add(PrActivity.system("github:checks:" + head + ":" + kind + "#" + pullRequest.number(), kind));
+            }
+            return activity;
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    private static PrActivity authored(String id, String kind, GHUser user, String body, java.net.URL url,
+                                       String thread) throws IOException {
+        String login = user.getLogin();
+        boolean bot = "Bot".equals(user.getType()) || login.endsWith("[bot]");
+        return new PrActivity(id, kind, login, bot, body, url == null ? null : url.toString(), thread);
+    }
 
     @Override
     public void comment(CodeRepository repository, PullRequest pullRequest, String body) {

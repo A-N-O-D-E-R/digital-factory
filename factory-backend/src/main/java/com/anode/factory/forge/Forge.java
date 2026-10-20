@@ -34,6 +34,14 @@ public interface Forge {
     /** The checks of the PR's head that failed, with the end of their logs where the forge has them. */
     List<FailedCheck> failedChecks(CodeRepository repository, PullRequest pullRequest);
 
+    /** Everything on the PR so far, for the polling fallback of webhooks (ids as the webhooks'). */
+    List<PrActivity> activity(CodeRepository repository, PullRequest pullRequest);
+
+    /** The account the factory acts as on the forge, when it is a user's (its own comments are not feedback). */
+    default String self() {
+        return null;
+    }
+
     /** Whether {@code login} may write to the repository: only such authors steer the factory. */
     boolean canWrite(CodeRepository repository, String login);
 }

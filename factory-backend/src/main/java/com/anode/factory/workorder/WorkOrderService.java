@@ -86,6 +86,10 @@ public class WorkOrderService {
         return workOrders.findIdleWithOpenPullRequest(before);
     }
 
+    public List<WorkOrder> withOpenPullRequest() {
+        return workOrders.findWithOpenPullRequest();
+    }
+
     public List<WorkOrder> withOpenPullRequest(String repository) {
         return workOrders.findWithOpenPullRequest(repository);
     }

@@ -25,6 +25,7 @@ factory:
     report-interval: 200ms
   prwatch:
     limits-interval: 200ms
+    poll-interval: 300ms
   tickets:
     transitions:
       github:

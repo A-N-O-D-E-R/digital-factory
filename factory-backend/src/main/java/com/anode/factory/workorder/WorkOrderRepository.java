@@ -31,6 +31,13 @@ interface WorkOrderRepository extends JpaRepository<WorkOrder, UUID> {
             nativeQuery = true)
     List<WorkOrder> findIdleWithOpenPullRequest(Instant before);
 
+    /** The work orders watching an open PR. */
+    @Query(value = """
+            select * from work_orders where jsonb_exists(facts, 'pr.number')
+            and status not in ('DONE', 'BLOCKED', 'FAILED', 'CANCELLED')
+            and coalesce(facts ->> 'pr.event', '') not in ('merged', 'closed')""", nativeQuery = true)
+    List<WorkOrder> findWithOpenPullRequest();
+
     /** The work orders watching an open PR on {@code repository}. */
     @Query(value = """
             select * from work_orders where repository = :repository and jsonb_exists(facts, 'pr.number')

@@ -31,6 +31,7 @@ class GitLabEvents {
         normalize(delivery.uuid(), delivery.event()).forEach(watch::receive);
     }
 
+    /** Ids are the forge's own (note, MR state, pipeline), as polling gives them (GitLabForge.activity). */
     static List<PrEvent> normalize(String uuid, Event event) {
         String id = "gitlab:" + uuid;
         return switch (event) {
@@ -44,16 +45,18 @@ class GitLabEvents {
                 if (kind == null) {
                     yield List.of();
                 }
-                String repository = "gitlab:" + mr.getProject().getPathWithNamespace();
+                String path = mr.getProject().getPathWithNamespace();
                 long number = mr.getObjectAttributes().getIid();
                 // approvals come from a person; merge and close from the forge
                 yield List.of(kind.equals("approved")
-                        ? authored(id, repository, number, kind, mr.getUser(), null, mr.getObjectAttributes().getUrl())
-                        : new PrEvent(id, repository, number, kind, null, false, null, null));
+                        ? authored(id, "gitlab:" + path, number, kind, mr.getUser(), null, mr.getObjectAttributes().getUrl())
+                        : new PrEvent("gitlab:" + path + "!" + number + ":" + kind, "gitlab:" + path, number, kind, null,
+                                false, null, null));
             }
             case NoteEvent note when note.getObjectAttributes().getNoteableType() == NoteEvent.NoteableType.MERGE_REQUEST
                     && note.getMergeRequest() != null -> {
-                PrEvent comment = authored(id, "gitlab:" + note.getProject().getPathWithNamespace(),
+                PrEvent comment = authored("gitlab:note:" + note.getObjectAttributes().getId(),
+                        "gitlab:" + note.getProject().getPathWithNamespace(),
                         note.getMergeRequest().getIid(), "commented", note.getUser(), note.getObjectAttributes().getNote(),
                         note.getObjectAttributes().getUrl());
                 yield List.of(new PrEvent(comment.id(), comment.repository(), comment.number(), comment.kind(),
@@ -66,7 +69,8 @@ class GitLabEvents {
                     case "failed", "canceled" -> "checks_failed";
                     default -> null; // running, pending...
                 };
-                yield kind == null ? List.of() : List.of(new PrEvent(id,
+                yield kind == null ? List.of() : List.of(new PrEvent(
+                        "gitlab:pipeline:" + pipeline.getObjectAttributes().getId() + ":" + kind,
                         "gitlab:" + pipeline.getProject().getPathWithNamespace(), pipeline.getMergeRequest().getIid(),
                         kind, null, false, null, pipeline.getObjectAttributes().getUrl()));
             }

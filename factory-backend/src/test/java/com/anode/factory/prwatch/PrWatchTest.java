@@ -15,6 +15,7 @@ import com.anode.factory.IntegrationTest;
 import com.anode.factory.TestRepository;
 import com.anode.factory.forge.FailedCheck;
 import com.anode.factory.forge.FakeForge;
+import com.anode.factory.forge.PrActivity;
 import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
@@ -281,6 +282,28 @@ class PrWatchTest {
         worker.complete(claim("push-branch"), "{\"branch\":\"factory/" + pr.id() + "\",\"commit\":\"" + "d".repeat(40) + "\"}");
         awaitStep(pr.id(), "watch");
         assertThat(forge.comments()).contains("#" + pr.number() + " in 4242: Banking rounding, as the ticket asks.");
+    }
+
+    @Test
+    void whatWebhooksMissPollingFindsAndAnEventSeenBothWaysCountsOnce() {
+        Watched pr = watchedPullRequest();
+        try {
+            forge.activity(List.of(
+                    new PrActivity("github:comment:77", "commented", "factory-user", false, "Done in abc.", null, null),
+                    new PrActivity("github:comment:78", "commented", "maintainer", false, "Please rename it", null, null)));
+            awaitStep(pr.id(), "triage");
+            deliver("issue_comment", """
+                    {"action":"created","repository":{"full_name":"acme/api"},"issue":{"number":%d,"pull_request":{}},
+                     "comment":{"id":78,"body":"Please rename it","user":{"login":"maintainer","type":"User"}}}"""
+                    .formatted(pr.number()));
+            assertThat(claim("feedback-triage").input().get("facts").get("pr.feedback").get("body").asString())
+                    .isEqualTo("Please rename it");
+            JsonNode events = get("/api/work-orders/{id}/pr-events", pr.id());
+            assertThat(events.findValuesAsString("id")).containsExactly("github:comment:77", "github:comment:78");
+            assertThat(events.get(0).get("ignoredBecause").asString()).isEqualTo("author is the factory");
+        } finally {
+            forge.activity(List.of());
+        }
     }
 
     @Test

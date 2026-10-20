@@ -64,6 +64,24 @@ public class FakeForge implements Forge {
         return failedChecks;
     }
 
+    private volatile List<PrActivity> activity = List.of();
+
+    /** What polling any PR finds from now on. */
+    public void activity(List<PrActivity> activity) {
+        this.activity = activity;
+    }
+
+    @Override
+    public List<PrActivity> activity(CodeRepository repository, PullRequest pullRequest) {
+        return activity;
+    }
+
+    /** The fake factory comments as this user. */
+    @Override
+    public String self() {
+        return "factory-user";
+    }
+
     /** Only "maintainer" may write to the fake repositories. */
     @Override
     public boolean canWrite(CodeRepository repository, String login) {

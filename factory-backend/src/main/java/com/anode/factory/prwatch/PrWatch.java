@@ -127,6 +127,9 @@ class PrWatch {
         if (event.bot()) {
             return "author is a bot";
         }
+        if (event.author().equals(forges.of(repository).self())) {
+            return "author is the factory";
+        }
         if (trustedAuthors.contains(event.author()) || forges.of(repository).canWrite(repository, event.author())) {
             return null;
         }

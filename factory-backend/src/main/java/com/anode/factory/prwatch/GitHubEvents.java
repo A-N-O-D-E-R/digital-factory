@@ -32,32 +32,48 @@ class GitHubEvents {
         normalize(delivery.event(), delivery.deliveryId(), payload).forEach(watch::receive);
     }
 
+    /**
+     * Event ids are the forge's own (comment, review, the head commit's checks), as polling gives
+     * them (GitHubForge.activity): an event seen both ways counts once. The delivery id stands in
+     * when a payload has none.
+     */
     static List<PrEvent> normalize(String event, String deliveryId, JsonNode payload) {
-        String id = "github:" + deliveryId;
-        String repository = "github:" + payload.path("repository").path("full_name").asString();
+        String delivery = "github:" + deliveryId;
+        String path = payload.path("repository").path("full_name").asString();
+        String repository = "github:" + path;
         String action = payload.path("action").asString();
         return switch (event) {
-            case "pull_request" -> action.equals("closed")
-                    ? List.of(system(id, repository, payload.path("pull_request").path("number").asLong(),
-                            payload.path("pull_request").path("merged").asBoolean() ? "merged" : "closed"))
-                    : List.of();
+            case "pull_request" -> {
+                if (!action.equals("closed")) {
+                    yield List.of();
+                }
+                long number = payload.path("pull_request").path("number").asLong();
+                String kind = payload.path("pull_request").path("merged").asBoolean() ? "merged" : "closed";
+                yield List.of(system("github:" + path + "#" + number + ":" + kind, repository, number, kind));
+            }
             case "pull_request_review" -> action.equals("submitted")
                     ? kind(payload.path("review").path("state").asString())
-                            .map(kind -> List.of(authored(id, repository, payload.path("pull_request").path("number").asLong(),
-                                    kind, payload.path("review"))))
+                            .map(kind -> List.of(authored(id("github:review:", payload.path("review"), delivery),
+                                    repository, payload.path("pull_request").path("number").asLong(), kind,
+                                    payload.path("review"))))
                             .orElse(List.of())
                     : List.of();
             case "pull_request_review_comment" -> action.equals("created")
-                    ? List.of(thread(authored(id, repository, payload.path("pull_request").path("number").asLong(),
-                            "commented", payload.path("comment")), payload.path("comment")))
-                    : List.of();
-            case "issue_comment" -> action.equals("created") && payload.path("issue").has("pull_request")
-                    ? List.of(authored(id, repository, payload.path("issue").path("number").asLong(), "commented",
+                    ? List.of(thread(authored(id("github:review-comment:", payload.path("comment"), delivery), repository,
+                            payload.path("pull_request").path("number").asLong(), "commented", payload.path("comment")),
                             payload.path("comment")))
                     : List.of();
-            case "check_suite" -> action.equals("completed") ? checks(id, repository, payload) : List.of();
+            case "issue_comment" -> action.equals("created") && payload.path("issue").has("pull_request")
+                    ? List.of(authored(id("github:comment:", payload.path("comment"), delivery), repository,
+                            payload.path("issue").path("number").asLong(), "commented", payload.path("comment")))
+                    : List.of();
+            case "check_suite" -> action.equals("completed") ? checks(delivery, repository, payload) : List.of();
             default -> List.of();
         };
+    }
+
+    private static String id(String prefix, JsonNode item, String delivery) {
+        return item.hasNonNull("id") ? prefix + item.get("id").asString() : delivery;
     }
 
     private static java.util.Optional<String> kind(String reviewState) {
@@ -76,9 +92,12 @@ class GitHubEvents {
             default -> "checks_failed";
         };
         List<PrEvent> events = new ArrayList<>();
+        String head = suite.path("head_sha").asString(null);
         for (JsonNode pr : suite.path("pull_requests")) {
             long number = pr.path("number").asLong();
-            events.add(system(id + "#" + number, repository, number, kind));
+            // one event per outcome of the head commit's checks, however many suites
+            events.add(system((head == null ? id : "github:checks:" + head + ":" + kind) + "#" + number, repository,
+                    number, kind));
         }
         return events;
     }
