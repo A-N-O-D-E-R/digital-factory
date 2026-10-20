@@ -10,13 +10,23 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AdminRouteRouteImport } from './routes/admin/route'
 import { Route as ApprovalsRouteImport } from './routes/approvals'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as AdminAutonomyRouteImport } from './routes/admin/autonomy'
+import { Route as AdminIntegrationsRouteImport } from './routes/admin/integrations'
+import { Route as AdminRepositoriesRouteImport } from './routes/admin/repositories'
+import { Route as AdminWorkersRouteImport } from './routes/admin/workers'
 import { Route as WorkOrdersIdRouteImport } from './routes/work-orders.$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRouteRoute = AdminRouteRouteImport.update({
+  id: '/admin',
+  path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApprovalsRoute = ApprovalsRouteImport.update({
@@ -29,6 +39,26 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminAutonomyRoute = AdminAutonomyRouteImport.update({
+  id: '/autonomy',
+  path: '/autonomy',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminIntegrationsRoute = AdminIntegrationsRouteImport.update({
+  id: '/integrations',
+  path: '/integrations',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminRepositoriesRoute = AdminRepositoriesRouteImport.update({
+  id: '/repositories',
+  path: '/repositories',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminWorkersRoute = AdminWorkersRouteImport.update({
+  id: '/workers',
+  path: '/workers',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
 const WorkOrdersIdRoute = WorkOrdersIdRouteImport.update({
   id: '/work-orders/$id',
   path: '/work-orders/$id',
@@ -37,33 +67,77 @@ const WorkOrdersIdRoute = WorkOrdersIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRouteRouteWithChildren
   '/approvals': typeof ApprovalsRoute
   '/login': typeof LoginRoute
+  '/admin/autonomy': typeof AdminAutonomyRoute
+  '/admin/integrations': typeof AdminIntegrationsRoute
+  '/admin/repositories': typeof AdminRepositoriesRoute
+  '/admin/workers': typeof AdminWorkersRoute
   '/work-orders/$id': typeof WorkOrdersIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRouteRouteWithChildren
   '/approvals': typeof ApprovalsRoute
   '/login': typeof LoginRoute
+  '/admin/autonomy': typeof AdminAutonomyRoute
+  '/admin/integrations': typeof AdminIntegrationsRoute
+  '/admin/repositories': typeof AdminRepositoriesRoute
+  '/admin/workers': typeof AdminWorkersRoute
   '/work-orders/$id': typeof WorkOrdersIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin': typeof AdminRouteRouteWithChildren
   '/approvals': typeof ApprovalsRoute
   '/login': typeof LoginRoute
+  '/admin/autonomy': typeof AdminAutonomyRoute
+  '/admin/integrations': typeof AdminIntegrationsRoute
+  '/admin/repositories': typeof AdminRepositoriesRoute
+  '/admin/workers': typeof AdminWorkersRoute
   '/work-orders/$id': typeof WorkOrdersIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/approvals' | '/login' | '/work-orders/$id'
+  fullPaths:
+    | '/'
+    | '/admin'
+    | '/approvals'
+    | '/login'
+    | '/admin/autonomy'
+    | '/admin/integrations'
+    | '/admin/repositories'
+    | '/admin/workers'
+    | '/work-orders/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/approvals' | '/login' | '/work-orders/$id'
-  id: '__root__' | '/' | '/approvals' | '/login' | '/work-orders/$id'
+  to:
+    | '/'
+    | '/admin'
+    | '/approvals'
+    | '/login'
+    | '/admin/autonomy'
+    | '/admin/integrations'
+    | '/admin/repositories'
+    | '/admin/workers'
+    | '/work-orders/$id'
+  id:
+    | '__root__'
+    | '/'
+    | '/admin'
+    | '/approvals'
+    | '/login'
+    | '/admin/autonomy'
+    | '/admin/integrations'
+    | '/admin/repositories'
+    | '/admin/workers'
+    | '/work-orders/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminRouteRoute: typeof AdminRouteRouteWithChildren
   ApprovalsRoute: typeof ApprovalsRoute
   LoginRoute: typeof LoginRoute
   WorkOrdersIdRoute: typeof WorkOrdersIdRoute
@@ -76,6 +150,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/approvals': {
@@ -92,6 +173,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/autonomy': {
+      id: '/admin/autonomy'
+      path: '/autonomy'
+      fullPath: '/admin/autonomy'
+      preLoaderRoute: typeof AdminAutonomyRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/integrations': {
+      id: '/admin/integrations'
+      path: '/integrations'
+      fullPath: '/admin/integrations'
+      preLoaderRoute: typeof AdminIntegrationsRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/repositories': {
+      id: '/admin/repositories'
+      path: '/repositories'
+      fullPath: '/admin/repositories'
+      preLoaderRoute: typeof AdminRepositoriesRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/workers': {
+      id: '/admin/workers'
+      path: '/workers'
+      fullPath: '/admin/workers'
+      preLoaderRoute: typeof AdminWorkersRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
     '/work-orders/$id': {
       id: '/work-orders/$id'
       path: '/work-orders/$id'
@@ -102,8 +211,27 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AdminRouteRouteChildren {
+  AdminAutonomyRoute: typeof AdminAutonomyRoute
+  AdminIntegrationsRoute: typeof AdminIntegrationsRoute
+  AdminRepositoriesRoute: typeof AdminRepositoriesRoute
+  AdminWorkersRoute: typeof AdminWorkersRoute
+}
+
+const AdminRouteRouteChildren: AdminRouteRouteChildren = {
+  AdminAutonomyRoute: AdminAutonomyRoute,
+  AdminIntegrationsRoute: AdminIntegrationsRoute,
+  AdminRepositoriesRoute: AdminRepositoriesRoute,
+  AdminWorkersRoute: AdminWorkersRoute,
+}
+
+const AdminRouteRouteWithChildren = AdminRouteRoute._addFileChildren(
+  AdminRouteRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminRouteRoute: AdminRouteRouteWithChildren,
   ApprovalsRoute: ApprovalsRoute,
   LoginRoute: LoginRoute,
   WorkOrdersIdRoute: WorkOrdersIdRoute,

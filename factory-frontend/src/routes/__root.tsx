@@ -2,6 +2,7 @@ import type { QueryClient } from "@tanstack/react-query";
 import { createRootRouteWithContext, Outlet, useRouterState } from "@tanstack/react-router";
 import { Toaster } from "sonner";
 import { useLiveEvents } from "../api/live";
+import { CommandPalette } from "../components/CommandPalette";
 import { Sidebar } from "../components/Sidebar";
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({ component: Root });
@@ -24,6 +25,7 @@ function Signedin() {
       <main className="flex-1 overflow-y-auto">
         <Outlet />
       </main>
+      <CommandPalette />
     </div>
   );
 }

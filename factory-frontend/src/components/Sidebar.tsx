@@ -1,8 +1,9 @@
 import { Link } from "@tanstack/react-router";
-import { Inbox, LayoutGrid } from "lucide-react";
-import { usePendingApprovals, useWorkOrders } from "../api/queries";
+import { Inbox, LayoutGrid, Settings } from "lucide-react";
+import { useCurrentUser, usePendingApprovals, useWorkOrders } from "../api/queries";
 import { agentState } from "../lib/status";
 import { AgentStateDot } from "./AgentStateDot";
+import { ThemeToggle } from "./ThemeToggle";
 
 /** Every work order with what the factory is doing about it; what waits for you first. */
 export function Sidebar() {
@@ -13,6 +14,7 @@ export function Sidebar() {
       || b.updatedAt.localeCompare(a.updatedAt),
   );
   const pending = approvals.data?.length ?? 0;
+  const user = useCurrentUser().data;
   return (
     <nav aria-label="Work orders" className="flex w-72 shrink-0 flex-col border-r">
       <div className="flex flex-col gap-0.5 p-2">
@@ -36,6 +38,16 @@ export function Sidebar() {
         ))}
         {workOrders.data?.length === 0 && <li className="px-2 py-1.5 text-muted-foreground">Aucun work order</li>}
       </ul>
+      <div className="flex items-center gap-1 border-t p-2">
+        {user?.roles.includes("ADMIN") && (
+          <Link to="/admin/integrations" aria-label="Administration" className="rounded-md p-1.5 hover:bg-accent">
+            <Settings className="size-4" />
+          </Link>
+        )}
+        <span className="truncate px-1 text-xs text-muted-foreground">{user?.name}</span>
+        <span className="ml-auto text-xs text-muted-foreground"><kbd>Ctrl</kbd>+<kbd>K</kbd></span>
+        <ThemeToggle />
+      </div>
     </nav>
   );
 }

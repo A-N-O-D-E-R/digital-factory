@@ -59,4 +59,25 @@ describe("the factory UI", () => {
     expect(screen.queryByRole("button", { name: "Approuver" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Annuler" })).not.toBeInTheDocument();
   });
+
+  it("lets an admin drain a worker and see a failing integration", async () => {
+    document.cookie = "XSRF-TOKEN=t";
+    const calls = fakeApi({
+      "GET /api/user": { name: "ada", roles: ["ADMIN"], permissions: ["work-order:read", "settings:write"] },
+      "GET /api/work-orders": [],
+      "GET /api/approvals": [],
+      "GET /api/workers": [{ id: "w-1", name: "builder-1", active: true, draining: false, version: "0.1.0", slots: 2, busy: 1,
+        lastHeartbeatAt: "2026-10-20T10:00:00Z", createdAt: "2026-10-01T10:00:00Z", createdBy: "ada" }],
+      "GET /api/integrations": [{ name: "github", configured: true, ok: false, detail: null, error: "401 Bad credentials",
+        checkedAt: "2026-10-20T10:00:00Z" }, { name: "jira", configured: false, ok: null, detail: null, error: null, checkedAt: null }],
+    });
+    await renderApp("/admin/workers");
+    expect(await screen.findByText("1/2")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Vider" }));
+    await vi.waitFor(() => expect(calls.map((c) => c.what)).toContain("POST /api/workers/w-1/drain"));
+
+    await renderApp("/admin/integrations");
+    expect(await screen.findByText("En échec : 401 Bad credentials")).toBeInTheDocument();
+    expect(screen.getByText("Non configurée")).toBeInTheDocument();
+  });
 });
