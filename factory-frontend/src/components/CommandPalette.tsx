@@ -32,6 +32,7 @@ export function CommandPalette() {
         <Command.Group heading="Pages" className="text-xs text-muted-foreground [&_[cmdk-item]]:text-sm [&_[cmdk-item]]:text-foreground">
           <Item onSelect={() => go("/")}>Tableau</Item>
           <Item onSelect={() => go("/approvals")}>Approbations</Item>
+          <Item onSelect={() => go("/workflows")}>Workflows</Item>
           {admin && <Item onSelect={() => go("/admin/integrations")}>Intégrations</Item>}
           {admin && <Item onSelect={() => go("/admin/workers")}>Workers</Item>}
           {admin && <Item onSelect={() => go("/admin/autonomy")}>Autonomie</Item>}

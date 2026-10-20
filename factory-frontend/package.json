@@ -11,7 +11,7 @@
     "build": "vite build && tsc --noEmit",
     "test": "vitest run",
     "lint": "oxlint src",
-    "api:types": "openapi-typescript ../factory-backend/target/openapi.json --properties-required-by-default -o src/api/schema.d.ts"
+    "api:types": "openapi-typescript ../factory-backend/target/openapi.json --properties-required-by-default --empty-objects-unknown -o src/api/schema.d.ts"
   },
   "dependencies": {
     "@fontsource-variable/geist": "5.3.0",

@@ -105,4 +105,27 @@ describe("the factory UI", () => {
     const row = screen.getByText("old line").closest("tr")!;
     expect(within(row).getByText("new line")).toBeInTheDocument(); // face to face
   });
+
+  it("simulates a workflow from what each step would learn", async () => {
+    const definition = { start: "implement", steps: [
+      { id: "implement", kind: "agent", roles: ["implementer"], next: [{ to: "verify" }] },
+      { id: "verify", kind: "factory", action: "run-tests", next: [
+        { when: { fact: "tests.passed", equals: false }, to: "implement", maxVisits: 1 }, { to: "@done" }] }] };
+    const calls = fakeApi({
+      "GET /api/user": user(["work-order:read", "work-order:write"]),
+      "GET /api/work-orders": [],
+      "GET /api/approvals": [],
+      "GET /api/workflows/mini/versions": [{ name: "mini", version: 1, definition, note: "first", createdBy: "ada", createdAt: "2026-10-20T10:00:00Z" }],
+      "POST /api/workflows/dry-run": { valid: true, errors: [], result: { outcome: "@done", reason: null, path: [
+        { step: "implement", visit: 1, learnt: {}, next: "verify", reason: "unconditional" },
+        { step: "verify", visit: 1, learnt: { "tests.passed": true }, next: "@done", reason: "unconditional" }] } },
+    });
+    await renderApp("/workflows/mini");
+    expect(await screen.findByText(/au plus 1×, puis @blocked/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Simuler" }));
+    const path = await screen.findByRole("list", { name: "Parcours simulé" });
+    expect(within(path).getByText("verify #1 → @done (unconditional)")).toBeInTheDocument();
+    expect(calls.find((c) => c.what === "POST /api/workflows/dry-run")!.body).toMatchObject({ definition, learnt: { verify: [{ "tests.passed": true }] } });
+    expect(screen.queryByRole("button", { name: "Publier" })).not.toBeInTheDocument(); // not an admin
+  });
 });

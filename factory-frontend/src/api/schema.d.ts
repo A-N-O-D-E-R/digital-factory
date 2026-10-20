@@ -840,42 +840,17 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        JsonNode: {
-            empty: boolean;
-            array: boolean;
-            null: boolean;
-            object: boolean;
-            float: boolean;
-            container: boolean;
-            missingNode: boolean;
-            valueNode: boolean;
-            pojo: boolean;
-            number: boolean;
-            floatingPointNumber: boolean;
-            short: boolean;
-            int: boolean;
-            long: boolean;
-            double: boolean;
-            bigDecimal: boolean;
-            bigInteger: boolean;
-            /** @deprecated */
-            textual: boolean;
-            boolean: boolean;
-            binary: boolean;
-            /** @enum {string} */
-            nodeType: "ARRAY" | "BINARY" | "BOOLEAN" | "MISSING" | "NULL" | "NUMBER" | "OBJECT" | "POJO" | "STRING";
-            string: boolean;
-            integralNumber: boolean;
-            embeddedValue: boolean;
-        };
         UpdateRequest: {
-            document: components["schemas"]["JsonNode"];
+            /** @description Any JSON value */
+            document: Record<string, unknown>;
             reason: string;
         };
         Layer: {
             scope: string;
-            document: components["schemas"]["JsonNode"];
-            effective: components["schemas"]["JsonNode"];
+            /** @description Any JSON value */
+            document: Record<string, unknown>;
+            /** @description Any JSON value */
+            effective: Record<string, unknown>;
             updatedBy: string;
             /** Format: date-time */
             updatedAt: string;
@@ -976,7 +951,8 @@ export interface components {
             expiresAt: string;
         };
         Completion: {
-            output: components["schemas"]["JsonNode"];
+            /** @description Any JSON value */
+            output: Record<string, unknown>;
             costUsd: number;
         };
         Job: {
@@ -996,14 +972,16 @@ export interface components {
             budgetUsd: number;
         };
         PublishRequest: {
-            definition: components["schemas"]["JsonNode"];
+            /** @description Any JSON value */
+            definition: Record<string, unknown>;
             note: string;
         };
         VersionView: {
             name: string;
             /** Format: int32 */
             version: number;
-            definition: components["schemas"]["JsonNode"];
+            /** @description Any JSON value */
+            definition: Record<string, unknown>;
             note: string;
             createdBy: string;
             /** Format: date-time */
@@ -1014,7 +992,8 @@ export interface components {
             errors: string[];
         };
         DryRunRequest: {
-            definition: components["schemas"]["JsonNode"];
+            /** @description Any JSON value */
+            definition: Record<string, unknown>;
             facts: {
                 [key: string]: unknown;
             };
@@ -1212,11 +1191,13 @@ export interface components {
             type: string;
             /** Format: date-time */
             at: string;
-            data: components["schemas"]["JsonNode"];
+            /** @description Any JSON value */
+            data: Record<string, unknown>;
         };
         RunOutput: {
             run: components["schemas"]["RunView"];
-            output: components["schemas"]["JsonNode"];
+            /** @description Any JSON value */
+            output: Record<string, unknown>;
         };
         PrEventView: {
             id: string;
@@ -1244,8 +1225,10 @@ export interface components {
             /** Format: uuid */
             id: string;
             scope: string;
-            before: components["schemas"]["JsonNode"];
-            after: components["schemas"]["JsonNode"];
+            /** @description Any JSON value */
+            before: Record<string, unknown>;
+            /** @description Any JSON value */
+            after: Record<string, unknown>;
             reason: string;
             changedBy: string;
             /** Format: date-time */
@@ -1750,7 +1733,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["JsonNode"];
+                "application/json": Record<string, unknown>;
             };
         };
         responses: {
@@ -2515,7 +2498,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["JsonNode"];
+                    "*/*": Record<string, unknown>;
                 };
             };
         };

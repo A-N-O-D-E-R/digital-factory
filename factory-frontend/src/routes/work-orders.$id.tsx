@@ -66,6 +66,8 @@ function WorkOrderPage() {
         </dl>
       </section>
 
+      <Path events={timeline.data ?? []} />
+
       <section className="flex flex-col gap-2">
         <h2 className="font-medium">Chronologie</h2>
         <ol className="flex flex-col gap-1">
@@ -137,4 +139,32 @@ function TimelineEntry({ event }: { event: TimelineEvent }) {
 
 function formatUsd(value: number): string {
   return new Intl.NumberFormat("fr-FR", { style: "currency", currency: "USD", maximumFractionDigits: 3 }).format(value);
+}
+
+/** The steps the work order went through, in order: why it ended where it did. */
+function Path({ events }: { events: TimelineEvent[] }) {
+  const visits: string[] = [];
+  for (const event of events) {
+    const data = event.data as { step?: string; visit?: number };
+    const key = data.step ? `${data.step} #${data.visit}` : null;
+    if (event.type === "work-order" && key && visits.at(-1) !== key) {
+      visits.push(key);
+    }
+  }
+  if (visits.length === 0) {
+    return null;
+  }
+  return (
+    <section className="flex flex-col gap-2">
+      <h2 className="font-medium">Parcours</h2>
+      <ol aria-label="Parcours" className="flex flex-wrap items-center gap-1 text-xs">
+        {visits.map((v, i) => (
+          <li key={i} className="flex items-center gap-1">
+            {i > 0 && <span className="text-muted-foreground">→</span>}
+            <span className="rounded-md border px-1.5 py-0.5 font-mono">{v}</span>
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
 }

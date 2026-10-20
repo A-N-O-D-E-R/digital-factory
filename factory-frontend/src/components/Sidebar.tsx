@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Inbox, LayoutGrid, Settings } from "lucide-react";
+import { GitBranch, Inbox, LayoutGrid, Settings } from "lucide-react";
 import { useCurrentUser, usePendingApprovals, useWorkOrders } from "../api/queries";
 import { agentState } from "../lib/status";
 import { AgentStateDot } from "./AgentStateDot";
@@ -24,6 +24,9 @@ export function Sidebar() {
         <Link to="/approvals" className="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-accent [&.active]:bg-accent">
           <Inbox className="size-4" /> Approbations
           {pending > 0 && <span className="ml-auto rounded-full bg-waiting px-1.5 text-xs text-black">{pending}</span>}
+        </Link>
+        <Link to="/workflows" className="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-accent [&.active]:bg-accent">
+          <GitBranch className="size-4" /> Workflows
         </Link>
       </div>
       <ul className="flex-1 overflow-y-auto border-t p-2">
