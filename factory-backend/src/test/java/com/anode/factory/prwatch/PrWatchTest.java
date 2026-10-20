@@ -48,9 +48,12 @@ class PrWatchTest {
               { "id": "watch", "kind": "factory", "action": "watch-pr",
                 "next": [{ "when": { "fact": "pr.event", "equals": "merged" }, "to": "@done" },
                          { "when": { "fact": "pr.event", "equals": "closed" }, "to": "@cancelled" },
+                         { "when": { "fact": "pr.event", "equals": "branch_behind" }, "to": "update", "maxVisits": 2 },
                          { "when": { "fact": "pr.event", "in": ["changes_requested", "commented", "checks_failed"] },
                            "to": "triage", "maxVisits": 2 },
                          { "to": "watch", "maxVisits": 10 }] },
+              { "id": "update", "kind": "factory", "action": "update-branch",
+                "next": [{ "when": { "fact": "branch.conflicted", "equals": true }, "to": "implement" }, { "to": "verify" }] },
               { "id": "triage", "kind": "agent", "roles": ["feedback-triage"], "next": [{ "to": "implement" }] }
             ] }""";
 
@@ -234,6 +237,25 @@ class PrWatchTest {
             }
         }
         throw new AssertionError("no policy " + type);
+    }
+
+    static String push(String ref) {
+        return """
+                {"ref":"%s","repository":{"full_name":"acme/api"}}""".formatted(ref);
+    }
+
+    @Test
+    void aPrBehindItsBaseIsUpdatedAndItsConflictsGoToTheImplementer() {
+        Watched pr = watchedPullRequest();
+        deliver("push", push("refs/heads/feature"));
+        deliver("push", push("refs/heads/main"));
+        awaitStep(pr.id(), "update");
+        FakeWorker.Job update = claim("update-branch");
+        worker.complete(update, "{\"updated\":false,\"conflicts\":[\"src/Totals.java\"]}");
+        awaitStep(pr.id(), "implement");
+        FakeWorker.Job implement = claim("implementer");
+        assertThat(implement.input().get("facts").get("branch.conflicts").get(0).asString()).isEqualTo("src/Totals.java");
+        assertThat(get("/api/work-orders/{id}/pr-events", pr.id()).findValuesAsString("kind")).containsExactly("branch_behind");
     }
 
     @Test

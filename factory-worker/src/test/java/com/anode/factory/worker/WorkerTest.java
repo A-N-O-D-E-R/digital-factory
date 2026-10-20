@@ -36,7 +36,8 @@ class WorkerTest {
     static final String REPORTS = "**/target/surefire-reports/*.xml";
     /** The runner's part: change the tree, leave a result. */
     static final String AGENT = """
-            echo fixed > fix.txt && echo 'aws = AKIAABCDEFGHIJKLMNOP' > config.txt && \
+            if ! grep -q '"title":"leave"' /job/job.json; then echo fixed > fix.txt; fi && \
+            echo 'aws = AKIAABCDEFGHIJKLMNOP' > config.txt && \
             printf '{"output":{"summary":"s","commitMessage":"fix: it"},"costUsd":0.42}' > /out/result.json""";
 
     @TempDir Path tmp;
@@ -113,8 +114,14 @@ class WorkerTest {
     }
 
     ControlPlane.Job job(String kind, String task, String testCommand, Map<String, Object> artifacts) {
+        return job(kind, task, testCommand, artifacts, Map.of(), "Fix");
+    }
+
+    ControlPlane.Job job(String kind, String task, String testCommand, Map<String, Object> artifacts,
+                         Map<String, Object> facts, String title) {
         JsonNode input = json.valueToTree(Map.of(
-                "workOrder", Map.of("id", "wo-1", "branch", BRANCH, "title", "Fix", "description", "d"),
+                "workOrder", Map.of("id", "wo-1", "branch", BRANCH, "title", title, "description", "d"),
+                "facts", facts,
                 "repository", Map.of("key", "github:acme/api", "defaultBranch", "main", "testCommand", testCommand,
                         "testReports", REPORTS, "sandboxImage", "alpine:latest"),
                 "task", task, "artifacts", artifacts, "writesCode", task.equals("implementer"),
@@ -178,6 +185,45 @@ class WorkerTest {
             assertThat(git.getRepository().resolve("refs/heads/" + BRANCH).name())
                     .isEqualTo(pushed.get("commit").asString());
         }
+    }
+
+    /** A commit on the default branch of the origin. */
+    void upstream(String file, String content) throws Exception {
+        try (Git seed = Git.open(tmp.resolve("seed").toFile())) {
+            Files.writeString(tmp.resolve("seed").resolve(file), content);
+            seed.add().addFilepattern(".").call();
+            seed.commit().setMessage("upstream").setAuthor("t", "t@t").call();
+            seed.push().setRefSpecs(new org.eclipse.jgit.transport.RefSpec("HEAD:refs/heads/main")).call();
+        }
+    }
+
+    @Test
+    void aConflictingBranchIsResolvedByTheImplementerAsAMerge() throws Exception {
+        implement();
+        upstream("fix.txt", "upstream\n");
+
+        dispatcher.run(job("UPDATE", "update-branch", "true", Map.of()));
+        assertThat(completed()).isEqualTo(json.readTree("{\"updated\":false,\"conflicts\":[\"fix.txt\"]}"));
+        assertThat(received).doesNotContainKey("bundle");
+
+        Map<String, Object> conflicted = Map.of("branch.conflicted", true);
+        dispatcher.run(job("AGENT", "implementer", "true", Map.of(), conflicted, "leave"));
+        assertThat(new String(received.remove("fail"), StandardCharsets.UTF_8)).contains("Conflict left unresolved in fix.txt");
+
+        dispatcher.run(job("AGENT", "implementer", "true", Map.of(), conflicted, "Fix"));
+        completed();
+        bundle = received.remove("bundle");
+        dispatcher.run(job("UPDATE", "update-branch", "true", Map.of()));
+        assertThat(completed()).as("merged already").isEqualTo(json.readTree("{\"updated\":true,\"conflicts\":[]}"));
+    }
+
+    @Test
+    void aBranchBehindWithoutConflictIsMergedAndBundled() throws Exception {
+        implement();
+        upstream("README.md", "hello again\n");
+        dispatcher.run(job("UPDATE", "update-branch", "true", Map.of()));
+        assertThat(completed()).isEqualTo(json.readTree("{\"updated\":true,\"conflicts\":[]}"));
+        assertThat(received).containsKey("bundle");
     }
 
     @Test

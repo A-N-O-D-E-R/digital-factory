@@ -43,6 +43,11 @@ final class Facts {
                     }
                 }
                 case "secret-scan" -> facts.put("secrets.found", !out.get("findings").isEmpty());
+                case "update-branch" -> {
+                    // the conflicting files: the next implementer run starts from the merge, markers in place
+                    facts.put("branch.conflicted", !out.get("updated").asBoolean());
+                    facts.put("branch.conflicts", json.convertValue(out.get("conflicts"), List.class));
+                }
                 case "judge" -> facts.put("eval.passed", passed(out.get("tests")));
                 default -> {
                     // specifier, implementer, feedback-triage: their outputs are artifacts, not facts

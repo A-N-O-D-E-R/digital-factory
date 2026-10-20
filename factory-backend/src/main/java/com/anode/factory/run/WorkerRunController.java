@@ -76,12 +76,12 @@ class WorkerRunController {
                 .orElseGet(() -> ResponseEntity.noContent().build());
     }
 
-    /** The work of an agent run, uploaded before it completes; it counts once the run succeeded. */
+    /** The work of an agent (or update) run, uploaded before it completes; it counts once the run succeeded. */
     @PutMapping(value = "/{runId}/bundle", consumes = MediaType.APPLICATION_OCTET_STREAM_VALUE)
     ResponseEntity<Void> upload(@PathVariable UUID runId, @RequestBody byte[] bundle, Authentication worker) {
         Run run = queue.running(runId, worker(worker));
-        if (run.kind() != RunKind.AGENT) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only agent runs write code");
+        if (run.kind() != RunKind.AGENT && run.kind() != RunKind.UPDATE) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only agent and update runs write code");
         }
         if (bundle.length > properties.maxBundleSize().toBytes()) {
             throw new ResponseStatusException(HttpStatus.CONTENT_TOO_LARGE,

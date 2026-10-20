@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.math.BigDecimal;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.LinkedHashMap;
@@ -50,6 +51,7 @@ class RunExecutor {
                 dir)) {
             return switch (job.kind()) {
                 case "AGENT" -> agent(job, workspace, dir, cancelled);
+                case "UPDATE" -> update(job, workspace);
                 case "PUSH" -> new Outcome(json.valueToTree(
                         Map.of("branch", workspace.branch(), "commit", workspace.push())), null, null);
                 case "EVIDENCE" -> switch (job.task()) {
@@ -64,8 +66,24 @@ class RunExecutor {
         }
     }
 
-    /** The runner reads /job/job.json and writes /out/result.json: {output, costUsd} or {error, costUsd}. */
+    /** The default branch merged into the work branch: committed when clean, the conflicts listed otherwise. */
+    private Outcome update(ControlPlane.Job job, Workspace workspace) {
+        List<String> conflicts = workspace.mergeDefaultBranch();
+        if (conflicts.isEmpty() && workspace.commitAll("Merge the default branch")) {
+            controlPlane.upload(job.runId(), workspace.bundle());
+        }
+        return new Outcome(json.valueToTree(Map.of("updated", conflicts.isEmpty(), "conflicts", conflicts)), null, null);
+    }
+
+    /**
+     * The runner reads /job/job.json and writes /out/result.json: {output, costUsd} or {error, costUsd}.
+     * A code writer whose branch conflicts with the default branch starts from the merge, markers in
+     * place; what it leaves is committed as the merge.
+     */
     private Outcome agent(ControlPlane.Job job, Workspace workspace, Path dir, BooleanSupplier cancelled) {
+        boolean writes = job.input().path("writesCode").asBoolean(false);
+        List<String> conflicts = writes && job.input().path("facts").path("branch.conflicted").asBoolean(false)
+                ? workspace.mergeDefaultBranch() : List.of();
         Path jobDir = directory(dir.resolve("job"));
         Path out = directory(dir.resolve("out"));
         // git works in the sandbox, on the read-only git directory: it can read history, not change it
@@ -97,8 +115,13 @@ class RunExecutor {
             return Outcome.failed(result.path("error").asString("The agent produced no output"), cost);
         }
         JsonNode output = result.get("output");
-        if (job.input().path("writesCode").asBoolean(false)
-                && workspace.commitAll(output.path("commitMessage").asString(job.task() + " changes"))) {
+        for (String conflict : conflicts) {
+            Path file = workspace.tree().resolve(conflict);
+            if (Files.isRegularFile(file, LinkOption.NOFOLLOW_LINKS) && read(file).contains("<<<<<<< ")) {
+                return Outcome.failed("Conflict left unresolved in " + conflict, cost);
+            }
+        }
+        if (writes && workspace.commitAll(output.path("commitMessage").asString(job.task() + " changes"))) {
             controlPlane.upload(job.runId(), workspace.bundle());
         }
         return new Outcome(output, null, cost);

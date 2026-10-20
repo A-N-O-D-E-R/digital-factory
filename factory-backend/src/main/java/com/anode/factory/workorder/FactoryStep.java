@@ -42,7 +42,8 @@ class FactoryStep implements ContextualTask {
     private static final Map<String, RunKind> WORKER_ACTIONS = Map.of(
             "run-tests", RunKind.EVIDENCE,
             "secret-scan", RunKind.EVIDENCE,
-            "push-branch", RunKind.PUSH);
+            "push-branch", RunKind.PUSH,
+            "update-branch", RunKind.UPDATE);
 
     /** Actions that publish the work: an eval work order is judged by its hidden tests instead. */
     private static final Set<String> PUBLISHING = Set.of("push-branch", "open-draft-pr", "mark-pr-ready",

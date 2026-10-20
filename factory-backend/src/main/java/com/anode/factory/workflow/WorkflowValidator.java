@@ -234,11 +234,16 @@ public class WorkflowValidator {
         };
     }
 
-    /** From a step that writes code, no path may reach a publishing action without running the tests. */
+    /**
+     * From a step that writes code (a code-writing role, or the update of the branch), no path may
+     * reach a publishing action without running the tests.
+     */
     private void checkEvidenceBeforePublishing(Map<String, Step> steps, List<String> errors) {
         for (Step writer : steps.values()) {
-            if (writer.kind() != WorkflowDefinition.Kind.agent
-                    || writer.roles().stream().noneMatch(roles::writesCode)) {
+            boolean writes = writer.kind() == WorkflowDefinition.Kind.agent
+                    ? writer.roles().stream().anyMatch(roles::writesCode)
+                    : writer.kind() == WorkflowDefinition.Kind.factory && "update-branch".equals(writer.action());
+            if (!writes) {
                 continue;
             }
             Set<String> seen = new HashSet<>();

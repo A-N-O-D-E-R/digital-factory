@@ -106,6 +106,20 @@ class PrWatch {
         forges.of(repository).comment(repository, new PullRequest(event.number(), null, null, false), reply);
     }
 
+    /** A push to {@code branch}: when it is the default branch, the repository's open PRs are behind it. */
+    @Transactional
+    public void pushed(String deliveryId, String repositoryPath, String branch) {
+        Optional<CodeRepository> repository = repositories.find(repositoryPath);
+        if (repository.isEmpty() || !repository.get().defaultBranch().equals(branch)) {
+            return;
+        }
+        for (WorkOrder workOrder : workOrders.withOpenPullRequest(repository.get().key())) {
+            long number = ((Number) workOrder.facts().get("pr.number")).longValue();
+            receive(new PrEvent(deliveryId + "#" + number, repositoryPath, number, "branch_behind", null, false, null,
+                    null));
+        }
+    }
+
     private String ignoredBecause(PrEvent event, CodeRepository repository) {
         if (event.system()) {
             return null;

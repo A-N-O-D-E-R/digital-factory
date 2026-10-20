@@ -7,6 +7,7 @@ import org.gitlab4j.api.webhook.EventUser;
 import org.gitlab4j.api.webhook.MergeRequestEvent;
 import org.gitlab4j.api.webhook.NoteEvent;
 import org.gitlab4j.api.webhook.PipelineEvent;
+import org.gitlab4j.api.webhook.PushEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
@@ -22,6 +23,11 @@ class GitLabEvents {
 
     @EventListener
     void on(GitLabWebhookEvent delivery) {
+        if (delivery.event() instanceof PushEvent push && push.getRef() != null && push.getRef().startsWith("refs/heads/")) {
+            watch.pushed("gitlab:" + delivery.uuid(), "gitlab:" + push.getProject().getPathWithNamespace(),
+                    push.getRef().substring("refs/heads/".length()));
+            return;
+        }
         normalize(delivery.uuid(), delivery.event()).forEach(watch::receive);
     }
 

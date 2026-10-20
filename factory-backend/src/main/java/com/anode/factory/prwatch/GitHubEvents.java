@@ -23,7 +23,13 @@ class GitHubEvents {
     /** In the webhook request: a failure makes GitHub deliver again. */
     @EventListener
     void on(GitHubWebhookEvent delivery) {
-        normalize(delivery.event(), delivery.deliveryId(), json.readTree(delivery.payload())).forEach(watch::receive);
+        JsonNode payload = json.readTree(delivery.payload());
+        if (delivery.event().equals("push") && payload.path("ref").asString().startsWith("refs/heads/")) {
+            watch.pushed("github:" + delivery.deliveryId(), "github:" + payload.path("repository").path("full_name").asString(),
+                    payload.path("ref").asString().substring("refs/heads/".length()));
+            return;
+        }
+        normalize(delivery.event(), delivery.deliveryId(), payload).forEach(watch::receive);
     }
 
     static List<PrEvent> normalize(String event, String deliveryId, JsonNode payload) {

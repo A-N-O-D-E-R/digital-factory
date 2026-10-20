@@ -66,6 +66,7 @@
                 "run-tests",
                 "secret-scan",
                 "push-branch",
+                "update-branch",
                 "open-draft-pr",
                 "mark-pr-ready",
                 "request-review",
@@ -125,6 +126,7 @@
         "pr.event",
         "pr.checks.passed",
         "pr.mergeable",
+        "branch.conflicted",
         "autonomy.allows"
       ]
     },

@@ -6,7 +6,10 @@ import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.api.MergeCommand;
+import org.eclipse.jgit.api.MergeResult;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.diff.DiffEntry;
 import org.eclipse.jgit.diff.DiffFormatter;
@@ -15,6 +18,7 @@ import org.eclipse.jgit.diff.RawTextComparator;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.PersonIdent;
 import org.eclipse.jgit.lib.Repository;
+import org.eclipse.jgit.lib.RepositoryState;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.transport.BundleWriter;
@@ -97,13 +101,34 @@ final class Workspace implements AutoCloseable {
         return branch;
     }
 
+    /**
+     * Merges the default branch into the work branch, not committed yet: the files in conflict, with
+     * their markers left in the tree (none: the merge is ready to commit, or there was nothing to merge).
+     */
+    List<String> mergeDefaultBranch() {
+        try {
+            MergeResult result = git.merge().include(base()).setCommit(false)
+                    .setFastForward(MergeCommand.FastForwardMode.NO_FF)
+                    .setMessage("Merge " + defaultBranch + " into " + branch)
+                    .call();
+            return result.getConflicts() == null ? List.of() : result.getConflicts().keySet().stream().sorted().toList();
+        } catch (GitAPIException | IOException e) {
+            throw new IllegalStateException("Cannot merge " + defaultBranch + " into " + branch + ": " + e.getMessage(), e);
+        }
+    }
+
     /** Commits whatever the tree holds now (ignored files aside), without hooks; false when nothing changed. */
     boolean commitAll(String message) {
         try {
             git.add().addFilepattern(".").call();
             git.add().setUpdate(true).addFilepattern(".").call(); // deletions
-            if (git.status().call().isClean()) {
+            boolean merging = git.getRepository().getRepositoryState() == RepositoryState.MERGING_RESOLVED
+                    || git.getRepository().getRepositoryState() == RepositoryState.MERGING;
+            if (git.status().call().isClean() && !merging) {
                 return false;
+            }
+            if (merging) {
+                message = "Merge " + defaultBranch + " into " + branch + "\n\n" + message; // a merge commit
             }
             git.commit().setMessage(message).setAuthor(FACTORY).setCommitter(FACTORY).setNoVerify(true).call();
             return true;

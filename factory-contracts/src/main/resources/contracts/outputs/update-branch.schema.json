@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Updated branch",
+  "description": "Produced by the factory's worker, not by an agent: the default branch merged into the work branch. A clean merge is committed (and becomes the run's bundle); conflicting files are listed for the implementer, who resolves them from the merge.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["updated", "conflicts"],
+  "properties": {
+    "updated": { "type": "boolean", "description": "The merge is committed (false when it conflicts)." },
+    "conflicts": { "type": "array", "items": { "type": "string" } }
+  }
+}
