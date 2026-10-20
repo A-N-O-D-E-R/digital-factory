@@ -1,0 +1,52 @@
+@import "tailwindcss";
+
+@import "@fontsource-variable/geist";
+@import "@fontsource-variable/geist-mono";
+
+/* Neutral palette, colour for states only. Light by default, .dark on <html> (the system's, or chosen). */
+:root {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --border: oklch(0.922 0 0);
+  --accent: oklch(0.97 0 0);
+  --working: oklch(0.62 0.17 250);
+  --waiting: oklch(0.75 0.16 75);
+  --blocked: oklch(0.65 0.18 45);
+  --failed: oklch(0.58 0.22 27);
+  --done: oklch(0.6 0.15 150);
+  --idle: oklch(0.708 0 0);
+  --radius: 0.625rem;
+}
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --muted: oklch(0.205 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --border: oklch(1 0 0 / 10%);
+  --accent: oklch(0.269 0 0);
+}
+
+@theme inline {
+  --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono Variable", ui-monospace, monospace;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-accent: var(--accent);
+  --color-working: var(--working);
+  --color-waiting: var(--waiting);
+  --color-blocked: var(--blocked);
+  --color-failed: var(--failed);
+  --color-done: var(--done);
+  --color-idle: var(--idle);
+  --radius-lg: var(--radius);
+}
+
+html { color-scheme: light; }
+html.dark { color-scheme: dark; }
+body { @apply bg-background text-foreground font-sans text-sm antialiased; }
+* { @apply border-border; }
