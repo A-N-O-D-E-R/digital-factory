@@ -119,6 +119,7 @@
         "analysis.reproduced",
         "diff.empty",
         "diff.files",
+        "diff.unchanged",
         "tests.passed",
         "acceptance.passed",
         "secrets.found",

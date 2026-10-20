@@ -38,6 +38,9 @@
       "id": "verify", "kind": "factory", "action": "run-tests",
       "next": [
         { "when": { "fact": "diff.empty", "equals": true }, "to": "@blocked" },
+        { "when": { "allOf": [{ "fact": "diff.unchanged", "equals": true },
+                              { "anyOf": [{ "fact": "tests.passed", "equals": false }, { "fact": "acceptance.passed", "equals": false }] }] },
+          "to": "@blocked" },
         { "when": { "anyOf": [{ "fact": "tests.passed", "equals": false }, { "fact": "acceptance.passed", "equals": false }] }, "to": "implement", "maxVisits": 3 },
         { "to": "secrets" }
       ]

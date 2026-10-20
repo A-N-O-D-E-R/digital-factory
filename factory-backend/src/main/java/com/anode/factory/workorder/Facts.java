@@ -1,7 +1,11 @@
 package com.anode.factory.workorder;
 
 import com.anode.factory.run.Run;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 import tools.jackson.databind.JsonNode;
@@ -48,6 +52,12 @@ final class Facts {
                         facts.put("risk", "HIGH");
                     }
                     facts.put("diff.empty", files == 0);
+                    // the same patch as the previous evidence: a revision that changed nothing
+                    if (out.hasNonNull("patch")) {
+                        String hash = sha256(out.get("patch").asString());
+                        facts.put("diff.unchanged", hash.equals(known.get("diff.hash")));
+                        facts.put("diff.hash", hash);
+                    }
                     facts.put("tests.passed", passed(out.get("tests")));
                     if (out.has("acceptance")) {
                         facts.put("acceptance.passed", passed(out.get("acceptance")));
@@ -77,6 +87,14 @@ final class Facts {
             facts.put("verdict", joined(verdicts, join));
         }
         return facts;
+    }
+
+    private static String sha256(String text) {
+        try {
+            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(text.getBytes(StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     private static boolean passed(JsonNode suite) {

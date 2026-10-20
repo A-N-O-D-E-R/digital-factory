@@ -202,6 +202,30 @@ class WorkOrderExecutionTest {
     }
 
     @Test
+    void aRevisionThatChangesNothingIsSeen() {
+        publish("no-progress", """
+                { "start": "implement", "steps": [
+                  { "id": "implement", "kind": "agent", "roles": ["implementer"], "next": [{ "to": "verify" }] },
+                  { "id": "verify", "kind": "factory", "action": "run-tests",
+                    "next": [{ "when": { "allOf": [{ "fact": "diff.unchanged", "equals": true }, { "fact": "tests.passed", "equals": false }] }, "to": "@blocked" },
+                             { "when": { "fact": "tests.passed", "equals": false }, "to": "implement", "maxVisits": 5 },
+                             { "to": "@done" }] }
+                ] }""");
+        String red = "{\"diff\":{\"files\":1,\"insertions\":1,\"deletions\":0},\"patch\":\"+a\","
+                + "\"tests\":{\"total\":1,\"failed\":1,\"errors\":0,\"skipped\":0}}";
+        UUID id = create("no-progress");
+        worker.complete(claim("implementer"), implementation());
+        awaitStep(id, "verify");
+        worker.complete(claim("run-tests"), red);
+        awaitStep(id, "implement");
+        worker.complete(claim("implementer"), implementation());
+        awaitStep(id, "verify");
+        worker.complete(claim("run-tests"), red); // the same patch, still red
+        JsonNode blocked = awaitStatus(id, "BLOCKED");
+        assertThat(blocked.get("workOrder").get("facts").get("diff.unchanged").asBoolean()).isTrue();
+    }
+
+    @Test
     void anEmptyDiffBlocks() {
         UUID id = create("mini");
         worker.complete(claim("classifier"), classification("BUG", "LOW"));
