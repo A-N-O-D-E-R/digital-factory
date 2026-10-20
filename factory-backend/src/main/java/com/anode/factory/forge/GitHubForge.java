@@ -25,7 +25,6 @@ import org.kohsuke.github.GHUser;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestClient;
 
 /** GitHub through the factory's GitHub App (spring-boot-starter-github). */
 @Component
@@ -102,15 +101,7 @@ class GitHubForge implements Forge, IntegrationCheck {
     @Override
     public void markReady(CodeRepository repository, PullRequest pullRequest) {
         try {
-            String nodeId = pr(repository, pullRequest).getNodeId();
-            String token = app.repositoryToken(repository.owner(), repository.name(),
-                    Map.of("pull_requests", GHPermissionType.WRITE)).token();
-            RestClient.create().post().uri(apiUrl.endsWith("/api/v3") ? apiUrl.replace("/api/v3", "/api/graphql") : apiUrl + "/graphql")
-                    .header("Authorization", "Bearer " + token)
-                    .body(Map.of("query", "mutation($id: ID!) { markPullRequestReadyForReview(input: {pullRequestId: $id}) { clientMutationId } }",
-                            "variables", Map.of("id", nodeId)))
-                    .retrieve()
-                    .toBodilessEntity();
+            graphql(repository).markReady(pr(repository, pullRequest).getNodeId());
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
@@ -202,9 +193,19 @@ class GitHubForge implements Forge, IntegrationCheck {
         }
     }
 
-    // ponytail: GitHub resolves review threads through GraphQL only (resolveReviewThread); left to reviewers
+    /** Review threads are resolved through GraphQL only; a comment outside a thread (null) has none. */
     @Override
-    public void resolve(CodeRepository repository, PullRequest pullRequest, String thread) {}
+    public void resolve(CodeRepository repository, PullRequest pullRequest, String thread) {
+        if (thread != null) {
+            graphql(repository).resolveThread(repository.owner(), repository.name(), pullRequest.number(), thread);
+        }
+    }
+
+    private GitHubGraphql graphql(CodeRepository repository) {
+        String token = app.repositoryToken(repository.owner(), repository.name(),
+                Map.of("pull_requests", GHPermissionType.WRITE)).token();
+        return new GitHubGraphql(apiUrl, token);
+    }
 
     /** Ids as GitHubEvents gives the webhook deliveries of the same things. */
     @Override
