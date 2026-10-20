@@ -174,6 +174,9 @@ class WorkflowApiTest {
 
             assertThat(mvc.get().uri("/api/workflows/quick/versions/1").with(viewer())).hasStatusOk().bodyJson()
                     .hasPathSatisfying("$.note", n -> assertThat(n).isEqualTo("first"));
+            assertThat(mvc.get().uri("/api/workflows/quick/versions/2").with(viewer())).hasStatusOk().bodyJson()
+                    .hasPathSatisfying("$.diff", d -> assertThat(d).asArray()
+                            .contains("-       \"maxVisits\" : 3", "+       \"maxVisits\" : 5"));
             assertThat(mvc.get().uri("/api/workflows/quick").with(viewer())).hasStatusOk().bodyJson()
                     .hasPathSatisfying("$.version", v -> assertThat(v).isEqualTo(2))
                     .hasPathSatisfying("$.createdBy", c -> assertThat(c).isEqualTo("ada"));

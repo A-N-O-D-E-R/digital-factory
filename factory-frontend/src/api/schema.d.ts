@@ -995,6 +995,7 @@ export interface components {
             createdBy: string;
             /** Format: date-time */
             createdAt: string;
+            diff: string[];
         };
         ValidationView: {
             valid: boolean;

@@ -1,15 +1,15 @@
-package com.anode.factory.prompt;
+package com.anode.factory.platform;
 
 import java.util.ArrayList;
 import java.util.List;
 
 /** A line diff of two texts: unchanged lines prefixed "  ", removed "- ", added "+ ". */
-final class LineDiff {
+public final class LineDiff {
 
     private LineDiff() {}
 
     // ponytail: full LCS table, O(n*m) memory; fine for prompts, a Myers diff if texts grow to thousands of lines
-    static List<String> of(String before, String after) {
+    public static List<String> of(String before, String after) {
         String[] a = before.split("\n", -1);
         String[] b = after.split("\n", -1);
         int[][] lcs = new int[a.length + 1][b.length + 1];

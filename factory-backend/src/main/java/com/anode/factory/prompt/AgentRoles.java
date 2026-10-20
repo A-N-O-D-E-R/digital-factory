@@ -1,5 +1,6 @@
 package com.anode.factory.prompt;
 
+import com.anode.factory.platform.LineDiff;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;

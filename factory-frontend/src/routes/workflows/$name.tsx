@@ -55,6 +55,12 @@ function Editor({ name, version, versions, select }: {
   });
 
   const definition = version.definition as unknown as WorkflowDefinition;
+  const changes = useQuery({
+    queryKey: ["workflows", name, version.version, "diff"],
+    queryFn: () => api.get(`workflows/${name}/versions/${version.version}`).json<Schemas["VersionView"]>(),
+    enabled: version.version > 1,
+    staleTime: Infinity,
+  }).data?.diff?.filter((line) => line.startsWith("+") || line.startsWith("-"));
   return (
     <div className="flex flex-col gap-4 p-6">
       <div className="flex items-center gap-3">
@@ -64,6 +70,11 @@ function Editor({ name, version, versions, select }: {
           {versions.map((v) => <option key={v.version} value={v.version}>v{v.version} — {v.note}</option>)}
         </select>
       </div>
+      {changes && changes.length > 0 && (
+        <pre aria-label="Changements depuis la version précédente" className="overflow-auto rounded-md bg-muted p-2 font-mono text-xs">
+          {changes.map((line, i) => <div key={i} className={line.startsWith("+") ? "text-done" : "text-failed"}>{line}</div>)}
+        </pre>
+      )}
       <div className="grid grid-cols-2 gap-6">
         <section aria-label="Graphe" className="flex flex-col gap-2">
           {definition.steps.map((step) => (

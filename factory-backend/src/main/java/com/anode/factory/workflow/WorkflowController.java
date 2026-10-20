@@ -1,5 +1,6 @@
 package com.anode.factory.workflow;
 
+import com.anode.factory.platform.LineDiff;
 import java.net.URI;
 import java.time.Instant;
 import java.util.List;
@@ -21,7 +22,9 @@ import tools.jackson.databind.json.JsonMapper;
 @RequestMapping("/api/workflows")
 class WorkflowController {
 
-    record VersionView(String name, int version, JsonNode definition, String note, String createdBy, Instant createdAt) {}
+    /** {@code diff}: against the previous version, lines of its definition (one version only). */
+    record VersionView(String name, int version, JsonNode definition, String note, String createdBy, Instant createdAt,
+                       List<String> diff) {}
 
     record PublishRequest(JsonNode definition, String note) {}
 
@@ -41,7 +44,8 @@ class WorkflowController {
     }
 
     private VersionView view(WorkflowVersion v) {
-        return new VersionView(v.name(), v.version(), json.readTree(v.definition()), v.note(), v.createdBy(), v.createdAt());
+        return new VersionView(v.name(), v.version(), json.readTree(v.definition()), v.note(), v.createdBy(), v.createdAt(),
+                null);
     }
 
     @GetMapping
@@ -65,7 +69,15 @@ class WorkflowController {
     @GetMapping("/{name}/versions/{version}")
     @PreAuthorize("hasAnyRole('ADMIN','DEVELOPER','VIEWER')")
     VersionView version(@PathVariable String name, @PathVariable int version) {
-        return catalog.version(name, version).map(this::view).orElseThrow(() -> notFound(name + " v" + version));
+        WorkflowVersion current = catalog.version(name, version).orElseThrow(() -> notFound(name + " v" + version));
+        String before = catalog.version(name, version - 1).map(v -> pretty(v.definition())).orElse("");
+        VersionView view = view(current);
+        return new VersionView(view.name(), view.version(), view.definition(), view.note(), view.createdBy(),
+                view.createdAt(), LineDiff.of(before, pretty(current.definition())));
+    }
+
+    private String pretty(String definition) {
+        return json.writerWithDefaultPrettyPrinter().writeValueAsString(json.readTree(definition));
     }
 
     @PostMapping("/{name}/versions")
