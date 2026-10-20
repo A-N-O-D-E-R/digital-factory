@@ -131,6 +131,25 @@ class IntakeTest {
     }
 
     @Test
+    void workflowStepsCommentOnAndMoveTheTicket() {
+        String ticketed = """
+                { "start": "comment", "steps": [
+                  { "id": "comment", "kind": "factory", "action": "comment-ticket", "with": { "message": "On it" },
+                    "next": [{ "to": "move" }] },
+                  { "id": "move", "kind": "factory", "action": "transition-ticket", "with": { "status": "Doing" },
+                    "next": [{ "to": "@done" }] }
+                ] }""";
+        assertThat(mvc.post().uri("/api/workflows/ticketed/versions").with(admin()).with(csrf())
+                .contentType(MediaType.APPLICATION_JSON).content("{\"definition\":" + ticketed + ",\"note\":\"t\"}"))
+                .hasStatus(201);
+        issues.file("acme/api", 401, "Rename it", "bug");
+        String id = body(importTicket(Map.of("ticket", "github:acme/api#401", "workflow", "ticketed"))).get("workOrderId").asString();
+        await().until(() -> "DONE".equals(workOrder(id).get("status").asString()));
+        assertThat(issues.comments()).contains("github:acme/api#401: On it");
+        assertThat(issues.transitions()).contains("github:acme/api#401: Doing");
+    }
+
+    @Test
     void progressIsCommentedOnTheTicketOnceEach() {
         issues.file("acme/api", 301, "Flaky test", "bug");
         String id = body(importTicket(Map.of("ticket", "github:acme/api#301"))).get("workOrderId").asString();

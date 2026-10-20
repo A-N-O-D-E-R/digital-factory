@@ -11,6 +11,9 @@ interface ImportedTicketRepository extends JpaRepository<ImportedTicket, String>
 
     List<ImportedTicket> findAllByOrderByImportedAtDesc();
 
+    /** The ticket a work order was made from (the latest import of it). */
+    Optional<ImportedTicket> findFirstByWorkOrderId(java.util.UUID workOrderId);
+
     List<ImportedTicket> findByReportedIsNullOrReportedNot(ImportedTicket.Progress reported);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)

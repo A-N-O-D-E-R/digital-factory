@@ -9,6 +9,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Consumer;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -51,10 +52,25 @@ public class WorkOrderService {
         return create(repository, title, description, workflowName, author, null, null);
     }
 
+    /**
+     * {@code beforeStart}: what must be recorded about the work order before its first steps run (they
+     * run now, in this transaction), e.g. the ticket it comes from.
+     */
+    @Transactional
+    public WorkOrder create(String repository, String title, String description, String workflowName, String author,
+                            Consumer<WorkOrder> beforeStart) {
+        return create(repository, title, description, workflowName, author, null, null, beforeStart);
+    }
+
     /** A work order of an eval run, judged by {@code judgeCommand} instead of being published. */
     @Transactional
     public WorkOrder create(String repository, String title, String description, String workflowName, String author,
                             UUID evalRunId, String judgeCommand) {
+        return create(repository, title, description, workflowName, author, evalRunId, judgeCommand, w -> {});
+    }
+
+    private WorkOrder create(String repository, String title, String description, String workflowName, String author,
+                             UUID evalRunId, String judgeCommand, Consumer<WorkOrder> beforeStart) {
         repositories.active(repository);
         String frozen = json.writeValueAsString(settings.frozen(repository));
         String name = workflowName == null ? WorkflowCatalog.DEFAULT : workflowName;
@@ -63,6 +79,7 @@ public class WorkOrderService {
                 .version();
         WorkOrder workOrder = workOrders.save(new WorkOrder(repository, title, description, name, version, frozen, author,
                 evalRunId, judgeCommand, clock.instant()));
+        beforeStart.accept(workOrder);
         execution.start(workOrder);
         return workOrder;
     }

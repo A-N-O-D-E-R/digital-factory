@@ -155,13 +155,18 @@ public class Intake {
         if (body.length() > 99_000) {
             body = body.substring(0, 99_000);
         }
-        WorkOrder workOrder = workOrders.create(repository, title, body + "\n\nTicket: " + ticket.url(), workflow, by);
-        if (existing.isPresent()) {
-            existing.get().reimported(workOrder.id(), clock.instant());
-            return existing.get();
-        }
-        return imported.save(new ImportedTicket(ticket.ref().key(), ticket.url(), workOrder.id(), ruleId,
-                clock.instant()));
+        // recorded before the workflow starts: its first steps may act on the ticket (comment-ticket...)
+        ImportedTicket[] recorded = new ImportedTicket[1];
+        workOrders.create(repository, title, body + "\n\nTicket: " + ticket.url(), workflow, by, workOrder -> {
+            if (existing.isPresent()) {
+                existing.get().reimported(workOrder.id(), clock.instant());
+                recorded[0] = existing.get();
+            } else {
+                recorded[0] = imported.saveAndFlush(new ImportedTicket(ticket.ref().key(), ticket.url(), workOrder.id(),
+                        ruleId, clock.instant()));
+            }
+        });
+        return recorded[0];
     }
 
     private void apply(IntakeRule rule, RuleSettings s) {
