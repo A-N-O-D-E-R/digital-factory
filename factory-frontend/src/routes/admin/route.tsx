@@ -12,6 +12,7 @@ const PAGES = [
   { to: "/admin/settings", label: "Paramètres" },
   { to: "/admin/roles", label: "Rôles et prompts" },
   { to: "/admin/intake", label: "Tickets" },
+  { to: "/admin/evals", label: "Évaluations" },
 ] as const;
 
 function Admin() {
