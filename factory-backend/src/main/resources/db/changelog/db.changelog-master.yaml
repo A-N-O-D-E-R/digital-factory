@@ -400,3 +400,13 @@ databaseChangeLog:
             columns:
               - column: { name: max_failure_rate, type: "numeric(5,4)", defaultValueNumeric: 0.25, constraints: { nullable: false } }
               - column: { name: failure_rate, type: "numeric(5,4)" }
+  - changeSet:
+      id: 016-pr-summaries
+      author: digital-factory
+      comment: The work orders that said on their open PR why the factory stopped, so that it is said once
+      changes:
+        - createTable:
+            tableName: pr_summaries
+            columns:
+              - column: { name: work_order_id, type: uuid, constraints: { primaryKey: true, foreignKeyName: fk_pr_summaries_work_order, references: work_orders(id) } }
+              - column: { name: at, type: timestamptz, constraints: { nullable: false } }

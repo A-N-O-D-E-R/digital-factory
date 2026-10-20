@@ -5,6 +5,7 @@ import com.anode.factory.run.RunQueue;
 import com.anode.factory.settings.Settings;
 import com.anode.factory.workflow.WorkflowCatalog;
 import java.time.Clock;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -79,6 +80,14 @@ public class WorkOrderService {
     @Transactional
     public void wake(UUID workOrderId) {
         events.publishEvent(new WorkOrderExecution.Resume(workOrderId));
+    }
+
+    public List<WorkOrder> idleWithOpenPullRequest(Instant before) {
+        return workOrders.findIdleWithOpenPullRequest(before);
+    }
+
+    public List<WorkOrder> endedWithOpenPullRequest() {
+        return workOrders.findEndedWithOpenPullRequest();
     }
 
     /** Real work only: eval runs have their own view. */

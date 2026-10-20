@@ -252,6 +252,8 @@ class PrWatchTest {
         deliver("issue_comment", comment(pr.number(), "maintainer", "/factory stop"));
         awaitStatus(pr.id(), "CANCELLED");
         assertThat(forge.comments()).contains(prefix + "Stopped: work order " + pr.id() + " is cancelled.");
+        await().atMost(Duration.ofSeconds(10)).until(() -> forge.comments().stream().filter(c -> c.startsWith(
+                prefix + "The factory stopped working on this PR: work order " + pr.id() + " is CANCELLED")).count() == 1);
     }
 
     @Test

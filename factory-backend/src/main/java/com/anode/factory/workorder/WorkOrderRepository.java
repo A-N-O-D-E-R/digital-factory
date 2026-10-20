@@ -1,6 +1,7 @@
 package com.anode.factory.workorder;
 
 import jakarta.persistence.LockModeType;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -22,4 +23,18 @@ interface WorkOrderRepository extends JpaRepository<WorkOrder, UUID> {
     @Query(value = "select * from work_orders where repository = :repository and facts ->> 'pr.number' = :number",
             nativeQuery = true)
     Optional<WorkOrder> findByPullRequest(String repository, String number);
+
+    /** Running with an open PR, untouched since {@code before}: waiting on the PR, nothing happening. */
+    @Query(value = """
+            select * from work_orders where status = 'RUNNING' and jsonb_exists(facts, 'pr.number')
+            and coalesce(facts ->> 'pr.event', '') not in ('merged', 'closed') and updated_at < :before""",
+            nativeQuery = true)
+    List<WorkOrder> findIdleWithOpenPullRequest(Instant before);
+
+    /** Ended while their PR is still open (neither merged nor closed). */
+    @Query(value = """
+            select * from work_orders where status in ('DONE', 'BLOCKED', 'FAILED', 'CANCELLED') and jsonb_exists(facts, 'pr.number')
+            and coalesce(facts ->> 'pr.event', '') not in ('merged', 'closed') and eval_run_id is null""",
+            nativeQuery = true)
+    List<WorkOrder> findEndedWithOpenPullRequest();
 }

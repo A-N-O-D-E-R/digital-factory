@@ -23,6 +23,8 @@ factory:
     judge-interval: 200ms
   intake:
     report-interval: 200ms
+  prwatch:
+    limits-interval: 200ms
   tickets:
     transitions:
       github:
