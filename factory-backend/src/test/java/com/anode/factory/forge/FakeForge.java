@@ -76,7 +76,17 @@ public class FakeForge implements Forge {
         comments.add("#" + pullRequest.number() + ": " + body);
     }
 
-    /** "#number: body" in order. */
+    @Override
+    public void reply(CodeRepository repository, PullRequest pullRequest, String thread, String body) {
+        comments.add("#" + pullRequest.number() + (thread == null ? "" : " in " + thread) + ": " + body);
+    }
+
+    @Override
+    public void resolve(CodeRepository repository, PullRequest pullRequest, String thread) {
+        calls.add("resolve #" + pullRequest.number() + " " + thread);
+    }
+
+    /** "#number: body" (or "#number in thread: body") in order. */
     public List<String> comments() {
         return comments;
     }

@@ -136,6 +136,32 @@ class GitLabForge implements Forge, IntegrationCheck {
     }
 
     @Override
+    public void reply(CodeRepository repository, PullRequest pullRequest, String thread, String body) {
+        if (thread == null) {
+            comment(repository, pullRequest, body);
+            return;
+        }
+        try {
+            gitlab.getDiscussionsApi().addMergeRequestThreadNote(repository.path(), pullRequest.number(), thread, body,
+                    null);
+        } catch (GitLabApiException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    @Override
+    public void resolve(CodeRepository repository, PullRequest pullRequest, String thread) {
+        if (thread == null) {
+            return;
+        }
+        try {
+            gitlab.getDiscussionsApi().resolveMergeRequestDiscussion(repository.path(), pullRequest.number(), thread, true);
+        } catch (GitLabApiException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    @Override
     public void comment(CodeRepository repository, PullRequest pullRequest, String body) {
         try {
             gitlab.getNotesApi().createMergeRequestNote(repository.path(), pullRequest.number(), body, null, false);

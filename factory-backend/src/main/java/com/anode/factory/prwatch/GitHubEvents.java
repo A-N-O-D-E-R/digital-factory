@@ -48,8 +48,8 @@ class GitHubEvents {
                             .orElse(List.of())
                     : List.of();
             case "pull_request_review_comment" -> action.equals("created")
-                    ? List.of(authored(id, repository, payload.path("pull_request").path("number").asLong(), "commented",
-                            payload.path("comment")))
+                    ? List.of(thread(authored(id, repository, payload.path("pull_request").path("number").asLong(),
+                            "commented", payload.path("comment")), payload.path("comment")))
                     : List.of();
             case "issue_comment" -> action.equals("created") && payload.path("issue").has("pull_request")
                     ? List.of(authored(id, repository, payload.path("issue").path("number").asLong(), "commented",
@@ -81,6 +81,13 @@ class GitHubEvents {
             events.add(system(id + "#" + number, repository, number, kind));
         }
         return events;
+    }
+
+    /** A review comment: replies go to its thread (the comment replied to). */
+    private static PrEvent thread(PrEvent event, JsonNode comment) {
+        String thread = comment.path("in_reply_to_id").asString(comment.path("id").asString(null));
+        return new PrEvent(event.id(), event.repository(), event.number(), event.kind(), event.author(), event.bot(),
+                event.body(), event.url(), thread);
     }
 
     private static PrEvent system(String id, String repository, long number, String kind) {

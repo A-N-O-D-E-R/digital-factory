@@ -52,9 +52,14 @@ class GitLabEvents {
                         : new PrEvent(id, repository, number, kind, null, false, null, null));
             }
             case NoteEvent note when note.getObjectAttributes().getNoteableType() == NoteEvent.NoteableType.MERGE_REQUEST
-                    && note.getMergeRequest() != null -> List.of(authored(id,
-                    "gitlab:" + note.getProject().getPathWithNamespace(), note.getMergeRequest().getIid(), "commented",
-                    note.getUser(), note.getObjectAttributes().getNote(), note.getObjectAttributes().getUrl()));
+                    && note.getMergeRequest() != null -> {
+                PrEvent comment = authored(id, "gitlab:" + note.getProject().getPathWithNamespace(),
+                        note.getMergeRequest().getIid(), "commented", note.getUser(), note.getObjectAttributes().getNote(),
+                        note.getObjectAttributes().getUrl());
+                yield List.of(new PrEvent(comment.id(), comment.repository(), comment.number(), comment.kind(),
+                        comment.author(), comment.bot(), comment.body(), comment.url(),
+                        note.getObjectAttributes().getDiscussionId()));
+            }
             case PipelineEvent pipeline when pipeline.getMergeRequest() != null -> {
                 String kind = switch (String.valueOf(pipeline.getObjectAttributes().getStatus())) {
                     case "success" -> "checks_passed";

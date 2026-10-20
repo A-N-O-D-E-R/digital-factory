@@ -55,9 +55,13 @@
     {
       "id": "push", "kind": "factory", "action": "push-branch",
       "next": [
-        { "when": { "fact": "pr.open", "equals": true }, "to": "respond" },
+        { "when": { "fact": "pr.open", "equals": true }, "to": "reply" },
         { "to": "open-pr" }
       ]
+    },
+    {
+      "id": "reply", "kind": "factory", "action": "reply-feedback",
+      "next": [{ "to": "respond" }]
     },
     {
       "id": "respond", "kind": "factory", "action": "request-review",

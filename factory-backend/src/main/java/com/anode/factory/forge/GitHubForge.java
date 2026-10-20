@@ -17,6 +17,7 @@ import org.kohsuke.github.GHCheckRun;
 import org.kohsuke.github.GHIssueState;
 import org.kohsuke.github.GHPermissionType;
 import org.kohsuke.github.GHPullRequest;
+import org.kohsuke.github.GHPullRequestReviewComment;
 import org.kohsuke.github.GHRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -178,6 +179,29 @@ class GitHubForge implements Forge, IntegrationCheck {
             throw new UncheckedIOException(e);
         }
     }
+
+    @Override
+    public void reply(CodeRepository repository, PullRequest pullRequest, String thread, String body) {
+        if (thread == null) {
+            comment(repository, pullRequest, body);
+            return;
+        }
+        try {
+            for (GHPullRequestReviewComment comment : pr(repository, pullRequest).listReviewComments()) {
+                if (Long.toString(comment.getId()).equals(thread)) {
+                    comment.reply(body);
+                    return;
+                }
+            }
+            comment(repository, pullRequest, body); // the thread is gone
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    // ponytail: GitHub resolves review threads through GraphQL only (resolveReviewThread); left to reviewers
+    @Override
+    public void resolve(CodeRepository repository, PullRequest pullRequest, String thread) {}
 
     @Override
     public void comment(CodeRepository repository, PullRequest pullRequest, String body) {

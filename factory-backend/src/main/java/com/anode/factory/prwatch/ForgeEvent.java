@@ -40,6 +40,13 @@ public class ForgeEvent {
     @Column(name = "consumed_at")
     private Instant consumedAt;
 
+    /** The forge's id of the comment thread, for replies. */
+    private String thread;
+
+    /** When the factory answered it in its thread. */
+    @Column(name = "replied_at")
+    private Instant repliedAt;
+
     protected ForgeEvent() {}
 
     ForgeEvent(PrEvent event, UUID workOrderId, String ignoredBecause, Instant now) {
@@ -51,11 +58,24 @@ public class ForgeEvent {
         this.ignoredBecause = ignoredBecause;
         this.body = event.body();
         this.url = event.url();
+        this.thread = event.thread();
         this.receivedAt = now;
     }
 
     void consume(Instant now) {
         this.consumedAt = now;
+    }
+
+    void replied(Instant now) {
+        this.repliedAt = now;
+    }
+
+    public String thread() {
+        return thread;
+    }
+
+    public Instant repliedAt() {
+        return repliedAt;
     }
 
     public String id() {

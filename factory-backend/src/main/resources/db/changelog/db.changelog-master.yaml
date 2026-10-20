@@ -410,3 +410,13 @@ databaseChangeLog:
             columns:
               - column: { name: work_order_id, type: uuid, constraints: { primaryKey: true, foreignKeyName: fk_pr_summaries_work_order, references: work_orders(id) } }
               - column: { name: at, type: timestamptz, constraints: { nullable: false } }
+  - changeSet:
+      id: 017-forge-event-threads
+      author: digital-factory
+      comment: The comment thread of a forge event (for the factory's reply) and when the factory replied
+      changes:
+        - addColumn:
+            tableName: forge_events
+            columns:
+              - column: { name: thread, type: varchar(255) }
+              - column: { name: replied_at, type: timestamptz }

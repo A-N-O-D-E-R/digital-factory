@@ -70,6 +70,7 @@
                 "open-draft-pr",
                 "mark-pr-ready",
                 "request-review",
+                "reply-feedback",
                 "merge",
                 "comment-ticket",
                 "transition-ticket",

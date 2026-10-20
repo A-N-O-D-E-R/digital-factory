@@ -25,6 +25,12 @@ public interface Forge {
 
     void comment(CodeRepository repository, PullRequest pullRequest, String body);
 
+    /** Replies in the comment thread {@code thread} (the forge's id), or on the PR when it is null. */
+    void reply(CodeRepository repository, PullRequest pullRequest, String thread, String body);
+
+    /** Marks the thread resolved, where the forge allows it. */
+    void resolve(CodeRepository repository, PullRequest pullRequest, String thread);
+
     /** The checks of the PR's head that failed, with the end of their logs where the forge has them. */
     List<FailedCheck> failedChecks(CodeRepository repository, PullRequest pullRequest);
 

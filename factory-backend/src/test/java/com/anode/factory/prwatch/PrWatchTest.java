@@ -42,7 +42,8 @@ class PrWatchTest {
                 "next": [{ "when": { "fact": "tests.passed", "equals": false }, "to": "implement", "maxVisits": 1 },
                          { "to": "push" }] },
               { "id": "push", "kind": "factory", "action": "push-branch",
-                "next": [{ "when": { "fact": "pr.open", "equals": true }, "to": "respond" }, { "to": "open-pr" }] },
+                "next": [{ "when": { "fact": "pr.open", "equals": true }, "to": "reply" }, { "to": "open-pr" }] },
+              { "id": "reply", "kind": "factory", "action": "reply-feedback", "next": [{ "to": "respond" }] },
               { "id": "open-pr", "kind": "factory", "action": "open-draft-pr", "next": [{ "to": "watch" }] },
               { "id": "respond", "kind": "factory", "action": "request-review", "next": [{ "to": "watch" }] },
               { "id": "watch", "kind": "factory", "action": "watch-pr",
@@ -168,6 +169,8 @@ class PrWatchTest {
         worker.complete(claim("push-branch"), "{\"branch\":\"factory/" + pr.id() + "\",\"commit\":\"" + "c".repeat(40) + "\"}");
         awaitStep(pr.id(), "watch");
         assertThat(forge.calls()).contains("requestReview #" + pr.number());
+        assertThat(forge.comments()).as("the feedback answered once").containsOnlyOnce(
+                "#" + pr.number() + ": Done in " + "c".repeat(40) + ".");
 
         deliver("pull_request", GitHubWebhook.closed(pr.number(), true));
         awaitStatus(pr.id(), "DONE");
@@ -256,6 +259,28 @@ class PrWatchTest {
         FakeWorker.Job implement = claim("implementer");
         assertThat(implement.input().get("facts").get("branch.conflicts").get(0).asString()).isEqualTo("src/Totals.java");
         assertThat(get("/api/work-orders/{id}/pr-events", pr.id()).findValuesAsString("kind")).containsExactly("branch_behind");
+    }
+
+    @Test
+    void reviewCommentsAreAnsweredInTheirThread() {
+        Watched pr = watchedPullRequest();
+        deliver("pull_request_review_comment", """
+                {"action":"created","repository":{"full_name":"acme/api"},"pull_request":{"number":%d},
+                 "comment":{"id":4242,"body":"Why HALF_EVEN?","html_url":"https://github.test/c/2",
+                            "user":{"login":"maintainer","type":"User"}}}""".formatted(pr.number()));
+        awaitStep(pr.id(), "triage");
+        FakeWorker.Job triage = claim("feedback-triage");
+        String id = triage.input().get("facts").get("pr.feedback").get("id").asString();
+        worker.complete(triage, "{\"summary\":\"none\",\"items\":[{\"id\":\"" + id
+                + "\",\"decision\":\"ANSWER\",\"answer\":\"Banking rounding, as the ticket asks.\"}]}");
+        awaitStep(pr.id(), "implement");
+        worker.complete(claim("implementer"), implementation());
+        awaitStep(pr.id(), "verify");
+        worker.complete(claim("run-tests"), tests(1, 0));
+        awaitStep(pr.id(), "push");
+        worker.complete(claim("push-branch"), "{\"branch\":\"factory/" + pr.id() + "\",\"commit\":\"" + "d".repeat(40) + "\"}");
+        awaitStep(pr.id(), "watch");
+        assertThat(forge.comments()).contains("#" + pr.number() + " in 4242: Banking rounding, as the ticket asks.");
     }
 
     @Test
