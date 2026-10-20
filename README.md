@@ -30,4 +30,7 @@ Construire (JDK 25, depuis la racine) : `mvn package -DskipTests`, puis `cd fact
 - `mvn test` (Docker requis : PostgreSQL et sandbox réels).
 - `cd factory-frontend && pnpm test` ; `pnpm e2e` contre `dev/run-local.sh`.
 - `cd factory-sandbox && pnpm test` ; `factory-sandbox/egress/check.sh` vérifie le proxy de sortie.
+- Qualité : Error Prone à chaque compilation (`.mvn/jvm.config`), couverture JaCoCo (`target/site/jacoco/`),
+  oxlint pour le frontend, Renovate pour les dépendances ; CI GitHub Actions pour le frontend et le sandbox
+  (le backend et le worker attendent la publication des starters).
 

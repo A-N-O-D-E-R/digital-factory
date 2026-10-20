@@ -16,6 +16,7 @@ import com.github.dockerjava.zerodep.ZerodepDockerHttpClient;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
@@ -147,7 +148,7 @@ class Sandbox {
                     .exec(new ResultCallback.Adapter<Frame>() {
                         @Override
                         public void onNext(Frame frame) {
-                            lines.add(new String(frame.getPayload()).stripTrailing());
+                            lines.add(new String(frame.getPayload(), StandardCharsets.UTF_8).stripTrailing());
                         }
                     })
                     .awaitCompletion(10, TimeUnit.SECONDS);

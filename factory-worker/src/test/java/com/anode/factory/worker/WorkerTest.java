@@ -65,7 +65,7 @@ class WorkerTest {
         }
         server = HttpServer.create(new InetSocketAddress("localhost", 0), 0);
         server.createContext("/internal/runs/", exchange -> {
-            String[] path = exchange.getRequestURI().getPath().split("/"); // "", internal, runs, id, action
+            String[] path = exchange.getRequestURI().getPath().split("/", -1); // "", internal, runs, id, action
             String action = exchange.getRequestMethod() + " " + path[4];
             byte[] body = exchange.getRequestBody().readAllBytes();
             byte[] response = new byte[0];
@@ -85,7 +85,7 @@ class WorkerTest {
                         }
                     }
                     case "PUT bundle" -> received.put("bundle", body);
-                    case "POST heartbeat" -> response = "{\"cancelled\":false}".getBytes();
+                    case "POST heartbeat" -> response = "{\"cancelled\":false}".getBytes(StandardCharsets.UTF_8);
                     case "POST complete", "POST fail" -> received.put(path[4], body);
                     case "POST claim" -> claims.incrementAndGet();
                     default -> status = 404;
@@ -103,7 +103,7 @@ class WorkerTest {
         });
         server.createContext("/internal/workers/heartbeat", exchange -> {
             heartbeats.add(new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
-            byte[] response = "{\"draining\":true}".getBytes();
+            byte[] response = "{\"draining\":true}".getBytes(StandardCharsets.UTF_8);
             exchange.getResponseHeaders().add("Content-Type", "application/json");
             exchange.sendResponseHeaders(200, response.length);
             exchange.getResponseBody().write(response);
@@ -144,7 +144,7 @@ class WorkerTest {
     }
 
     JsonNode completed() {
-        assertThat(received).as("the run failed: %s", new String(received.getOrDefault("fail", new byte[0])))
+        assertThat(received).as("the run failed: %s", new String(received.getOrDefault("fail", new byte[0]), StandardCharsets.UTF_8))
                 .containsKey("complete");
         JsonNode completion = json.readTree(received.remove("complete"));
         return completion.get("output");

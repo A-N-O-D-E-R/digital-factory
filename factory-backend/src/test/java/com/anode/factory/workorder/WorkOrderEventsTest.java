@@ -60,7 +60,7 @@ class WorkOrderEventsTest {
         List<String> events = new ArrayList<>();
         String id = null;
         String type = null;
-        for (String line : stream.getContentAsString().split("\n")) {
+        for (String line : stream.getContentAsString().split("\n", -1)) {
             if (line.startsWith("id:")) {
                 id = line.substring(3);
             } else if (line.startsWith("event:")) {

@@ -43,7 +43,7 @@ public final class Conditions {
         if (value instanceof Number a && expected instanceof Number b) {
             return a.doubleValue() == b.doubleValue();
         }
-        return Objects.equals(value, expected) || Objects.equals(String.valueOf(value), String.valueOf(expected))
-                && !(value instanceof Boolean) && !(expected instanceof Boolean);
+        return Objects.equals(value, expected) || (Objects.equals(String.valueOf(value), String.valueOf(expected))
+                && !(value instanceof Boolean) && !(expected instanceof Boolean));
     }
 }

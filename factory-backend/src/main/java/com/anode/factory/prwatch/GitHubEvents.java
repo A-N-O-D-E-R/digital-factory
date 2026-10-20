@@ -3,6 +3,7 @@ package com.anode.factory.prwatch;
 import com.anode.github.GitHubWebhookEvent;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.JsonNode;
@@ -80,7 +81,7 @@ class GitHubEvents {
     }
 
     private static java.util.Optional<String> kind(String reviewState) {
-        return switch (reviewState.toLowerCase()) {
+        return switch (reviewState.toLowerCase(Locale.ROOT)) {
             case "approved" -> java.util.Optional.of("approved");
             case "changes_requested" -> java.util.Optional.of("changes_requested");
             case "commented" -> java.util.Optional.of("commented");

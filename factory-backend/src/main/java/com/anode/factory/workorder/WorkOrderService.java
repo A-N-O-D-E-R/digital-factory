@@ -141,7 +141,9 @@ public class WorkOrderService {
         if (decision == Approval.Decision.PENDING) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Decide APPROVED or REJECTED");
         }
-        workOrders.lock(workOrderId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        if (workOrders.lock(workOrderId).isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+        }
         Approval approval = approvals.findById(approvalId)
                 .filter(a -> a.workOrderId().equals(workOrderId))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));

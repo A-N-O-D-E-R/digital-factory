@@ -1,0 +1,9 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "packageRules": [
+    { "matchManagers": ["npm"], "matchUpdateTypes": ["minor", "patch"], "groupName": "npm minor and patch" },
+    { "matchManagers": ["maven"], "matchUpdateTypes": ["minor", "patch"], "groupName": "maven minor and patch" },
+    { "matchPackageNames": ["io.github.a-n-o-d-e-r:**"], "enabled": false }
+  ]
+}

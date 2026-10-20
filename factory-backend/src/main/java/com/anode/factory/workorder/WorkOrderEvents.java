@@ -125,13 +125,14 @@ class WorkOrderEvents {
 
     @Scheduled(fixedDelay = 15_000)
     void keepAlive() {
-        for (Subscriber subscriber : subscribers) {
+        subscribers.removeIf(subscriber -> {
             try {
                 subscriber.emitter().send(SseEmitter.event().comment("keep-alive"));
+                return false;
             } catch (IOException | IllegalStateException e) {
-                subscribers.remove(subscriber);
+                return true; // the client is gone
             }
-        }
+        });
     }
 
     /** False when the client is gone. */

@@ -7,6 +7,7 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.Instant;
+import java.util.Locale;
 
 /**
  * A repository the factory works on, and how to build and test it. Its key ({@code github:acme/api})
@@ -63,7 +64,7 @@ public class CodeRepository {
     }
 
     static String key(ForgeType forge, String path) {
-        return forge.name().toLowerCase() + ":" + path;
+        return forge.name().toLowerCase(Locale.ROOT) + ":" + path;
     }
 
     void update(String defaultBranch, String testCommand, String testReports, String sandboxImage, boolean active) {

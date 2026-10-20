@@ -1,9 +1,11 @@
 package com.anode.factory.forge;
 
+
 import com.anode.factory.repository.CodeRepository;
 import com.anode.factory.repository.ForgeType;
 import java.time.Instant;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -29,7 +31,7 @@ public class FakeForge implements Forge {
     @Override
     public GitCredential credential(CodeRepository repository, Access access) {
         return new GitCredential("https://github.test/" + repository.path() + ".git", "x-access-token",
-                access.name().toLowerCase() + "-token", Instant.now().plusSeconds(3600));
+                access.name().toLowerCase(Locale.ROOT) + "-token", Instant.now().plusSeconds(3600));
     }
 
     @Override

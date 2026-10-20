@@ -13,6 +13,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import com.anode.factory.FakeWorker;
 import com.anode.factory.IntegrationTest;
 import com.anode.factory.TestRepository;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
@@ -148,7 +149,7 @@ class WorkOrderExecutionTest {
 
     MvcTestResult putBundle(FakeWorker.Job job, String content) {
         return mvc.put().uri("/internal/runs/{id}/bundle", job.runId()).header("Authorization", worker.bearer())
-                .contentType(MediaType.APPLICATION_OCTET_STREAM).content(content.getBytes()).exchange();
+                .contentType(MediaType.APPLICATION_OCTET_STREAM).content(content.getBytes(StandardCharsets.UTF_8)).exchange();
     }
 
     MvcTestResult getBundle(FakeWorker.Job job) {

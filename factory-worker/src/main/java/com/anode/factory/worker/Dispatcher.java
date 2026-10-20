@@ -8,6 +8,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -33,6 +34,7 @@ class Dispatcher implements SmartLifecycle {
     private final List<Thread> slots = new ArrayList<>();
     private final AtomicInteger busy = new AtomicInteger();
     private volatile boolean running;
+    private ScheduledFuture<?> reporting;
     /** Told by the control plane: finish the runs in progress, claim no new one. */
     private volatile boolean draining;
 
@@ -45,7 +47,8 @@ class Dispatcher implements SmartLifecycle {
     @Override
     public void start() {
         running = true;
-        heartbeats.scheduleAtFixedRate(this::report, 0, properties.heartbeatInterval().toMillis(), TimeUnit.MILLISECONDS);
+        reporting = heartbeats.scheduleAtFixedRate(this::report, 0, properties.heartbeatInterval().toMillis(),
+                TimeUnit.MILLISECONDS);
         for (int i = 0; i < properties.slots(); i++) {
             Thread slot = Thread.ofPlatform().name("slot-" + i).start(this::loop);
             slots.add(slot);
@@ -63,6 +66,7 @@ class Dispatcher implements SmartLifecycle {
                 Thread.currentThread().interrupt();
             }
         }
+        reporting.cancel(false);
         heartbeats.shutdownNow();
     }
 

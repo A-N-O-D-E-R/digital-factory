@@ -7,6 +7,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import org.gitlab4j.api.GitLabApi;
 import org.gitlab4j.api.GitLabApiException;
 import org.gitlab4j.api.models.AcceptMergeRequestParams;
@@ -188,7 +189,7 @@ class GitLabForge implements Forge, IntegrationCheck {
             }
             var pipelines = gitlab.getMergeRequestApi().getMergeRequestPipelines(repository.path(), pullRequest.number());
             if (!pipelines.isEmpty()) {
-                String kind = switch (String.valueOf(pipelines.getFirst().getStatus()).toLowerCase()) {
+                String kind = switch (String.valueOf(pipelines.getFirst().getStatus()).toLowerCase(Locale.ROOT)) {
                     case "success" -> "checks_passed";
                     case "failed", "canceled" -> "checks_failed";
                     default -> null;

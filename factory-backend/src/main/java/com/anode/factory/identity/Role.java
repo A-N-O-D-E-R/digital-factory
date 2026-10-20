@@ -13,10 +13,11 @@ public enum Role {
     /** Machine role of the workers, never granted to people. */
     WORKER(EnumSet.of(Permission.RUN_EXECUTE));
 
+    @SuppressWarnings("ImmutableEnumChecker") // an unmodifiable copy
     private final Set<Permission> permissions;
 
     Role(Set<Permission> permissions) {
-        this.permissions = permissions;
+        this.permissions = Set.copyOf(permissions);
     }
 
     public Set<Permission> permissions() {
