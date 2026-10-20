@@ -120,20 +120,24 @@ class PrWatchTest {
     }
 
     Watched watchedPullRequest(String workflow) {
+        return watchedPullRequest(workflow, "REFACTOR");
+    }
+
+    Watched watchedPullRequest(String workflow, String type) {
         var created = mvc.post().uri("/api/work-orders").with(developer()).with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"repository\":\"" + TestRepository.KEY + "\",\"title\":\"Fix\",\"description\":\"d\",\"workflow\":\"" + workflow + "\"}")
                 .exchange();
         UUID id = UUID.fromString(json.readTree(created.getResponse().getContentAsByteArray()).get("id").asString());
         if (workflow.equals("classified")) {
-            worker.complete(claim("classifier"), classification("REFACTOR", "LOW"));
+            worker.complete(claimFor(id, "classifier"), classification(type, "LOW"));
             awaitStep(id, "implement");
         }
-        worker.complete(claim("implementer"), implementation());
+        worker.complete(claimFor(id, "implementer"), implementation());
         awaitStep(id, "verify");
-        worker.complete(claim("run-tests"), tests(1, 0));
+        worker.complete(claimFor(id, "run-tests"), tests(1, 0));
         awaitStep(id, "push");
-        worker.complete(claim("push-branch"), "{\"branch\":\"factory/" + id + "\",\"commit\":\"" + "b".repeat(40) + "\"}");
+        worker.complete(claimFor(id, "push-branch"), "{\"branch\":\"factory/" + id + "\",\"commit\":\"" + "b".repeat(40) + "\"}");
         awaitStep(id, "watch");
         return new Watched(id, workOrder(id).get("facts").get("pr.number").asLong());
     }
@@ -245,7 +249,40 @@ class PrWatchTest {
         JsonNode policy = policy("REFACTOR");
         assertThat(policy.get("failureRate").decimalValue()).isEqualByComparingTo("0.4");
         assertThat(policy.get("level").asString()).isEqualTo("DRAFT_PR");
-        assertThat(policy.get("updatedBy").asString()).isEqualTo("factory: 2 of the last 5 PRs closed without merge");
+        assertThat(policy.get("updatedBy").asString()).isEqualTo("factory: 2 of the last 5 PRs closed without merge or reverted");
+    }
+
+    @Test
+    void aClassWhoseMergedPrsAreRevertedLosesMergingToo() {
+        publishClassified();
+        assertThat(mvc.put().uri("/api/autonomy-policy/TEST").with(admin()).with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"level\":\"MERGE\",\"minSuccessRate\":0,\"maxFailureRate\":0.25}")).hasStatusOk();
+        List<String> merges = new java.util.ArrayList<>();
+        for (int i = 0; i < 5; i++) {
+            Watched pr = watchedPullRequest("classified", "TEST");
+            String commit = String.valueOf((char) ('a' + i)).repeat(40);
+            merges.add(commit);
+            deliver("pull_request", GitHubWebhook.closed(pr.number(), true, commit));
+            awaitStatus(pr.id(), "MERGED");
+        }
+        assertThat(policy("TEST").get("level").asString()).as("all merged").isEqualTo("MERGE");
+
+        deliver("push", """
+                {"ref":"refs/heads/main","repository":{"full_name":"acme/api"},"commits":[
+                  {"message":"Revert \\"fix: it\\"\\n\\nThis reverts commit %s."},
+                  {"message":"Revert \\"fix: it\\"\\n\\nThis reverts commit %s."}]}""".formatted(merges.get(0), merges.get(3)));
+        await().atMost(Duration.ofSeconds(10)).until(() -> policy("TEST").get("level").asString().equals("DRAFT_PR"));
+        assertThat(policy("TEST").get("updatedBy").asString()).isEqualTo("factory: 2 of the last 5 PRs closed without merge or reverted");
+    }
+
+    void publishClassified() {
+        mvc.post().uri("/api/workflows/classified/versions").with(admin()).with(csrf())
+                .contentType(MediaType.APPLICATION_JSON).content("{\"definition\":" + WATCHED.replace(
+                        "\"start\": \"implement\", \"steps\": [", """
+                        "start": "classify", "steps": [
+                        { "id": "classify", "kind": "agent", "roles": ["classifier"], "next": [{ "to": "implement" }] },""")
+                        + ",\"note\":\"test\"}").exchange();
     }
 
     JsonNode policy(String type) {

@@ -24,8 +24,10 @@ class GitLabEvents {
     @EventListener
     void on(GitLabWebhookEvent delivery) {
         if (delivery.event() instanceof PushEvent push && push.getRef() != null && push.getRef().startsWith("refs/heads/")) {
+            List<String> messages = push.getCommits() == null ? List.of()
+                    : push.getCommits().stream().map(c -> c.getMessage() == null ? "" : c.getMessage()).toList();
             watch.pushed("gitlab:" + delivery.uuid(), "gitlab:" + push.getProject().getPathWithNamespace(),
-                    push.getRef().substring("refs/heads/".length()));
+                    push.getRef().substring("refs/heads/".length()), messages);
             return;
         }
         normalize(delivery.uuid(), delivery.event()).forEach(watch::receive);
@@ -51,7 +53,7 @@ class GitLabEvents {
                 yield List.of(kind.equals("approved")
                         ? authored(id, "gitlab:" + path, number, kind, mr.getUser(), null, mr.getObjectAttributes().getUrl())
                         : new PrEvent("gitlab:" + path + "!" + number + ":" + kind, "gitlab:" + path, number, kind, null,
-                                false, null, null));
+                                false, null, null).withCommit(mr.getObjectAttributes().getMergeCommitSha()));
             }
             case NoteEvent note when note.getObjectAttributes().getNoteableType() == NoteEvent.NoteableType.MERGE_REQUEST
                     && note.getMergeRequest() != null -> {

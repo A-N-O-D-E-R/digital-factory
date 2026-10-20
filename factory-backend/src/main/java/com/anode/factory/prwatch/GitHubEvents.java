@@ -25,8 +25,10 @@ class GitHubEvents {
     void on(GitHubWebhookEvent delivery) {
         JsonNode payload = json.readTree(delivery.payload());
         if (delivery.event().equals("push") && payload.path("ref").asString().startsWith("refs/heads/")) {
+            List<String> messages = new ArrayList<>();
+            payload.path("commits").forEach(commit -> messages.add(commit.path("message").asString("")));
             watch.pushed("github:" + delivery.deliveryId(), "github:" + payload.path("repository").path("full_name").asString(),
-                    payload.path("ref").asString().substring("refs/heads/".length()));
+                    payload.path("ref").asString().substring("refs/heads/".length()), messages);
             return;
         }
         normalize(delivery.event(), delivery.deliveryId(), payload).forEach(watch::receive);
@@ -49,7 +51,8 @@ class GitHubEvents {
                 }
                 long number = payload.path("pull_request").path("number").asLong();
                 String kind = payload.path("pull_request").path("merged").asBoolean() ? "merged" : "closed";
-                yield List.of(system("github:" + path + "#" + number + ":" + kind, repository, number, kind));
+                yield List.of(system("github:" + path + "#" + number + ":" + kind, repository, number, kind)
+                        .withCommit(payload.path("pull_request").path("merge_commit_sha").asString(null)));
             }
             case "pull_request_review" -> action.equals("submitted")
                     ? kind(payload.path("review").path("state").asString())

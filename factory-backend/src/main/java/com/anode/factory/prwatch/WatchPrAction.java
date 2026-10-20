@@ -69,8 +69,13 @@ class WatchPrAction implements FactoryAction {
                     feedback.put("url", event.url());
                     facts.put("pr.feedback", feedback);
                 }
+                case "merged" -> {
+                    if (event.commit() != null) {
+                        facts.put("pr.mergeCommit", event.commit()); // to tell a later revert
+                    }
+                }
                 default -> {
-                    // merged, closed, approved: the event is the fact
+                    // closed, approved: the event is the fact
                 }
             }
             return Result.proceed(facts);

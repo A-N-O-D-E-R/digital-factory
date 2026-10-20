@@ -46,8 +46,12 @@ public final class GitHubWebhook {
     }
 
     public static String closed(long number, boolean merged) {
+        return closed(number, merged, null);
+    }
+
+    public static String closed(long number, boolean merged, String mergeCommit) {
         return """
-                {"action":"closed","repository":{"full_name":"acme/api"},"pull_request":{"number":%d,"merged":%s}}"""
-                .formatted(number, merged);
+                {"action":"closed","repository":{"full_name":"acme/api"},"pull_request":{"number":%d,"merged":%s%s}}"""
+                .formatted(number, merged, mergeCommit == null ? "" : ",\"merge_commit_sha\":\"" + mergeCommit + "\"");
     }
 }

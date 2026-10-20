@@ -101,7 +101,8 @@
         { "when": { "allOf": [{ "fact": "pr.event", "equals": "checks_passed" }, { "fact": "autonomy.allows", "equals": true }] }, "to": "merge", "maxVisits": 1 },
         { "when": { "fact": "pr.event", "equals": "closed" }, "to": "@closed" },
         { "when": { "fact": "pr.event", "equals": "branch_behind" }, "to": "update", "maxVisits": 10 },
-        { "when": { "fact": "pr.event", "in": ["changes_requested", "commented", "checks_failed"] }, "to": "triage", "maxVisits": 5 },
+        { "when": { "fact": "pr.event", "equals": "checks_failed" }, "to": "triage", "maxVisits": 3 },
+        { "when": { "fact": "pr.event", "in": ["changes_requested", "commented"] }, "to": "triage", "maxVisits": 5 },
         { "to": "watch", "maxVisits": 20 }
       ]
     },

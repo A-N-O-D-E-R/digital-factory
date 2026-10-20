@@ -484,3 +484,22 @@ databaseChangeLog:
               end $$;
               create trigger forge_events_events after insert or update on forge_events
                 for each row execute function record_forge_event();
+  - changeSet:
+      id: 023-reverts
+      author: digital-factory
+      comment: A merge's commit on forge events and PR outcomes, so that a later revert counts against the class; feedback iterations per PR
+      changes:
+        - addColumn:
+            tableName: forge_events
+            columns:
+              - column: { name: commit_sha, type: varchar(64) }
+        - addColumn:
+            tableName: pr_outcomes
+            columns:
+              - column: { name: merge_commit, type: varchar(64) }
+              - column: { name: reverted, type: boolean, defaultValueBoolean: false, constraints: { nullable: false } }
+              - column: { name: feedback_iterations, type: int, defaultValueNumeric: 0, constraints: { nullable: false } }
+        - createIndex:
+            tableName: pr_outcomes
+            indexName: ix_pr_outcomes_merge_commit
+            columns: [ { column: { name: merge_commit } } ]

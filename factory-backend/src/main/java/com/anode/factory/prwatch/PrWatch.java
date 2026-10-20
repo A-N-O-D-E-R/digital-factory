@@ -1,5 +1,6 @@
 package com.anode.factory.prwatch;
 
+import com.anode.factory.autonomy.AutonomyPolicies;
 import com.anode.factory.forge.Forges;
 import com.anode.factory.forge.PullRequest;
 import com.anode.factory.repository.CodeRepository;
@@ -31,20 +32,23 @@ class PrWatch {
     private static final Logger log = LoggerFactory.getLogger(PrWatch.class);
 
     private static final Pattern COMMAND = Pattern.compile("/factory\\s+(\\w+)");
+    private static final Pattern REVERT = Pattern.compile("This reverts commit ([0-9a-f]{40})");
 
     private final ForgeEventRepository events;
     private final Repositories repositories;
     private final WorkOrderService workOrders;
     private final Forges forges;
+    private final AutonomyPolicies autonomy;
     private final Set<String> trustedAuthors;
     private final Clock clock;
 
     PrWatch(ForgeEventRepository events, Repositories repositories, WorkOrderService workOrders, Forges forges,
-            @Value("${factory.prwatch.trusted-authors:}") Set<String> trustedAuthors, Clock clock) {
+            AutonomyPolicies autonomy, @Value("${factory.prwatch.trusted-authors:}") Set<String> trustedAuthors, Clock clock) {
         this.events = events;
         this.repositories = repositories;
         this.workOrders = workOrders;
         this.forges = forges;
+        this.autonomy = autonomy;
         this.trustedAuthors = trustedAuthors;
         this.clock = clock;
     }
@@ -106,12 +110,21 @@ class PrWatch {
         forges.of(repository).comment(repository, new PullRequest(event.number(), null, null, false), reply);
     }
 
-    /** A push to {@code branch}: when it is the default branch, the repository's open PRs are behind it. */
+    /**
+     * A push to {@code branch}: when it is the default branch, the repository's open PRs are behind it,
+     * and merges its commits revert ("This reverts commit …") count against their class.
+     */
     @Transactional
-    public void pushed(String deliveryId, String repositoryPath, String branch) {
+    public void pushed(String deliveryId, String repositoryPath, String branch, List<String> messages) {
         Optional<CodeRepository> repository = repositories.find(repositoryPath);
         if (repository.isEmpty() || !repository.get().defaultBranch().equals(branch)) {
             return;
+        }
+        for (String message : messages) {
+            Matcher reverted = REVERT.matcher(message);
+            while (reverted.find()) {
+                autonomy.reverted(reverted.group(1));
+            }
         }
         for (WorkOrder workOrder : workOrders.withOpenPullRequest(repository.get().key())) {
             long number = ((Number) workOrder.facts().get("pr.number")).longValue();

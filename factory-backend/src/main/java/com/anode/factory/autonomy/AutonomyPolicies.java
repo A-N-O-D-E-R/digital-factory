@@ -16,7 +16,6 @@ public class AutonomyPolicies {
 
     static final BigDecimal DEFAULT_MAX_FAILURE_RATE = new BigDecimal("0.25");
     /** The PRs the failure rate is measured on, and how many it takes to measure it. */
-    // ponytail: closed without merge only; reverts after the merge are not watched yet
     private static final int WINDOW = 20;
     private static final int MIN_OUTCOMES = 5;
 
@@ -35,7 +34,7 @@ public class AutonomyPolicies {
      * and the class's real-world failure rate measured on its latest PRs.
      */
     @Transactional
-    public void prOutcome(UUID workOrderId, String type, boolean merged) {
+    public void prOutcome(UUID workOrderId, String type, boolean merged, String mergeCommit, int feedbackIterations) {
         WorkOrderType workOrderType;
         try {
             workOrderType = WorkOrderType.valueOf(type);
@@ -43,20 +42,35 @@ public class AutonomyPolicies {
             return;
         }
         jdbc.sql("""
-                        insert into pr_outcomes (work_order_id, work_order_type, merged, at)
-                        values (:workOrder, :type, :merged, :at) on conflict do nothing""")
+                        insert into pr_outcomes (work_order_id, work_order_type, merged, merge_commit, feedback_iterations, at)
+                        values (:workOrder, :type, :merged, :commit, :iterations, :at) on conflict do nothing""")
                 .param("workOrder", workOrderId).param("type", workOrderType.name()).param("merged", merged)
+                .param("commit", mergeCommit).param("iterations", feedbackIterations)
                 .param("at", java.sql.Timestamp.from(clock.instant())).update();
-        List<Boolean> latest = jdbc.sql("""
-                        select merged from pr_outcomes where work_order_type = :type order by at desc limit :window""")
-                .param("type", workOrderType.name()).param("window", WINDOW).query(Boolean.class).list();
-        if (latest.size() < MIN_OUTCOMES) {
+        measureFailures(workOrderType);
+    }
+
+    /** A factory PR's merge was reverted on its default branch: a failure of its class after all. */
+    @Transactional
+    public void reverted(String mergeCommit) {
+        jdbc.sql("update pr_outcomes set reverted = true where merge_commit = :commit returning work_order_type")
+                .param("commit", mergeCommit).query(String.class).list()
+                .forEach(type -> measureFailures(WorkOrderType.valueOf(type)));
+    }
+
+    /** The class's latest PRs: closed without merge, or merged then reverted, are failures. */
+    private void measureFailures(WorkOrderType type) {
+        List<Boolean> failed = jdbc.sql("""
+                        select not merged or reverted from pr_outcomes where work_order_type = :type
+                        order by at desc limit :window""")
+                .param("type", type.name()).param("window", WINDOW).query(Boolean.class).list();
+        if (failed.size() < MIN_OUTCOMES) {
             return;
         }
-        long closed = latest.stream().filter(m -> !m).count();
-        BigDecimal rate = BigDecimal.valueOf(closed).divide(BigDecimal.valueOf(latest.size()), 4, RoundingMode.HALF_UP);
-        policies.findById(workOrderType).ifPresent(policy -> policy.failed(rate,
-                closed + " of the last " + latest.size() + " PRs closed without merge", clock.instant()));
+        long failures = failed.stream().filter(f -> f).count();
+        BigDecimal rate = BigDecimal.valueOf(failures).divide(BigDecimal.valueOf(failed.size()), 4, RoundingMode.HALF_UP);
+        policies.findById(type).ifPresent(policy -> policy.failed(rate,
+                failures + " of the last " + failed.size() + " PRs closed without merge or reverted", clock.instant()));
     }
 
     public List<AutonomyPolicy> all() {

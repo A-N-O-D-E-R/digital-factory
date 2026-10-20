@@ -34,7 +34,8 @@ class FactoryOutcome implements ContextualTask {
         Object prEvent = workOrder.facts().get("pr.event");
         if (!workOrder.eval() && workOrder.facts().get("type") instanceof String type
                 && ("merged".equals(prEvent) || "closed".equals(prEvent))) {
-            autonomy.prOutcome(workOrder.id(), type, "merged".equals(prEvent));
+            autonomy.prOutcome(workOrder.id(), type, "merged".equals(prEvent),
+                    (String) workOrder.facts().get("pr.mergeCommit"), workOrder.visits().getOrDefault("triage", 0));
         }
         return StepResult.PROCEED.response();
     }

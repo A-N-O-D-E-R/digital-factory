@@ -43,7 +43,8 @@ class PrPolling {
                 for (PrActivity activity : forges.of(repository).activity(repository,
                         new PullRequest(number, null, null, false))) {
                     watch.receive(new PrEvent(activity.id(), repository.key(), number, activity.kind(),
-                            activity.author(), activity.bot(), activity.body(), activity.url(), activity.thread()));
+                            activity.author(), activity.bot(), activity.body(), activity.url(), activity.thread(),
+                            activity.commit()));
                 }
             } catch (RuntimeException e) {
                 log.warn("Cannot poll the PR of work order {}", workOrder.id(), e);

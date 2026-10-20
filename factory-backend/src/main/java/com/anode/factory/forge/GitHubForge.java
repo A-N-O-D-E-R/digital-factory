@@ -215,7 +215,7 @@ class GitHubForge implements Forge, IntegrationCheck {
             String prefix = "github:" + repository.path() + "#" + pullRequest.number();
             List<PrActivity> activity = new ArrayList<>();
             if (pr.isMerged()) {
-                activity.add(PrActivity.system(prefix + ":merged", "merged"));
+                activity.add(new PrActivity(prefix + ":merged", "merged", null, false, null, null, null, pr.getMergeCommitSha()));
             } else if (pr.getState() == GHIssueState.CLOSED) {
                 activity.add(PrActivity.system(prefix + ":closed", "closed"));
             }

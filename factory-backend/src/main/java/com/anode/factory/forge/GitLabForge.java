@@ -169,9 +169,11 @@ class GitLabForge implements Forge, IntegrationCheck {
         try {
             String prefix = "gitlab:" + repository.path() + "!" + pullRequest.number();
             List<PrActivity> activity = new ArrayList<>();
-            String state = gitlab.getMergeRequestApi().getMergeRequest(repository.path(), pullRequest.number()).getState();
+            var mergeRequest = gitlab.getMergeRequestApi().getMergeRequest(repository.path(), pullRequest.number());
+            String state = mergeRequest.getState();
             if ("merged".equals(state) || "closed".equals(state)) {
-                activity.add(PrActivity.system(prefix + ":" + state, state));
+                activity.add(new PrActivity(prefix + ":" + state, state, null, false, null, null, null,
+                        "merged".equals(state) ? mergeRequest.getMergeCommitSha() : null));
             }
             for (var discussion : gitlab.getDiscussionsApi().getMergeRequestDiscussions(repository.path(),
                     pullRequest.number())) {

@@ -43,6 +43,10 @@ public class ForgeEvent {
     /** The forge's id of the comment thread, for replies. */
     private String thread;
 
+    /** A merge's commit (null for other events). */
+    @Column(name = "commit_sha")
+    private String commit;
+
     /** When the factory answered it in its thread. */
     @Column(name = "replied_at")
     private Instant repliedAt;
@@ -59,6 +63,7 @@ public class ForgeEvent {
         this.body = event.body();
         this.url = event.url();
         this.thread = event.thread();
+        this.commit = event.commit();
         this.receivedAt = now;
     }
 
@@ -68,6 +73,10 @@ public class ForgeEvent {
 
     void replied(Instant now) {
         this.repliedAt = now;
+    }
+
+    public String commit() {
+        return commit;
     }
 
     public String thread() {
