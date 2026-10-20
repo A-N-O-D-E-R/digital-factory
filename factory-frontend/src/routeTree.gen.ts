@@ -14,8 +14,12 @@ import { Route as AdminRouteRouteImport } from './routes/admin/route'
 import { Route as ApprovalsRouteImport } from './routes/approvals'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AdminAutonomyRouteImport } from './routes/admin/autonomy'
+import { Route as AdminFactoryRouteImport } from './routes/admin/factory'
+import { Route as AdminIntakeRouteImport } from './routes/admin/intake'
 import { Route as AdminIntegrationsRouteImport } from './routes/admin/integrations'
 import { Route as AdminRepositoriesRouteImport } from './routes/admin/repositories'
+import { Route as AdminRolesRouteImport } from './routes/admin/roles'
+import { Route as AdminSettingsRouteImport } from './routes/admin/settings'
 import { Route as AdminWorkersRouteImport } from './routes/admin/workers'
 import { Route as WorkOrdersIdRouteImport } from './routes/work-orders.$id'
 import { Route as WorkflowsIndexRouteImport } from './routes/workflows/index'
@@ -46,6 +50,16 @@ const AdminAutonomyRoute = AdminAutonomyRouteImport.update({
   path: '/autonomy',
   getParentRoute: () => AdminRouteRoute,
 } as any)
+const AdminFactoryRoute = AdminFactoryRouteImport.update({
+  id: '/factory',
+  path: '/factory',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminIntakeRoute = AdminIntakeRouteImport.update({
+  id: '/intake',
+  path: '/intake',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
 const AdminIntegrationsRoute = AdminIntegrationsRouteImport.update({
   id: '/integrations',
   path: '/integrations',
@@ -54,6 +68,16 @@ const AdminIntegrationsRoute = AdminIntegrationsRouteImport.update({
 const AdminRepositoriesRoute = AdminRepositoriesRouteImport.update({
   id: '/repositories',
   path: '/repositories',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminRolesRoute = AdminRolesRouteImport.update({
+  id: '/roles',
+  path: '/roles',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminSettingsRoute = AdminSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => AdminRouteRoute,
 } as any)
 const AdminWorkersRoute = AdminWorkersRouteImport.update({
@@ -83,8 +107,12 @@ export interface FileRoutesByFullPath {
   '/approvals': typeof ApprovalsRoute
   '/login': typeof LoginRoute
   '/admin/autonomy': typeof AdminAutonomyRoute
+  '/admin/factory': typeof AdminFactoryRoute
+  '/admin/intake': typeof AdminIntakeRoute
   '/admin/integrations': typeof AdminIntegrationsRoute
   '/admin/repositories': typeof AdminRepositoriesRoute
+  '/admin/roles': typeof AdminRolesRoute
+  '/admin/settings': typeof AdminSettingsRoute
   '/admin/workers': typeof AdminWorkersRoute
   '/work-orders/$id': typeof WorkOrdersIdRoute
   '/workflows/$name': typeof WorkflowsNameRoute
@@ -96,8 +124,12 @@ export interface FileRoutesByTo {
   '/approvals': typeof ApprovalsRoute
   '/login': typeof LoginRoute
   '/admin/autonomy': typeof AdminAutonomyRoute
+  '/admin/factory': typeof AdminFactoryRoute
+  '/admin/intake': typeof AdminIntakeRoute
   '/admin/integrations': typeof AdminIntegrationsRoute
   '/admin/repositories': typeof AdminRepositoriesRoute
+  '/admin/roles': typeof AdminRolesRoute
+  '/admin/settings': typeof AdminSettingsRoute
   '/admin/workers': typeof AdminWorkersRoute
   '/work-orders/$id': typeof WorkOrdersIdRoute
   '/workflows/$name': typeof WorkflowsNameRoute
@@ -110,8 +142,12 @@ export interface FileRoutesById {
   '/approvals': typeof ApprovalsRoute
   '/login': typeof LoginRoute
   '/admin/autonomy': typeof AdminAutonomyRoute
+  '/admin/factory': typeof AdminFactoryRoute
+  '/admin/intake': typeof AdminIntakeRoute
   '/admin/integrations': typeof AdminIntegrationsRoute
   '/admin/repositories': typeof AdminRepositoriesRoute
+  '/admin/roles': typeof AdminRolesRoute
+  '/admin/settings': typeof AdminSettingsRoute
   '/admin/workers': typeof AdminWorkersRoute
   '/work-orders/$id': typeof WorkOrdersIdRoute
   '/workflows/$name': typeof WorkflowsNameRoute
@@ -125,8 +161,12 @@ export interface FileRouteTypes {
     | '/approvals'
     | '/login'
     | '/admin/autonomy'
+    | '/admin/factory'
+    | '/admin/intake'
     | '/admin/integrations'
     | '/admin/repositories'
+    | '/admin/roles'
+    | '/admin/settings'
     | '/admin/workers'
     | '/work-orders/$id'
     | '/workflows/$name'
@@ -138,8 +178,12 @@ export interface FileRouteTypes {
     | '/approvals'
     | '/login'
     | '/admin/autonomy'
+    | '/admin/factory'
+    | '/admin/intake'
     | '/admin/integrations'
     | '/admin/repositories'
+    | '/admin/roles'
+    | '/admin/settings'
     | '/admin/workers'
     | '/work-orders/$id'
     | '/workflows/$name'
@@ -151,8 +195,12 @@ export interface FileRouteTypes {
     | '/approvals'
     | '/login'
     | '/admin/autonomy'
+    | '/admin/factory'
+    | '/admin/intake'
     | '/admin/integrations'
     | '/admin/repositories'
+    | '/admin/roles'
+    | '/admin/settings'
     | '/admin/workers'
     | '/work-orders/$id'
     | '/workflows/$name'
@@ -206,6 +254,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAutonomyRouteImport
       parentRoute: typeof AdminRouteRoute
     }
+    '/admin/factory': {
+      id: '/admin/factory'
+      path: '/factory'
+      fullPath: '/admin/factory'
+      preLoaderRoute: typeof AdminFactoryRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/intake': {
+      id: '/admin/intake'
+      path: '/intake'
+      fullPath: '/admin/intake'
+      preLoaderRoute: typeof AdminIntakeRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
     '/admin/integrations': {
       id: '/admin/integrations'
       path: '/integrations'
@@ -218,6 +280,20 @@ declare module '@tanstack/react-router' {
       path: '/repositories'
       fullPath: '/admin/repositories'
       preLoaderRoute: typeof AdminRepositoriesRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/roles': {
+      id: '/admin/roles'
+      path: '/roles'
+      fullPath: '/admin/roles'
+      preLoaderRoute: typeof AdminRolesRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/settings': {
+      id: '/admin/settings'
+      path: '/settings'
+      fullPath: '/admin/settings'
+      preLoaderRoute: typeof AdminSettingsRouteImport
       parentRoute: typeof AdminRouteRoute
     }
     '/admin/workers': {
@@ -253,15 +329,23 @@ declare module '@tanstack/react-router' {
 
 interface AdminRouteRouteChildren {
   AdminAutonomyRoute: typeof AdminAutonomyRoute
+  AdminFactoryRoute: typeof AdminFactoryRoute
+  AdminIntakeRoute: typeof AdminIntakeRoute
   AdminIntegrationsRoute: typeof AdminIntegrationsRoute
   AdminRepositoriesRoute: typeof AdminRepositoriesRoute
+  AdminRolesRoute: typeof AdminRolesRoute
+  AdminSettingsRoute: typeof AdminSettingsRoute
   AdminWorkersRoute: typeof AdminWorkersRoute
 }
 
 const AdminRouteRouteChildren: AdminRouteRouteChildren = {
   AdminAutonomyRoute: AdminAutonomyRoute,
+  AdminFactoryRoute: AdminFactoryRoute,
+  AdminIntakeRoute: AdminIntakeRoute,
   AdminIntegrationsRoute: AdminIntegrationsRoute,
   AdminRepositoriesRoute: AdminRepositoriesRoute,
+  AdminRolesRoute: AdminRolesRoute,
+  AdminSettingsRoute: AdminSettingsRoute,
   AdminWorkersRoute: AdminWorkersRoute,
 }
 

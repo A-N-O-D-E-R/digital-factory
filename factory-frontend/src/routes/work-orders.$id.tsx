@@ -2,8 +2,9 @@ import { createFileRoute } from "@tanstack/react-router";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useState } from "react";
-import type { Run, TimelineEvent } from "../api/client";
 import { useLiveEvents } from "../api/live";
+import { useQuery } from "@tanstack/react-query";
+import { api, type Run, type Schemas, type TimelineEvent } from "../api/client";
 import { useCan, useCancel, useRework, useTimeline, useWorkOrder } from "../api/queries";
 import { ApprovalDecision } from "../components/Approvals";
 import { AgentStateDot } from "../components/AgentStateDot";
@@ -67,6 +68,8 @@ function WorkOrderPage() {
       </section>
 
       <Path events={timeline.data ?? []} />
+
+      <PrConversation id={workOrder.id} />
 
       <section className="flex flex-col gap-2">
         <h2 className="font-medium">Chronologie</h2>
@@ -162,6 +165,31 @@ function Path({ events }: { events: TimelineEvent[] }) {
           <li key={i} className="flex items-center gap-1">
             {i > 0 && <span className="text-muted-foreground">→</span>}
             <span className="rounded-md border px-1.5 py-0.5 font-mono">{v}</span>
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
+}
+
+/** What reviewers and the forge said on the PR, and what the factory did with it (ignored authors too). */
+function PrConversation({ id }: { id: string }) {
+  const events = useQuery({ queryKey: ["work-orders", id, "pr-events"], queryFn: () => api.get(`work-orders/${id}/pr-events`).json<Schemas["PrEventView"][]>() }).data;
+  if (!events?.length) {
+    return null;
+  }
+  return (
+    <section className="flex flex-col gap-2">
+      <h2 className="font-medium">Conversation de la PR</h2>
+      <ol className="flex flex-col gap-1 text-xs">
+        {events.map((e) => (
+          <li key={e.id} className={`flex flex-col gap-0.5 rounded-md border p-2 ${e.trusted ? "" : "opacity-60"}`}>
+            <span>
+              <time className="text-muted-foreground">{format(new Date(e.receivedAt), "d MMM HH:mm", { locale: fr })}</time>{" "}
+              {e.kind}{e.author && ` · ${e.author}`}
+              {!e.trusted && <span className="text-blocked"> · ignoré : {e.ignoredBecause}</span>}
+            </span>
+            {e.body && <span className="whitespace-pre-wrap text-muted-foreground">{e.body}</span>}
           </li>
         ))}
       </ol>

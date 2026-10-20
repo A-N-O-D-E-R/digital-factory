@@ -128,4 +128,27 @@ describe("the factory UI", () => {
     expect(calls.find((c) => c.what === "POST /api/workflows/dry-run")!.body).toMatchObject({ definition, learnt: { verify: [{ "tests.passed": true }] } });
     expect(screen.queryByRole("button", { name: "Publier" })).not.toBeInTheDocument(); // not an admin
   });
+
+  it("lets an admin pause the factory and change the settings with a reason", async () => {
+    document.cookie = "XSRF-TOKEN=t";
+    const admin = { name: "ada", roles: ["ADMIN"], permissions: ["work-order:read", "settings:write"] };
+    const calls = fakeApi({
+      "GET /api/user": admin, "GET /api/work-orders": [], "GET /api/approvals": [], "GET /api/repositories": [],
+      "GET /api/budgets": { paused: false, dailyUsd: 20, workOrderUsd: 5, spentTodayUsd: 1.25 },
+      "GET /api/settings": { scope: "global", document: { roles: {} }, effective: { roles: { default: {} } }, updatedBy: "ada", updatedAt: "2026-10-20T10:00:00Z" },
+      "GET /api/settings/changes": [],
+    });
+    const factory = await renderApp("/admin/factory");
+    expect(await screen.findByText("Dépensé aujourd'hui : 1.25 $ sur 20.00 $")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Mettre en pause" }));
+    await vi.waitFor(() => expect(calls.map((c) => c.what)).toContain("POST /api/factory/pause"));
+    factory.unmount();
+
+    await renderApp("/admin/settings");
+    fireEvent.change(await screen.findByLabelText("Couche"), { target: { value: '{"roles":{"default":{"effort":"medium"}}}' } });
+    fireEvent.change(screen.getByLabelText("Raison"), { target: { value: "moins cher" } });
+    fireEvent.click(screen.getByRole("button", { name: "Enregistrer" }));
+    await vi.waitFor(() => expect(calls.find((c) => c.what === "PUT /api/settings")?.body)
+      .toEqual({ document: { roles: { default: { effort: "medium" } } }, reason: "moins cher" }));
+  });
 });

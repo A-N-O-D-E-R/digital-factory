@@ -8,6 +8,10 @@ const PAGES = [
   { to: "/admin/workers", label: "Workers" },
   { to: "/admin/autonomy", label: "Autonomie" },
   { to: "/admin/repositories", label: "Dépôts" },
+  { to: "/admin/factory", label: "Usine" },
+  { to: "/admin/settings", label: "Paramètres" },
+  { to: "/admin/roles", label: "Rôles et prompts" },
+  { to: "/admin/intake", label: "Tickets" },
 ] as const;
 
 function Admin() {
