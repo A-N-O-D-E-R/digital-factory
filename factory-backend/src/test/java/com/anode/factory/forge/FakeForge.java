@@ -52,6 +52,18 @@ public class FakeForge implements Forge {
         calls.add("merge #" + pullRequest.number() + " " + commitTitle);
     }
 
+    private volatile List<FailedCheck> failedChecks = List.of();
+
+    /** What the PRs' failed checks are from now on. */
+    public void failedChecks(List<FailedCheck> checks) {
+        this.failedChecks = checks;
+    }
+
+    @Override
+    public List<FailedCheck> failedChecks(CodeRepository repository, PullRequest pullRequest) {
+        return failedChecks;
+    }
+
     /** Only "maintainer" may write to the fake repositories. */
     @Override
     public boolean canWrite(CodeRepository repository, String login) {

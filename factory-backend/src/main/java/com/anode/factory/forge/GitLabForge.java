@@ -1,11 +1,12 @@
 package com.anode.factory.forge;
 
+import com.anode.factory.platform.IntegrationCheck;
 import com.anode.factory.repository.CodeRepository;
 import com.anode.factory.repository.ForgeType;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
-import com.anode.factory.platform.IntegrationCheck;
 import org.gitlab4j.api.GitLabApi;
 import org.gitlab4j.api.GitLabApiException;
 import org.gitlab4j.api.models.AcceptMergeRequestParams;
@@ -111,6 +112,26 @@ class GitLabForge implements Forge, IntegrationCheck {
                     .orElse(false);
         } catch (GitLabApiException e) {
             return false;
+        }
+    }
+
+    /** The failed jobs of the MR's latest pipeline, with their trace. */
+    @Override
+    public List<FailedCheck> failedChecks(CodeRepository repository, PullRequest pullRequest) {
+        try {
+            var pipelines = gitlab.getMergeRequestApi().getMergeRequestPipelines(repository.path(), pullRequest.number());
+            if (pipelines.isEmpty()) {
+                return List.of();
+            }
+            List<FailedCheck> failed = new ArrayList<>();
+            for (var job : gitlab.getJobApi().getJobsForPipeline(repository.path(), pipelines.getFirst().getId(),
+                    Constants.JobScope.FAILED)) {
+                failed.add(new FailedCheck(job.getStage() + ": " + job.getName(), job.getWebUrl(), null,
+                        FailedCheck.tail(gitlab.getJobApi().getTrace(repository.path(), job.getId()))));
+            }
+            return failed;
+        } catch (GitLabApiException e) {
+            throw new IllegalStateException(e);
         }
     }
 

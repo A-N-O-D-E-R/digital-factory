@@ -2,13 +2,18 @@ package com.anode.factory.forge;
 
 import com.anode.factory.platform.IntegrationCheck;
 import com.anode.factory.repository.CodeRepository;
-import com.anode.factory.repository.Repositories;
 import com.anode.factory.repository.ForgeType;
+import com.anode.factory.repository.Repositories;
 import com.anode.github.GitHubApp;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Stream;
+import org.kohsuke.github.GHCheckRun;
 import org.kohsuke.github.GHIssueState;
 import org.kohsuke.github.GHPermissionType;
 import org.kohsuke.github.GHPullRequest;
@@ -143,6 +148,34 @@ class GitHubForge implements Forge, IntegrationCheck {
             return permission == GHPermissionType.ADMIN || permission == GHPermissionType.WRITE;
         } catch (IOException notACollaborator) {
             return false;
+        }
+    }
+
+    /** Check runs of the head commit; GitHub Actions jobs come with their log. */
+    @Override
+    public List<FailedCheck> failedChecks(CodeRepository repository, PullRequest pullRequest) {
+        try {
+            GHRepository repo = repo(repository);
+            String head = repo.getPullRequest((int) pullRequest.number()).getHead().getSha();
+            List<FailedCheck> failed = new ArrayList<>();
+            for (GHCheckRun run : repo.getCheckRuns(head)) {
+                if (run.getConclusion() != GHCheckRun.Conclusion.FAILURE && run.getConclusion() != GHCheckRun.Conclusion.TIMED_OUT) {
+                    continue;
+                }
+                String log = null;
+                if (run.getApp() != null && "github-actions".equals(run.getApp().getSlug())) {
+                    log = repo.getWorkflowJob(run.getId()).downloadLogs(in -> new String(in.readAllBytes(),
+                            StandardCharsets.UTF_8));
+                }
+                var output = run.getOutput();
+                failed.add(new FailedCheck(run.getName(), run.getHtmlUrl() == null ? null : run.getHtmlUrl().toString(),
+                        output == null ? null : String.join("\n", Stream.of(output.getTitle(),
+                                output.getSummary(), output.getText()).filter(Objects::nonNull).toList()),
+                        FailedCheck.tail(log)));
+            }
+            return failed;
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
         }
     }
 

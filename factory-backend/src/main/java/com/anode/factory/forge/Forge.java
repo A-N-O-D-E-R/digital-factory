@@ -2,6 +2,7 @@ package com.anode.factory.forge;
 
 import com.anode.factory.repository.CodeRepository;
 import com.anode.factory.repository.ForgeType;
+import java.util.List;
 
 /** What the factory does on a code forge. One implementation per {@link ForgeType}. */
 public interface Forge {
@@ -23,6 +24,9 @@ public interface Forge {
     void merge(CodeRepository repository, PullRequest pullRequest, String commitTitle);
 
     void comment(CodeRepository repository, PullRequest pullRequest, String body);
+
+    /** The checks of the PR's head that failed, with the end of their logs where the forge has them. */
+    List<FailedCheck> failedChecks(CodeRepository repository, PullRequest pullRequest);
 
     /** Whether {@code login} may write to the repository: only such authors steer the factory. */
     boolean canWrite(CodeRepository repository, String login);

@@ -13,8 +13,10 @@ import com.anode.factory.FakeWorker;
 import com.anode.factory.GitHubWebhook;
 import com.anode.factory.IntegrationTest;
 import com.anode.factory.TestRepository;
+import com.anode.factory.forge.FailedCheck;
 import com.anode.factory.forge.FakeForge;
 import java.time.Duration;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.BeforeEach;
@@ -232,6 +234,20 @@ class PrWatchTest {
             }
         }
         throw new AssertionError("no policy " + type);
+    }
+
+    @Test
+    void failedChecksAreFixedFromTheirLogs() {
+        forge.failedChecks(List.of(new FailedCheck("build", "https://github.test/runs/1", "1 test failed",
+                "[ERROR] RoundingTest.halfEven expected 2 but was 3")));
+        Watched pr = watchedPullRequest();
+        deliver("check_suite", GitHubWebhook.checksCompleted(pr.number(), "failure"));
+        awaitStep(pr.id(), "triage");
+        FakeWorker.Job triage = claim("feedback-triage");
+        JsonNode failure = triage.input().get("facts").get("pr.checks.failures").get(0);
+        assertThat(failure.get("name").asString()).isEqualTo("build");
+        assertThat(failure.get("log").asString()).contains("expected 2 but was 3");
+        forge.failedChecks(List.of());
     }
 
     @Test
