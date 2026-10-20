@@ -420,3 +420,16 @@ databaseChangeLog:
             columns:
               - column: { name: thread, type: varchar(255) }
               - column: { name: replied_at, type: timestamptz }
+  - changeSet:
+      id: 018-worker-registry
+      author: digital-factory
+      comment: What workers report of themselves (version, slots, runs in progress, last heartbeat), and draining
+      changes:
+        - addColumn:
+            tableName: workers
+            columns:
+              - column: { name: version, type: varchar(64) }
+              - column: { name: slots, type: int }
+              - column: { name: busy, type: int }
+              - column: { name: last_heartbeat_at, type: timestamptz }
+              - column: { name: draining, type: boolean, defaultValueBoolean: false, constraints: { nullable: false } }

@@ -73,6 +73,25 @@ public class WorkerRegistry {
         return workers.findAllByOrderByName();
     }
 
+    /** What a worker reports of itself; whether it is draining. */
+    @Transactional
+    public boolean heartbeat(UUID id, String version, int slots, int busy) {
+        Worker worker = workers.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        worker.heartbeat(version, slots, busy, clock.instant());
+        return worker.draining();
+    }
+
+    @Transactional
+    public Worker drain(UUID id, boolean draining) {
+        Worker worker = workers.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        worker.drain(draining);
+        return worker;
+    }
+
+    public boolean draining(UUID id) {
+        return workers.findById(id).map(Worker::draining).orElse(false);
+    }
+
     boolean isActive(UUID id) {
         return workers.existsByIdAndActiveTrue(id);
     }

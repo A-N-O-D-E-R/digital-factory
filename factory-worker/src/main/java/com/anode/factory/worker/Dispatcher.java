@@ -10,6 +10,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,7 +31,10 @@ class Dispatcher implements SmartLifecycle {
     private final WorkerProperties properties;
     private final ScheduledExecutorService heartbeats = Executors.newSingleThreadScheduledExecutor();
     private final List<Thread> slots = new ArrayList<>();
+    private final AtomicInteger busy = new AtomicInteger();
     private volatile boolean running;
+    /** Told by the control plane: finish the runs in progress, claim no new one. */
+    private volatile boolean draining;
 
     Dispatcher(ControlPlane controlPlane, RunExecutor executor, WorkerProperties properties) {
         this.controlPlane = controlPlane;
@@ -41,6 +45,7 @@ class Dispatcher implements SmartLifecycle {
     @Override
     public void start() {
         running = true;
+        heartbeats.scheduleAtFixedRate(this::report, 0, properties.heartbeatInterval().toMillis(), TimeUnit.MILLISECONDS);
         for (int i = 0; i < properties.slots(); i++) {
             Thread slot = Thread.ofPlatform().name("slot-" + i).start(this::loop);
             slots.add(slot);
@@ -66,10 +71,20 @@ class Dispatcher implements SmartLifecycle {
         return running;
     }
 
+    private void report() {
+        try {
+            String version = WorkerApplication.class.getPackage().getImplementationVersion();
+            draining = Boolean.TRUE.equals(controlPlane.heartbeat(new ControlPlane.Heartbeat(
+                    version == null ? "dev" : version, properties.slots(), busy.get())).get("draining"));
+        } catch (RuntimeException e) {
+            log.warn("Cannot report to the control plane: {}", e.getMessage());
+        }
+    }
+
     private void loop() {
         while (running) {
             try {
-                ControlPlane.Job job = controlPlane.claim().getBody();
+                ControlPlane.Job job = draining ? null : controlPlane.claim().getBody();
                 if (job == null) {
                     TimeUnit.MILLISECONDS.sleep(properties.pollInterval().toMillis());
                 } else {
@@ -88,6 +103,7 @@ class Dispatcher implements SmartLifecycle {
     void run(ControlPlane.Job job) {
         log.info("Run {} ({} {}, attempt {}) of work order {}", job.runId(), job.kind(), job.task(), job.attempt(),
                 job.workOrderId());
+        busy.incrementAndGet();
         AtomicBoolean cancelled = new AtomicBoolean();
         var heartbeat = heartbeats.scheduleAtFixedRate(() -> {
             try {
@@ -109,6 +125,7 @@ class Dispatcher implements SmartLifecycle {
         } finally {
             heartbeat.cancel(false);
             delete(dir);
+            busy.decrementAndGet();
         }
         if (cancelled.get()) {
             log.info("Run {} was cancelled", job.runId());

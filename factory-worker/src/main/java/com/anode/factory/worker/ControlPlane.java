@@ -15,7 +15,7 @@ import org.springframework.web.service.annotation.PutExchange;
 import tools.jackson.databind.JsonNode;
 
 /** The control plane's internal API, as the worker's credential allows it. */
-@HttpExchange("/internal/runs")
+@HttpExchange("/internal")
 public interface ControlPlane {
 
     /** {@code kind}: AGENT, EVIDENCE or PUSH. */
@@ -34,26 +34,32 @@ public interface ControlPlane {
 
     record Failure(String error, BigDecimal costUsd) {}
 
-    /** No body when there is nothing to claim. */
-    @PostExchange("/claim")
+    record Heartbeat(String version, int slots, int busy) {}
+
+    /** What the worker is; whether it is draining (it claims nothing then). */
+    @PostExchange("/workers/heartbeat")
+    Map<String, Boolean> heartbeat(@RequestBody Heartbeat heartbeat);
+
+    /** No body when there is nothing to claim (or the worker is draining). */
+    @PostExchange("/runs/claim")
     ResponseEntity<Job> claim();
 
-    @PostExchange("/{runId}/heartbeat")
+    @PostExchange("/runs/{runId}/heartbeat")
     Map<String, Boolean> heartbeat(@PathVariable UUID runId);
 
-    @PostExchange("/{runId}/credential")
+    @PostExchange("/runs/{runId}/credential")
     GitCredential credential(@PathVariable UUID runId);
 
     /** No body until a code-writing run of the work order succeeded. */
-    @GetExchange("/{runId}/bundle")
+    @GetExchange("/runs/{runId}/bundle")
     ResponseEntity<byte[]> bundle(@PathVariable UUID runId);
 
-    @PutExchange(value = "/{runId}/bundle", contentType = "application/octet-stream")
+    @PutExchange(value = "/runs/{runId}/bundle", contentType = "application/octet-stream")
     void upload(@PathVariable UUID runId, @RequestBody byte[] bundle);
 
-    @PostExchange("/{runId}/complete")
+    @PostExchange("/runs/{runId}/complete")
     void complete(@PathVariable UUID runId, @RequestBody Completion completion);
 
-    @PostExchange("/{runId}/fail")
+    @PostExchange("/runs/{runId}/fail")
     void fail(@PathVariable UUID runId, @RequestBody Failure failure);
 }

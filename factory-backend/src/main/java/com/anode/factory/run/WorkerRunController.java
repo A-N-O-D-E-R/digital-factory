@@ -1,5 +1,6 @@
 package com.anode.factory.run;
 
+import com.anode.factory.worker.WorkerRegistry;
 import java.math.BigDecimal;
 import java.util.Map;
 import java.util.UUID;
@@ -30,12 +31,15 @@ class WorkerRunController {
     record Failure(String error, BigDecimal costUsd) {}
 
     private final RunQueue queue;
+    private final WorkerRegistry registry;
     private final RunBundles bundles;
     private final RunProperties properties;
     private final JsonMapper json;
 
-    WorkerRunController(RunQueue queue, RunBundles bundles, RunProperties properties, JsonMapper json) {
+    WorkerRunController(RunQueue queue, WorkerRegistry registry, RunBundles bundles, RunProperties properties,
+                        JsonMapper json) {
         this.queue = queue;
+        this.registry = registry;
         this.bundles = bundles;
         this.properties = properties;
         this.json = json;
@@ -45,8 +49,12 @@ class WorkerRunController {
         return UUID.fromString(authentication.getName());
     }
 
+    /** Nothing for a draining worker. */
     @PostMapping("/claim")
     ResponseEntity<RunQueue.Job> claim(Authentication worker) {
+        if (registry.draining(worker(worker))) {
+            return ResponseEntity.noContent().build();
+        }
         return queue.claim(worker(worker)).map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.noContent().build());
     }
 

@@ -291,6 +291,36 @@ class WorkOrderExecutionTest {
     }
 
     @Test
+    void workersReportThemselvesAndADrainedWorkerClaimsNothing() {
+        var heartbeat = mvc.post().uri("/internal/workers/heartbeat").header("Authorization", worker.bearer())
+                .contentType(MediaType.APPLICATION_JSON).content("{\"version\":\"1.2.3\",\"slots\":4,\"busy\":1}")
+                .exchange();
+        assertThat(heartbeat).hasStatusOk().bodyJson().extractingPath("$.draining").isEqualTo(false);
+        JsonNode workers = json.readTree(mvc.get().uri("/api/workers").with(admin()).exchange().getResponse()
+                .getContentAsByteArray());
+        JsonNode self = null;
+        for (JsonNode w : workers) {
+            if (w.get("id").asString().equals(worker.id())) {
+                self = w;
+            }
+        }
+        assertThat(self.get("version").asString()).isEqualTo("1.2.3");
+        assertThat(self.get("slots").asInt()).isEqualTo(4);
+        assertThat(self.get("lastHeartbeatAt").isNull()).isFalse();
+
+        assertThat(mvc.post().uri("/api/workers/{id}/drain", worker.id()).with(admin()).with(csrf())).hasStatusOk();
+        UUID id = create("mini");
+        awaitStep(id, "classify");
+        assertThat(worker.hasNothingToClaim()).as("drained").isTrue();
+        assertThat(mvc.post().uri("/internal/workers/heartbeat").header("Authorization", worker.bearer())
+                .contentType(MediaType.APPLICATION_JSON).content("{\"version\":\"1.2.3\",\"slots\":4,\"busy\":0}"))
+                .bodyJson().extractingPath("$.draining").isEqualTo(true);
+
+        assertThat(mvc.post().uri("/api/workers/{id}/undrain", worker.id()).with(admin()).with(csrf())).hasStatusOk();
+        claim("classifier");
+    }
+
+    @Test
     void peopleCannotActAsWorkersAndRevokedWorkersAreLockedOut() {
         assertThat(mvc.post().uri("/internal/runs/claim").with(developer()).with(csrf())).hasStatus(403);
         assertThat(mvc.post().uri("/api/work-orders").header("Authorization", worker.bearer())

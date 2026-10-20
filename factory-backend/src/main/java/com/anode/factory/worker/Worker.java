@@ -26,6 +26,20 @@ public class Worker {
     @Column(name = "created_by", nullable = false)
     private String createdBy;
 
+    /** What the worker last reported: its version, run slots and runs in progress. */
+    private String version;
+
+    private Integer slots;
+
+    private Integer busy;
+
+    @Column(name = "last_heartbeat_at")
+    private Instant lastHeartbeatAt;
+
+    /** A draining worker claims no new run; it finishes its own. */
+    @Column(nullable = false)
+    private boolean draining;
+
     protected Worker() {}
 
     Worker(String name, String createdBy, Instant now) {
@@ -38,6 +52,37 @@ public class Worker {
 
     void revoke() {
         this.active = false;
+    }
+
+    void heartbeat(String version, int slots, int busy, Instant now) {
+        this.version = version;
+        this.slots = slots;
+        this.busy = busy;
+        this.lastHeartbeatAt = now;
+    }
+
+    void drain(boolean draining) {
+        this.draining = draining;
+    }
+
+    public String version() {
+        return version;
+    }
+
+    public Integer slots() {
+        return slots;
+    }
+
+    public Integer busy() {
+        return busy;
+    }
+
+    public Instant lastHeartbeatAt() {
+        return lastHeartbeatAt;
+    }
+
+    public boolean draining() {
+        return draining;
     }
 
     public UUID id() {

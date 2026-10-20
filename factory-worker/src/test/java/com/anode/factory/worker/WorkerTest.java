@@ -15,6 +15,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.eclipse.jgit.api.Git;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -47,6 +49,8 @@ class WorkerTest {
     /** What the stub control plane holds or received, by run: "bundle", "complete", "fail". */
     final Map<String, byte[]> received = new ConcurrentHashMap<>();
     volatile byte[] bundle;
+    final AtomicInteger claims = new AtomicInteger();
+    final List<String> heartbeats = new CopyOnWriteArrayList<>();
     Dispatcher dispatcher;
 
     @BeforeEach
@@ -83,6 +87,7 @@ class WorkerTest {
                     case "PUT bundle" -> received.put("bundle", body);
                     case "POST heartbeat" -> response = "{\"cancelled\":false}".getBytes();
                     case "POST complete", "POST fail" -> received.put(path[4], body);
+                    case "POST claim" -> claims.incrementAndGet();
                     default -> status = 404;
                 }
             }
@@ -94,6 +99,14 @@ class WorkerTest {
                 exchange.sendResponseHeaders(status, response.length);
                 exchange.getResponseBody().write(response);
             }
+            exchange.close();
+        });
+        server.createContext("/internal/workers/heartbeat", exchange -> {
+            heartbeats.add(new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
+            byte[] response = "{\"draining\":true}".getBytes();
+            exchange.getResponseHeaders().add("Content-Type", "application/json");
+            exchange.sendResponseHeaders(200, response.length);
+            exchange.getResponseBody().write(response);
             exchange.close();
         });
         server.start();
@@ -173,6 +186,22 @@ class WorkerTest {
         dispatcher.run(job("EVIDENCE", "secret-scan", "true", Map.of()));
         assertThat(completed().get("findings")).isEqualTo(json.readTree(
                 "[{\"path\":\"config.txt\",\"line\":1,\"rule\":\"aws-access-key\"}]"));
+    }
+
+    @Test
+    void aDrainingWorkerReportsItselfButClaimsNothing() throws Exception {
+        dispatcher.start();
+        try {
+            Thread.sleep(1500);
+            assertThat(heartbeats).isNotEmpty();
+            assertThat(json.readTree(heartbeats.getFirst()).get("slots").asInt()).isEqualTo(1);
+            assertThat(claims.get()).as("draining from the first heartbeat on").isLessThanOrEqualTo(1);
+            int before = claims.get();
+            Thread.sleep(500);
+            assertThat(claims.get()).isEqualTo(before);
+        } finally {
+            dispatcher.stop();
+        }
     }
 
     @Test
