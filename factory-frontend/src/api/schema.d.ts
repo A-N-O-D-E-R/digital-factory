@@ -1072,7 +1072,7 @@ export interface components {
             /** Format: int32 */
             workflowVersion: number;
             /** @enum {string} */
-            status: "RUNNING" | "WAITING_FOR_HUMAN" | "PAUSED" | "DONE" | "BLOCKED" | "FAILED" | "CANCELLED";
+            status: "RUNNING" | "WAITING_FOR_HUMAN" | "PAUSED" | "DONE" | "BLOCKED" | "FAILED" | "CANCELLED" | "MERGED" | "CLOSED";
             currentStep: string;
             /** Format: int32 */
             currentVisit: number;

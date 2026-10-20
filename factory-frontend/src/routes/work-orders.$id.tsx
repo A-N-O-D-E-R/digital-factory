@@ -13,7 +13,7 @@ import { agentState, STATUS_LABELS } from "../lib/status";
 
 export const Route = createFileRoute("/work-orders/$id")({ component: WorkOrderPage });
 
-const TERMINAL = ["DONE", "BLOCKED", "FAILED", "CANCELLED"];
+const TERMINAL = ["DONE", "BLOCKED", "FAILED", "CANCELLED", "MERGED", "CLOSED"];
 
 function WorkOrderPage() {
   const { id } = Route.useParams();

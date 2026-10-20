@@ -221,7 +221,8 @@ public class Intake {
         String step = switch (progress) {
             case STARTED -> "started";
             case PR_OPENED -> "pr-opened";
-            case FINISHED -> workOrder.status() == WorkOrderStatus.DONE ? "done" : null;
+            case FINISHED -> workOrder.status() == WorkOrderStatus.DONE || workOrder.status() == WorkOrderStatus.MERGED
+                    ? "done" : null;
         };
         String status = step == null ? null : properties.transition(ref.source(), step);
         if (status != null) {

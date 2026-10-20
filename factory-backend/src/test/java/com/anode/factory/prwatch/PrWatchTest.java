@@ -48,8 +48,8 @@ class PrWatchTest {
               { "id": "open-pr", "kind": "factory", "action": "open-draft-pr", "next": [{ "to": "watch" }] },
               { "id": "respond", "kind": "factory", "action": "request-review", "next": [{ "to": "watch" }] },
               { "id": "watch", "kind": "factory", "action": "watch-pr",
-                "next": [{ "when": { "fact": "pr.event", "equals": "merged" }, "to": "@done" },
-                         { "when": { "fact": "pr.event", "equals": "closed" }, "to": "@cancelled" },
+                "next": [{ "when": { "fact": "pr.event", "equals": "merged" }, "to": "@merged" },
+                         { "when": { "fact": "pr.event", "equals": "closed" }, "to": "@closed" },
                          { "when": { "fact": "pr.event", "equals": "branch_behind" }, "to": "update", "maxVisits": 2 },
                          { "when": { "fact": "pr.event", "in": ["changes_requested", "commented", "checks_failed"] },
                            "to": "triage", "maxVisits": 2 },
@@ -188,7 +188,7 @@ class PrWatchTest {
                 "#" + pr.number() + ": Done in " + "c".repeat(40) + ".");
 
         deliver("pull_request", GitHubWebhook.closed(pr.number(), true));
-        awaitStatus(pr.id(), "DONE");
+        awaitStatus(pr.id(), "MERGED");
         assertThat(get("/api/work-orders/{id}/pr-events", pr.id()).findValuesAsString("kind"))
                 .containsExactly("changes_requested", "merged");
     }
@@ -209,14 +209,14 @@ class PrWatchTest {
     }
 
     @Test
-    void aRedeliveryIsOneEventAndAClosedPrCancelsTheWorkOrder() {
+    void aRedeliveryIsOneEventAndAClosedPrClosesTheWorkOrder() {
         Watched pr = watchedPullRequest();
         String delivery = UUID.randomUUID().toString();
 
         deliver("pull_request", delivery, GitHubWebhook.closed(pr.number(), false), GitHubWebhook.SECRET);
         deliver("pull_request", delivery, GitHubWebhook.closed(pr.number(), false), GitHubWebhook.SECRET);
 
-        awaitStatus(pr.id(), "CANCELLED");
+        awaitStatus(pr.id(), "CLOSED");
         assertThat(get("/api/work-orders/{id}/pr-events", pr.id()).size()).isEqualTo(1);
     }
 
@@ -235,13 +235,13 @@ class PrWatchTest {
         for (boolean merged : new boolean[] {true, false, true, true}) {
             Watched pr = watchedPullRequest("classified");
             deliver("pull_request", GitHubWebhook.closed(pr.number(), merged));
-            awaitStatus(pr.id(), merged ? "DONE" : "CANCELLED");
+            awaitStatus(pr.id(), merged ? "MERGED" : "CLOSED");
         }
         assertThat(policy("REFACTOR").get("level").asString()).as("4 PRs are not enough to judge").isEqualTo("MERGE");
 
         Watched fifth = watchedPullRequest("classified");
         deliver("pull_request", GitHubWebhook.closed(fifth.number(), false));
-        awaitStatus(fifth.id(), "CANCELLED");
+        awaitStatus(fifth.id(), "CLOSED");
         JsonNode policy = policy("REFACTOR");
         assertThat(policy.get("failureRate").decimalValue()).isEqualByComparingTo("0.4");
         assertThat(policy.get("level").asString()).isEqualTo("DRAFT_PR");

@@ -14,9 +14,10 @@ export function agentState(status: WorkOrder["status"]): AgentState {
     case "FAILED":
       return "failed";
     case "DONE":
+    case "MERGED":
       return "done";
     default:
-      return "idle"; // paused (budget, factory), cancelled
+      return "idle"; // paused (budget, factory), cancelled, PR closed
   }
 }
 
@@ -28,6 +29,8 @@ export const STATUS_LABELS: Record<WorkOrder["status"], string> = {
   BLOCKED: "Bloqué",
   FAILED: "Échoué",
   CANCELLED: "Annulé",
+  MERGED: "Fusionné",
+  CLOSED: "PR fermée",
 };
 
 export const STATE_LABELS: Record<AgentState, string> = {

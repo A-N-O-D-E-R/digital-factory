@@ -10,9 +10,14 @@ public enum WorkOrderStatus {
     DONE,
     BLOCKED,
     FAILED,
-    CANCELLED;
+    CANCELLED,
+    /** Its PR was merged. */
+    MERGED,
+    /** Its PR was closed without being merged. */
+    CLOSED;
 
     public boolean terminal() {
-        return this == DONE || this == BLOCKED || this == FAILED || this == CANCELLED;
+        return this == DONE || this == BLOCKED || this == FAILED || this == CANCELLED || this == MERGED
+                || this == CLOSED;
     }
 }

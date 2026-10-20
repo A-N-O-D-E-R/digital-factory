@@ -34,20 +34,20 @@ interface WorkOrderRepository extends JpaRepository<WorkOrder, UUID> {
     /** The work orders watching an open PR. */
     @Query(value = """
             select * from work_orders where jsonb_exists(facts, 'pr.number')
-            and status not in ('DONE', 'BLOCKED', 'FAILED', 'CANCELLED')
+            and status not in ('DONE', 'BLOCKED', 'FAILED', 'CANCELLED', 'MERGED', 'CLOSED')
             and coalesce(facts ->> 'pr.event', '') not in ('merged', 'closed')""", nativeQuery = true)
     List<WorkOrder> findWithOpenPullRequest();
 
     /** The work orders watching an open PR on {@code repository}. */
     @Query(value = """
             select * from work_orders where repository = :repository and jsonb_exists(facts, 'pr.number')
-            and status not in ('DONE', 'BLOCKED', 'FAILED', 'CANCELLED')
+            and status not in ('DONE', 'BLOCKED', 'FAILED', 'CANCELLED', 'MERGED', 'CLOSED')
             and coalesce(facts ->> 'pr.event', '') not in ('merged', 'closed')""", nativeQuery = true)
     List<WorkOrder> findWithOpenPullRequest(String repository);
 
     /** Ended while their PR is still open (neither merged nor closed). */
     @Query(value = """
-            select * from work_orders where status in ('DONE', 'BLOCKED', 'FAILED', 'CANCELLED') and jsonb_exists(facts, 'pr.number')
+            select * from work_orders where status in ('DONE', 'BLOCKED', 'FAILED', 'CANCELLED', 'MERGED', 'CLOSED') and jsonb_exists(facts, 'pr.number')
             and coalesce(facts ->> 'pr.event', '') not in ('merged', 'closed') and eval_run_id is null""",
             nativeQuery = true)
     List<WorkOrder> findEndedWithOpenPullRequest();

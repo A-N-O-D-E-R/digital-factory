@@ -21,7 +21,7 @@
       "description": "A step id, or a terminal outcome.",
       "anyOf": [
         { "$ref": "#/$defs/stepId" },
-        { "enum": ["@done", "@blocked", "@failed", "@cancelled"] }
+        { "enum": ["@done", "@blocked", "@failed", "@cancelled", "@merged", "@closed"] }
       ]
     },
     "step": {

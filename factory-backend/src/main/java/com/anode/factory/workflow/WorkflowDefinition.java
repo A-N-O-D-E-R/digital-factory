@@ -17,7 +17,11 @@ public record WorkflowDefinition(String description, String start, List<Step> st
         DONE("@done"),
         BLOCKED("@blocked"),
         FAILED("@failed"),
-        CANCELLED("@cancelled");
+        CANCELLED("@cancelled"),
+        /** Its PR was merged (by a person, or by the factory under its autonomy policy). */
+        MERGED("@merged"),
+        /** Its PR was closed without being merged. */
+        CLOSED("@closed");
 
         private final String target;
 

@@ -187,6 +187,8 @@ public class WorkOrder {
             case BLOCKED -> WorkOrderStatus.BLOCKED;
             case FAILED -> WorkOrderStatus.FAILED;
             case CANCELLED -> WorkOrderStatus.CANCELLED;
+            case MERGED -> WorkOrderStatus.MERGED;
+            case CLOSED -> WorkOrderStatus.CLOSED;
         };
         outcomeReason = reason;
         currentStep = null;
