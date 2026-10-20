@@ -1,0 +1,56 @@
+# The factory on one host: Postgres, the control plane (with the UI), a worker, the egress proxy.
+# Build first (see deploy/*.Dockerfile), set the variables below (a .env file next to this one), then
+#   docker compose up -d
+# and register the worker as an admin (Admin > Workers): its token goes in FACTORY_WORKER_TOKEN.
+include:
+  - factory-sandbox/egress/compose.yaml
+
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: factory
+      POSTGRES_PASSWORD: ${FACTORY_DB_PASSWORD:?set FACTORY_DB_PASSWORD}
+      POSTGRES_DB: factory
+    volumes: [db:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "factory"]
+      interval: 5s
+
+  factory:
+    image: digital-factory
+    depends_on:
+      db: { condition: service_healthy }
+    ports: ["${FACTORY_PORT:-8080}:8080"]
+    environment:
+      FACTORY_DB_URL: jdbc:postgresql://db:5432/factory
+      FACTORY_DB_PASSWORD: ${FACTORY_DB_PASSWORD}
+      FACTORY_WORKER_JWT_SECRET: ${FACTORY_WORKER_JWT_SECRET:?set FACTORY_WORKER_JWT_SECRET (32+ characters)}
+      FACTORY_PUBLIC_URL: ${FACTORY_PUBLIC_URL:-http://localhost:8080}
+      # OIDC (FACTORY_OIDC_ENABLED=true, the starter's oidc settings), or the mock login for a try-out
+      FACTORY_OIDC_ENABLED: ${FACTORY_OIDC_ENABLED:-false}
+      ANODE_SECURITY_MOCK: ${FACTORY_MOCK_LOGIN:-true}
+    # forges and ticket sources, the starters' own variables (ANODE_GITHUB_APPID, ANODE_GITHUB_PRIVATEKEY,
+    # ANODE_GITLAB_TOKEN, ANODE_JIRA_*, ANODE_NOTION_TOKEN...): set only those used, an empty one enables its adapter
+    env_file:
+      - path: factory.env
+        required: false
+
+  worker:
+    image: factory-worker
+    depends_on: [factory]
+    environment:
+      FACTORY_CONTROL_PLANE_URL: http://factory:8080
+      FACTORY_WORKER_TOKEN: ${FACTORY_WORKER_TOKEN:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      FACTORY_WORKER_SLOTS: ${FACTORY_WORKER_SLOTS:-2}
+      # sandboxes are bind-mounted from here: the same path on the host and in the worker
+      FACTORY_WORKER_WORKDIR: ${FACTORY_WORKER_DIR:-/var/lib/factory-worker}
+      FACTORY_WORKER_NETWORK: factory-sandboxes
+      FACTORY_WORKER_EGRESSPROXY: http://factory-egress:3128
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${FACTORY_WORKER_DIR:-/var/lib/factory-worker}:${FACTORY_WORKER_DIR:-/var/lib/factory-worker}
+
+volumes:
+  db: {}

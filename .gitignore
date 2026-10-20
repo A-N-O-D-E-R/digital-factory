@@ -6,3 +6,5 @@ dist/
 
 # local secrets
 .env
+
+factory.env
