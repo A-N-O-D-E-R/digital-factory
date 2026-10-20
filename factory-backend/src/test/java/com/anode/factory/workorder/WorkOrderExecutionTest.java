@@ -289,6 +289,47 @@ class WorkOrderExecutionTest {
     }
 
     @Test
+    void onceClassifiedAWorkOrderGoesOnInTheWorkflowItsTypeIsMappedTo() {
+        publish("routed", """
+                { "start": "classify", "steps": [
+                  { "id": "classify", "kind": "agent", "roles": ["classifier"], "next": [{ "to": "route" }] },
+                  { "id": "route", "kind": "factory", "action": "select-workflow", "next": [{ "to": "@done" }] }
+                ] }""");
+        publish("docs-only", """
+                { "start": "write", "steps": [
+                  { "id": "write", "kind": "agent", "roles": ["implementer"], "next": [{ "to": "verify" }] },
+                  { "id": "verify", "kind": "factory", "action": "run-tests", "next": [{ "to": "@done" }] }
+                ] }""");
+        var repositorySettings = mvc.put().uri("/api/settings?repository={r}", TestRepository.KEY).with(admin()).with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"document\":{\"workflows\":{\"DOCUMENTATION\":\"docs-only\"}},\"reason\":\"docs are simpler\"}").exchange();
+        assertThat(repositorySettings).hasStatusOk();
+        try {
+            UUID docs = create("routed");
+            worker.complete(claim("classifier"), classification("DOCUMENTATION", "LOW"));
+            JsonNode switched = awaitStep(docs, "write").get("workOrder");
+            assertThat(switched.get("workflow").asString()).isEqualTo("docs-only");
+            worker.complete(claim("implementer"), implementation());
+            awaitStep(docs, "verify");
+            worker.complete(claim("run-tests"), tests(1, 0));
+            awaitStatus(docs, "DONE");
+
+            UUID bug = create("routed");
+            worker.complete(claim("classifier"), classification("BUG", "LOW"));
+            assertThat(awaitStatus(bug, "DONE").get("workOrder").get("workflow").asString()).as("unmapped: stays").isEqualTo("routed");
+        } finally {
+            mvc.put().uri("/api/settings?repository={r}", TestRepository.KEY).with(admin()).with(csrf())
+                    .contentType(MediaType.APPLICATION_JSON).content("{\"document\":{},\"reason\":\"test done\"}").exchange();
+        }
+    }
+
+    void publish(String name, String definition) {
+        assertThat(mvc.post().uri("/api/workflows/{name}/versions", name).with(admin()).with(csrf())
+                .contentType(MediaType.APPLICATION_JSON).content("{\"definition\":" + definition + ",\"note\":\"test\"}"))
+                .hasStatus(201);
+    }
+
+    @Test
     void aRiskyPlanWaitsForApproval() {
         UUID id = create("mini");
         worker.complete(claim("classifier"), classification("SECURITY", "HIGH"));

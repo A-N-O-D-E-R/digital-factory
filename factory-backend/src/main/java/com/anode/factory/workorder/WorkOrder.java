@@ -168,7 +168,16 @@ public class WorkOrder {
         updatedAt = now;
     }
 
-    /** The engine case of the work order: its id, then one per rework. */
+    /** The work goes on in another workflow (chosen by its type), from that workflow's start, as a new engine case. */
+    void switchWorkflow(String name, int version, Instant now) {
+        workflowName = name;
+        workflowVersion = version;
+        reworks++;
+        reworkStep = null;
+        updatedAt = now;
+    }
+
+    /** The engine case of the work order: its id, then one per rework or workflow switch. */
     String caseId() {
         return reworks == 0 ? id.toString() : id + "#" + reworks;
     }

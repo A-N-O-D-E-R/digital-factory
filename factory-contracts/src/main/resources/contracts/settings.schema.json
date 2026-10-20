@@ -60,6 +60,26 @@
           "minimum": 1
         }
       }
+    },
+    "workflows": {
+      "description": "The workflow each work-order type goes on in once classified (the select-workflow step); unmapped types stay in theirs. A repository layer can map types to its own workflows.",
+      "type": "object",
+      "propertyNames": {
+        "enum": [
+          "BUG",
+          "FEATURE",
+          "REFACTOR",
+          "DOCUMENTATION",
+          "TEST",
+          "DEPENDENCY",
+          "SECURITY",
+          "UNKNOWN"
+        ]
+      },
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9-]{0,62}$"
+      }
     }
   },
   "$defs": {

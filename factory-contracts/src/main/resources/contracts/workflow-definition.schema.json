@@ -67,6 +67,7 @@
                 "secret-scan",
                 "push-branch",
                 "update-branch",
+                "select-workflow",
                 "open-draft-pr",
                 "mark-pr-ready",
                 "request-review",

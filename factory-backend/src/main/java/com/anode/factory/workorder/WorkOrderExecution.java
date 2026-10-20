@@ -23,6 +23,9 @@ class WorkOrderExecution {
     /** Something happened that may let a waiting step continue. */
     record Resume(UUID workOrderId) {}
 
+    /** The work order switched workflows: its new case starts once the switch is committed. */
+    record Switched(UUID workOrderId) {}
+
     private final WorkOrderRepository workOrders;
     private final WorkflowCatalog catalog;
     private final WorkflowEngine engine;
@@ -54,6 +57,11 @@ class WorkOrderExecution {
     @ApplicationModuleListener
     void on(RunFinished event) {
         resume(event.workOrderId());
+    }
+
+    @ApplicationModuleListener
+    void on(Switched event) {
+        start(workOrders.findById(event.workOrderId()).orElseThrow());
     }
 
     @ApplicationModuleListener

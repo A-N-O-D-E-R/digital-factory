@@ -4,6 +4,10 @@
   "steps": [
     {
       "id": "classify", "kind": "agent", "roles": ["classifier"],
+      "next": [{ "to": "route" }]
+    },
+    {
+      "id": "route", "kind": "factory", "action": "select-workflow",
       "next": [{ "to": "analyze" }]
     },
     {
