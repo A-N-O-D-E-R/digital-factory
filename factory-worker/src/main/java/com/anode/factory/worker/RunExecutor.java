@@ -30,6 +30,8 @@ class RunExecutor {
         }
     }
 
+    private static final int MAX_PATCH = 400_000;
+
     private final ControlPlane controlPlane;
     private final Sandbox sandbox;
     private final WorkerProperties properties;
@@ -134,6 +136,9 @@ class RunExecutor {
         String reports = repository.get("testReports").asString();
         Map<String, Object> evidence = new LinkedHashMap<>();
         evidence.put("diff", diff);
+        String patch = workspace.diff();
+        // what reviewers and the UI read; past the cap they have the branch
+        evidence.put("patch", patch.length() > MAX_PATCH ? patch.substring(0, MAX_PATCH) + "\n[… cut]" : patch);
         Object tests = suite(job, workspace, repository.get("testCommand").asString(), reports, cancelled, "tests");
         if (tests instanceof String error) {
             return Outcome.failed(error, null);

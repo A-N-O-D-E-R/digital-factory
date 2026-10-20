@@ -115,6 +115,12 @@ class WorkOrderExecutionTest {
         assertThat(done.get("workOrder").get("facts").get("type").asString()).isEqualTo("BUG");
         assertThat(done.get("workOrder").get("facts").get("tests.passed").asBoolean()).isTrue();
         assertThat(done.get("runs")).hasSize(4);
+
+        String testsRun = done.get("runs").get(3).get("id").asString();
+        var output = mvc.get().uri("/api/work-orders/{id}/runs/{run}", id, testsRun).with(developer()).exchange();
+        assertThat(output).hasStatusOk().bodyJson().extractingPath("$.output.tests.total").isEqualTo(10);
+        assertThat(mvc.get().uri("/api/work-orders/{id}/runs/{run}", id, UUID.randomUUID()).with(developer()).exchange())
+                .hasStatus(404);
     }
 
     @Test

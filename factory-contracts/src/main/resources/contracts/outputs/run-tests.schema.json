@@ -16,6 +16,7 @@
         "deletions": { "type": "integer", "minimum": 0 }
       }
     },
+    "patch": { "type": "string", "maxLength": 1000000, "description": "The unified diff of the work branch (cut at 400 000 characters)." },
     "tests": { "$ref": "#/$defs/suite" },
     "acceptance": { "$ref": "#/$defs/suite" }
   },

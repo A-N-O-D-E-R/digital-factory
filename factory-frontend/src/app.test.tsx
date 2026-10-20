@@ -80,4 +80,29 @@ describe("the factory UI", () => {
     expect(await screen.findByText("En échec : 401 Bad credentials")).toBeInTheDocument();
     expect(screen.getByText("Non configurée")).toBeInTheDocument();
   });
+
+  it("shows the evidence: tests, verdicts and the diff side by side", async () => {
+    const run = (id: string, task: string, kind: string) => ({ id, stepId: task, visit: 1, kind, task, status: "SUCCEEDED",
+      attempt: 1, error: null, costUsd: 0.01, createdAt: "2026-10-20T10:00:00Z", finishedAt: "2026-10-20T10:01:00Z" });
+    fakeApi({
+      "GET /api/user": user(["work-order:read"]),
+      "GET /api/work-orders": [workOrder()],
+      "GET /api/approvals": [],
+      "GET /api/work-orders/wo-1": { workOrder: workOrder(), costUsd: 0.02, approvals: [],
+        runs: [run("r-1", "run-tests", "EVIDENCE"), run("r-2", "reviewer", "AGENT")] },
+      "GET /api/work-orders/wo-1/timeline": [],
+      "GET /api/work-orders/wo-1/runs/r-1": { run: run("r-1", "run-tests", "EVIDENCE"), output: {
+        diff: { files: 1, insertions: 1, deletions: 1 },
+        tests: { total: 10, failed: 1, errors: 0, skipped: 0, failures: ["RoundingTest.halfEven: expected 2"] },
+        patch: "diff --git a/a.js b/a.js\n--- a/a.js\n+++ b/a.js\n@@ -1 +1 @@\n-old line\n+new line\n" } },
+      "GET /api/work-orders/wo-1/runs/r-2": { run: run("r-2", "reviewer", "AGENT"), output: {
+        verdict: "REVISE", summary: "Round half-even", comments: [{ path: "a.js", line: 1, body: "Use HALF_EVEN" }] } },
+    });
+    await renderApp("/work-orders/wo-1");
+    expect(await screen.findByText(/Tests : 9\/10 ok/)).toBeInTheDocument();
+    expect(screen.getByText("RoundingTest.halfEven: expected 2")).toBeInTheDocument();
+    expect(await screen.findByText("À revoir")).toBeInTheDocument();
+    const row = screen.getByText("old line").closest("tr")!;
+    expect(within(row).getByText("new line")).toBeInTheDocument(); // face to face
+  });
 });

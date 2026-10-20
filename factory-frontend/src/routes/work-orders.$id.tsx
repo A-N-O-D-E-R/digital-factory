@@ -7,6 +7,7 @@ import { useLiveEvents } from "../api/live";
 import { useCan, useCancel, useRework, useTimeline, useWorkOrder } from "../api/queries";
 import { ApprovalDecision } from "../components/Approvals";
 import { AgentStateDot } from "../components/AgentStateDot";
+import { Evidence } from "../components/Evidence";
 import { agentState, STATUS_LABELS } from "../lib/status";
 
 export const Route = createFileRoute("/work-orders/$id")({ component: WorkOrderPage });
@@ -48,6 +49,8 @@ function WorkOrderPage() {
         <h2 className="font-medium">Demande</h2>
         <p className="whitespace-pre-wrap text-muted-foreground">{workOrder.description}</p>
       </section>
+
+      <Evidence workOrderId={workOrder.id} runs={runs} />
 
       <section className="flex flex-col gap-2">
         <h2 className="font-medium">Runs</h2>

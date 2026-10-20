@@ -596,6 +596,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/work-orders/{id}/runs/{runId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["run"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/work-orders/{id}/pr-events": {
         parameters: {
             query?: never;
@@ -830,13 +846,11 @@ export interface components {
             null: boolean;
             object: boolean;
             float: boolean;
-            valueNode: boolean;
+            container: boolean;
             missingNode: boolean;
-            /** @enum {string} */
-            nodeType: "ARRAY" | "BINARY" | "BOOLEAN" | "MISSING" | "NULL" | "NUMBER" | "OBJECT" | "POJO" | "STRING";
-            string: boolean;
-            integralNumber: boolean;
+            valueNode: boolean;
             pojo: boolean;
+            number: boolean;
             floatingPointNumber: boolean;
             short: boolean;
             int: boolean;
@@ -848,8 +862,10 @@ export interface components {
             textual: boolean;
             boolean: boolean;
             binary: boolean;
-            container: boolean;
-            number: boolean;
+            /** @enum {string} */
+            nodeType: "ARRAY" | "BINARY" | "BOOLEAN" | "MISSING" | "NULL" | "NUMBER" | "OBJECT" | "POJO" | "STRING";
+            string: boolean;
+            integralNumber: boolean;
             embeddedValue: boolean;
         };
         UpdateRequest: {
@@ -1197,6 +1213,10 @@ export interface components {
             /** Format: date-time */
             at: string;
             data: components["schemas"]["JsonNode"];
+        };
+        RunOutput: {
+            run: components["schemas"]["RunView"];
+            output: components["schemas"]["JsonNode"];
         };
         PrEventView: {
             id: string;
@@ -2367,6 +2387,29 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["Event"][];
+                };
+            };
+        };
+    };
+    run: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                runId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RunOutput"];
                 };
             };
         };

@@ -24,6 +24,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
 
 @RestController
 @RequestMapping("/api")
@@ -69,10 +72,12 @@ class WorkOrderController {
 
     private final WorkOrderService service;
     private final RunQueue runs;
+    private final JsonMapper json;
 
-    WorkOrderController(WorkOrderService service, RunQueue runs) {
+    WorkOrderController(WorkOrderService service, RunQueue runs, JsonMapper json) {
         this.service = service;
         this.runs = runs;
+        this.json = json;
     }
 
     @PostMapping("/work-orders")
@@ -99,6 +104,17 @@ class WorkOrderController {
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         return new Detail(view(service.get(id)), cost, workOrderRuns.stream().map(RunView::of).toList(),
                 service.approvalsOf(id).stream().map(ApprovalView::of).toList());
+    }
+
+    record RunOutput(RunView run, JsonNode output) {}
+
+    /** What a run produced (evidence, verdicts, plans): untrusted text, shown as such. */
+    @GetMapping("/work-orders/{id}/runs/{runId}")
+    @PreAuthorize("hasAnyRole('ADMIN','DEVELOPER','VIEWER')")
+    RunOutput run(@PathVariable UUID id, @PathVariable UUID runId) {
+        Run run = runs.runsOf(id).stream().filter(r -> r.id().equals(runId)).findFirst()
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        return new RunOutput(RunView.of(run), run.output() == null ? null : json.readTree(run.output()));
     }
 
     private WorkOrderView view(WorkOrder workOrder) {

@@ -178,6 +178,7 @@ class WorkerTest {
         dispatcher.run(job("EVIDENCE", "run-tests", tests, spec));
         JsonNode evidence = completed();
         assertThat(evidence.get("diff")).isEqualTo(json.readTree("{\"files\":2,\"insertions\":2,\"deletions\":0}"));
+        assertThat(evidence.get("patch").asString()).contains("+++ b/fix.txt", "+fixed");
         assertThat(evidence.get("tests")).isEqualTo(json.readTree(
                 "{\"total\":2,\"failed\":1,\"errors\":0,\"skipped\":0,\"failures\":[\"A.bad: boom\"]}"));
         assertThat(evidence.get("acceptance").get("total").asInt()).isEqualTo(1);
