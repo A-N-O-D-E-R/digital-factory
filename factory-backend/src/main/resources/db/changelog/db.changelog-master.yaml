@@ -463,3 +463,24 @@ databaseChangeLog:
             columns:
               - column: { name: suite, type: varchar(16), defaultValue: complete, constraints: { nullable: false } }
               - column: { name: candidate, type: jsonb }
+  - changeSet:
+      id: 022-forge-events-on-the-timeline
+      author: digital-factory
+      comment: Forge events (and the factory's replies to them) on the work-order timeline, by trigger like the rest
+      changes:
+        - sql:
+            splitStatements: false
+            sql: |
+              create function record_forge_event() returns trigger language plpgsql as $$
+              begin
+                if TG_OP = 'INSERT' or new.replied_at is distinct from old.replied_at then
+                  insert into work_order_events (work_order_id, eval, type, data)
+                  select new.work_order_id, w.eval_run_id is not null, 'pr-event',
+                         jsonb_build_object('event', new.id, 'kind', new.kind, 'author', new.author, 'trusted', new.trusted,
+                                            'ignoredBecause', new.ignored_because, 'replied', new.replied_at is not null)
+                  from work_orders w where w.id = new.work_order_id;
+                end if;
+                return new;
+              end $$;
+              create trigger forge_events_events after insert or update on forge_events
+                for each row execute function record_forge_event();

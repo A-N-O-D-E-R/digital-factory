@@ -133,7 +133,9 @@ function RunsTable({ runs }: { runs: Run[] }) {
 
 function TimelineEntry({ event }: { event: TimelineEvent }) {
   const data = event.data as Record<string, unknown>;
-  const what = event.type === "run" ? `run ${data.task} (${data.step}) : ${data.status}`
+  const what = event.type === "pr-event"
+    ? `PR : ${data.kind}${data.author ? ` par ${data.author}` : ""}${data.trusted ? "" : ` (ignoré : ${data.ignoredBecause})`}${data.replied ? " — l'usine a répondu" : ""}`
+    : event.type === "run" ? `run ${data.task} (${data.step}) : ${data.status}`
     : event.type === "approval" ? `barrière ${data.gate} : ${data.decision}${data.by ? ` par ${data.by}` : ""}`
     : `${data.status}${data.step ? ` · ${data.step}` : ""}${data.reason ? ` — ${data.reason}` : ""}`;
   return (

@@ -169,6 +169,8 @@ describe("the factory UI", () => {
     expect(screen.getByText("Totals of 3 lines at 0.005 are 0.02")).toBeInTheDocument();
     expect(screen.getByText(/risque HIGH/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Approuver" })).toBeInTheDocument();
+    const stack = screen.getByRole("complementary", { name: "Barrières en attente" });
+    expect(within(stack).getByText("Fix rounding")).toBeInTheDocument(); // the gate waits, wherever you are
   });
 
   it("lets an admin register a repository and create an intake rule", async () => {

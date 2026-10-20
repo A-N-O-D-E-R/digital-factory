@@ -293,6 +293,9 @@ class PrWatchTest {
         awaitStep(pr.id(), "watch");
         assertThat(worker.hasNothingToClaim()).as("no implementer, no evidence: nothing to change").isTrue();
         assertThat(workOrder(pr.id()).get("facts").get("triage.changes").asBoolean()).isFalse();
+        JsonNode timeline = get("/api/work-orders/{id}/timeline", pr.id());
+        assertThat(timeline.findValues("data")).anyMatch(d -> "commented".equals(d.path("kind").asString(null))
+                && d.path("replied").asBoolean(false));
     }
 
     @Test
