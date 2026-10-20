@@ -267,6 +267,26 @@ class WorkOrderExecutionTest {
     }
 
     @Test
+    void threeReviewersOfTheSameRoleAreThreeVerdictsAndTheMajorityDecides() {
+        String panel = """
+                { "start": "review", "steps": [
+                  { "id": "review", "kind": "agent", "roles": ["reviewer", "reviewer", "reviewer"], "join": "majority",
+                    "next": [{ "when": { "fact": "verdict", "equals": "PASS" }, "to": "@done" }, { "to": "@blocked" }] }
+                ] }""";
+        assertThat(mvc.post().uri("/api/workflows/panel/versions").with(admin()).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"definition\":" + panel + ",\"note\":\"test\"}")).hasStatus(201);
+        UUID id = create("panel");
+        FakeWorker.Job first = claim("reviewer");
+        FakeWorker.Job second = claim("reviewer");
+        FakeWorker.Job third = claim("reviewer");
+        worker.complete(first, com.anode.factory.FakeWorker.Outputs.review("PASS"));
+        worker.complete(second, com.anode.factory.FakeWorker.Outputs.review("REVISE"));
+        assertThat(detail(id).get("workOrder").get("status").asString()).as("waits for the third").isEqualTo("RUNNING");
+        worker.complete(third, com.anode.factory.FakeWorker.Outputs.review("PASS"));
+        assertThat(awaitStatus(id, "DONE").get("workOrder").get("facts").get("verdict").asString()).isEqualTo("PASS");
+    }
+
+    @Test
     void aRiskyPlanWaitsForApproval() {
         UUID id = create("mini");
         worker.complete(claim("classifier"), classification("SECURITY", "HIGH"));

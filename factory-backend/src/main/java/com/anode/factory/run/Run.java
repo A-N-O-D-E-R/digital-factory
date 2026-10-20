@@ -47,6 +47,10 @@ public class Run {
     @Column(nullable = false)
     private int attempt;
 
+    /** Which of the step's runs this is (its place in the step's roles): retries keep it, the same role twice does not share it. */
+    @Column(nullable = false)
+    private int slot;
+
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(nullable = false)
     private String input;
@@ -84,8 +88,9 @@ public class Run {
 
     protected Run() {}
 
-    Run(UUID workOrderId, String stepId, int visit, RunKind kind, String task, String outputSchema, int attempt,
-        String input, BigDecimal budgetUsd, Instant now) {
+    Run(UUID workOrderId, String stepId, int visit, int slot, RunKind kind, String task, String outputSchema,
+        int attempt, String input, BigDecimal budgetUsd, Instant now) {
+        this.slot = slot;
         this.outputSchema = outputSchema;
         this.id = UUID.randomUUID();
         this.budgetUsd = budgetUsd;
@@ -155,6 +160,10 @@ public class Run {
 
     public int attempt() {
         return attempt;
+    }
+
+    public int slot() {
+        return slot;
     }
 
     public String input() {

@@ -136,7 +136,8 @@ class FactoryStep implements ContextualTask {
             }
             List<Run> earlier = runs.runsOf(workOrder.id());
             CodeRepository repository = repositories.get(workOrder.repository());
-            for (String task : tasks) {
+            for (int slot = 0; slot < tasks.size(); slot++) {
+                String task = tasks.get(slot);
                 JsonNode settings = roleSettings.get(task);
                 String input = kind == RunKind.AGENT
                         ? RunInputs.agent(workOrder, repository, step.id(), task, settings, prompts.get(task),
@@ -144,16 +145,16 @@ class FactoryStep implements ContextualTask {
                         : task.equals(JUDGE)
                         ? RunInputs.judge(workOrder, repository, step.id(), earlier, json)
                         : RunInputs.evidence(workOrder, repository, step.id(), task, earlier, json);
-                runs.enqueue(workOrder.id(), step.id(), workOrder.currentVisit(), kind, task,
+                runs.enqueue(workOrder.id(), step.id(), workOrder.currentVisit(), slot, kind, task,
                         kind == RunKind.AGENT ? roles.outputSchema(task) : task, input,
                         settings == null ? null : settings.get("budgetUsd").decimalValue());
             }
             workOrder.resumeRunning(clock.instant());
             return StepResult.WAIT;
         }
-        // retries are new rows: the latest attempt of each task decides
-        Map<String, Run> latest = new LinkedHashMap<>();
-        visitRuns.forEach(run -> latest.merge(run.task(), run, (a, b) -> b.attempt() >= a.attempt() ? b : a));
+        // retries are new rows: the latest attempt of each slot decides (three reviewers are three verdicts)
+        Map<Integer, Run> latest = new LinkedHashMap<>();
+        visitRuns.forEach(run -> latest.merge(run.slot(), run, (a, b) -> b.attempt() >= a.attempt() ? b : a));
         if (latest.values().stream().anyMatch(run -> !run.status().finished())) {
             return StepResult.WAIT;
         }

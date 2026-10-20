@@ -51,14 +51,17 @@ public class RunQueue {
         this.clock = clock;
     }
 
-    /** {@code budgetUsd}: the most an agent run may spend, null for runs calling no model. */
+    /**
+     * {@code slot}: which of the step's runs it is (several reviewers of the same role are distinct
+     * runs); {@code budgetUsd}: the most an agent run may spend, null for runs calling no model.
+     */
     @Transactional
-    public Run enqueue(UUID workOrderId, String stepId, int visit, RunKind kind, String task, String outputSchema,
-                       String input, BigDecimal budgetUsd) {
+    public Run enqueue(UUID workOrderId, String stepId, int visit, int slot, RunKind kind, String task,
+                       String outputSchema, String input, BigDecimal budgetUsd) {
         if (!schemas.exists(outputSchema)) {
             throw new IllegalArgumentException("No output schema '" + outputSchema + "'");
         }
-        return runs.save(new Run(workOrderId, stepId, visit, kind, task, outputSchema, 1, input, budgetUsd,
+        return runs.save(new Run(workOrderId, stepId, visit, slot, kind, task, outputSchema, 1, input, budgetUsd,
                 clock.instant()));
     }
 
@@ -161,7 +164,8 @@ public class RunQueue {
             // the next attempt is told what went wrong (e.g. the schema violations)
             ObjectNode input = (ObjectNode) json.readTree(run.input());
             input.put("previousAttemptError", run.error());
-            runs.save(new Run(run.workOrderId(), run.stepId(), run.visit(), run.kind(), run.task(), run.outputSchema(),
+            runs.save(new Run(run.workOrderId(), run.stepId(), run.visit(), run.slot(), run.kind(), run.task(),
+                    run.outputSchema(),
                     run.attempt() + 1,
                     json.writeValueAsString(input), run.budgetUsd(), clock.instant()));
         } else {

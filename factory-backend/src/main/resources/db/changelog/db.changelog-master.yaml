@@ -433,3 +433,12 @@ databaseChangeLog:
               - column: { name: busy, type: int }
               - column: { name: last_heartbeat_at, type: timestamptz }
               - column: { name: draining, type: boolean, defaultValueBoolean: false, constraints: { nullable: false } }
+  - changeSet:
+      id: 019-run-slots
+      author: digital-factory
+      comment: Which of a step visit's runs a run is, so that the same role several times (three reviewers) gives several verdicts
+      changes:
+        - addColumn:
+            tableName: runs
+            columns:
+              - column: { name: slot, type: int, defaultValueNumeric: 0, constraints: { nullable: false } }
