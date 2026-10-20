@@ -9,7 +9,7 @@ public interface TicketSource {
     /** {@code github}, {@code gitlab}...: the prefix of its ticket keys. */
     String type();
 
-    /** The ticket a web URL designates, if it is one of this source's. */
+    /** The ticket a web URL (or the source's own short key, e.g. a Jira key) designates, if it is one of this source's. */
     Optional<TicketRef> parseUrl(String url);
 
     /** The repository key work on the ticket goes to by default (issues: their own repository). */

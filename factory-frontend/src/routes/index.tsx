@@ -3,6 +3,7 @@ import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useWorkOrders } from "../api/queries";
 import { AgentStateDot } from "../components/AgentStateDot";
+import { ImportTicket } from "../components/ImportTicket";
 import { NewWorkOrder } from "../components/NewWorkOrder";
 import { type AgentState, agentState, STATE_LABELS } from "../lib/status";
 
@@ -17,7 +18,10 @@ function Board() {
     <div className="flex h-full flex-col gap-4 p-6">
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-semibold">Tableau</h1>
-        <NewWorkOrder />
+        <div className="flex gap-2">
+          <ImportTicket />
+          <NewWorkOrder />
+        </div>
       </div>
       <div className="grid flex-1 grid-cols-6 gap-3">
         {COLUMNS.map((state) => {

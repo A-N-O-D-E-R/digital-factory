@@ -32,7 +32,7 @@ export const usePendingApprovals = () =>
   useQuery({ queryKey: keys.approvals, queryFn: () => api.get("approvals").json<Approval[]>() });
 
 /** A change, its error shown as a toast; the live events refresh what it changed. */
-function useChange<T, R = unknown>(run: (input: T) => Promise<R>, done: string) {
+export function useChange<T, R = unknown>(run: (input: T) => Promise<R>, done: string) {
   const client = useQueryClient();
   return useMutation({
     mutationFn: run,

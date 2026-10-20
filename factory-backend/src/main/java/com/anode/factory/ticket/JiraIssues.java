@@ -26,6 +26,8 @@ import org.springframework.stereotype.Component;
 class JiraIssues implements TicketSource, IntegrationCheck {
 
     private static final List<String> FIELDS = List.of("summary", "description");
+    /** OPS-12: what people type, Jira being the only source with such keys. */
+    private static final Pattern ISSUE_KEY = Pattern.compile("(([A-Z][A-Z0-9_]+)-\\d+)");
 
     private final JiraClient jira;
     private final String baseUrl;
@@ -55,6 +57,9 @@ class JiraIssues implements TicketSource, IntegrationCheck {
     @Override
     public Optional<TicketRef> parseUrl(String reference) {
         Matcher m = url.matcher(reference);
+        if (!m.matches()) {
+            m = ISSUE_KEY.matcher(reference);
+        }
         return m.matches() ? Optional.of(new TicketRef(type(), m.group(2), m.group(1))) : Optional.empty();
     }
 
