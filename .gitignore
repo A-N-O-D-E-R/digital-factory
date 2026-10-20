@@ -3,3 +3,6 @@ target/
 *.iml
 node_modules/
 dist/
+
+# local secrets
+.env

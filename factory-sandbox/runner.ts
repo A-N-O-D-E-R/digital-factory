@@ -39,8 +39,14 @@ export function options(job: Job, workspace: string): Options {
     effort: job.input.settings.effort,
     maxTurns: job.input.settings.maxTurns,
     maxBudgetUsd: job.budgetUsd,
-    outputFormat: { type: "json_schema", schema: job.outputSchema },
+    outputFormat: { type: "json_schema", schema: forSdk(job.outputSchema) },
   };
+}
+
+/** Claude Code knows no 2020-12 meta-schema: the declaration goes; the backend validates the output in full. */
+export function forSdk(schema: Record<string, unknown>): Record<string, unknown> {
+  const { $schema: _, ...rest } = schema;
+  return rest;
 }
 
 /** Everything but the prompt is data: the work order, the earlier steps' outputs, the facts. */

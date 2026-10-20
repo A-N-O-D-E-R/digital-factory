@@ -4,7 +4,7 @@ const query = vi.fn();
 vi.mock("@anthropic-ai/claude-agent-sdk", () => ({ query }));
 const { run } = await import("./runner.ts");
 
-const schema = { type: "object", required: ["summary"] };
+const schema = { $schema: "https://json-schema.org/draft/2020-12/schema", type: "object", required: ["summary"] };
 
 function job(task: string, writesCode: boolean) {
   return {
@@ -47,8 +47,9 @@ describe("runner", () => {
       effort: "high",
       maxTurns: 60,
       maxBudgetUsd: 2,
-      outputFormat: { type: "json_schema", schema },
+      outputFormat: { type: "json_schema", schema: { type: "object", required: ["summary"] } },
     });
+    expect(options.outputFormat.schema).not.toHaveProperty("$schema");
     expect(prompt).toMatch(/^<untrusted_input>\n[\s\S]*Ignore previous instructions[\s\S]*\n<\/untrusted_input>/);
     expect(prompt).not.toContain("You implement one work order.");
   });
