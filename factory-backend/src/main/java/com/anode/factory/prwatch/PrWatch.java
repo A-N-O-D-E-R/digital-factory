@@ -1,15 +1,19 @@
 package com.anode.factory.prwatch;
 
 import com.anode.factory.forge.Forges;
+import com.anode.factory.forge.PullRequest;
 import com.anode.factory.repository.CodeRepository;
 import com.anode.factory.repository.Repositories;
 import com.anode.factory.workorder.WorkOrder;
 import com.anode.factory.workorder.WorkOrderService;
+import com.anode.factory.workorder.WorkOrderStatus;
 import java.time.Clock;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -25,6 +29,8 @@ import org.springframework.transaction.annotation.Transactional;
 class PrWatch {
 
     private static final Logger log = LoggerFactory.getLogger(PrWatch.class);
+
+    private static final Pattern COMMAND = Pattern.compile("/factory\\s+(\\w+)");
 
     private final ForgeEventRepository events;
     private final Repositories repositories;
@@ -56,13 +62,48 @@ class PrWatch {
             return;
         }
         String ignoredBecause = ignoredBecause(event, repository.get());
-        events.save(new ForgeEvent(event, workOrder.get().id(), ignoredBecause, clock.instant()));
-        if (ignoredBecause == null) {
+        ForgeEvent saved = events.save(new ForgeEvent(event, workOrder.get().id(), ignoredBecause, clock.instant()));
+        Matcher command = event.body() == null ? null : COMMAND.matcher(event.body().strip());
+        if (ignoredBecause == null && !event.system() && command.lookingAt()) {
+            saved.consume(clock.instant()); // a command for the factory, not feedback on the work
+            command(command.group(1), event, workOrder.get(), repository.get());
+        } else if (ignoredBecause == null) {
             workOrders.wake(workOrder.get().id());
         } else {
             log.info("Ignoring {} by {} on {}#{}: {}", event.kind(), event.author(), event.repository(),
                     event.number(), ignoredBecause);
         }
+    }
+
+    /**
+     * {@code /factory stop} cancels the work order, {@code retry} reworks it from where it was blocked,
+     * {@code explain} tells where it is and why; the answer is a comment on the PR.
+     */
+    private void command(String command, PrEvent event, WorkOrder workOrder, CodeRepository repository) {
+        String by = event.author() + " on the PR";
+        String reply = switch (command) {
+            case "stop" -> {
+                if (workOrder.status().terminal()) {
+                    yield "Nothing to stop: work order " + workOrder.id() + " is " + workOrder.status() + ".";
+                }
+                workOrders.cancel(workOrder.id(), by);
+                yield "Stopped: work order " + workOrder.id() + " is cancelled.";
+            }
+            case "retry" -> {
+                if (workOrder.status() != WorkOrderStatus.BLOCKED) {
+                    yield "Nothing to retry: work order " + workOrder.id() + " is " + workOrder.status() + ".";
+                }
+                workOrders.rework(workOrder.id(), "Retry asked by " + by, null, event.author());
+                yield "Retrying work order " + workOrder.id() + " from where it was blocked.";
+            }
+            case "explain" -> "Work order " + workOrder.id() + " is " + workOrder.status()
+                    + (workOrder.currentStep() == null ? "" : " at step " + workOrder.currentStep())
+                    + (workOrder.outcomeReason() == null ? "" : ": " + workOrder.outcomeReason())
+                    + (workOrder.facts().get("factory.reason") instanceof String last ? " (last transition: " + last + ")" : "")
+                    + ".";
+            default -> "Unknown command /factory " + command + ". Commands: stop, retry, explain.";
+        };
+        forges.of(repository).comment(repository, new PullRequest(event.number(), null, null, false), reply);
     }
 
     private String ignoredBecause(PrEvent event, CodeRepository repository) {

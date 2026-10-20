@@ -11,6 +11,8 @@ import java.util.concurrent.atomic.AtomicLong;
 public class FakeForge implements Forge {
 
     private final List<String> calls = new CopyOnWriteArrayList<>();
+
+    private final List<String> comments = new CopyOnWriteArrayList<>();
     private final AtomicLong numbers = new AtomicLong();
 
     public List<String> calls() {
@@ -59,5 +61,11 @@ public class FakeForge implements Forge {
     @Override
     public void comment(CodeRepository repository, PullRequest pullRequest, String body) {
         calls.add("comment #" + pullRequest.number());
+        comments.add("#" + pullRequest.number() + ": " + body);
+    }
+
+    /** "#number: body" in order. */
+    public List<String> comments() {
+        return comments;
     }
 }
