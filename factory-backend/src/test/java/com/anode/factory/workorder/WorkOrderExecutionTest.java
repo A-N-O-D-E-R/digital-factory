@@ -115,6 +115,8 @@ class WorkOrderExecutionTest {
         assertThat(done.get("workOrder").get("facts").get("type").asString()).isEqualTo("BUG");
         assertThat(done.get("workOrder").get("facts").get("tests.passed").asBoolean()).isTrue();
         assertThat(done.get("runs")).hasSize(4);
+        assertThat(done.get("runs").get(0).get("model").asString()).isEqualTo("claude-test");
+        assertThat(done.get("runs").get(0).get("inputTokens").asLong()).isEqualTo(1200);
 
         String testsRun = done.get("runs").get(3).get("id").asString();
         var output = mvc.get().uri("/api/work-orders/{id}/runs/{run}", id, testsRun).with(developer()).exchange();

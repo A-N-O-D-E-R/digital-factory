@@ -56,7 +56,8 @@ public final class FakeWorker {
     public void complete(Job job, String outputJson) {
         assertThat(mvc.post().uri("/internal/runs/{id}/complete", job.runId()).header("Authorization", bearer())
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"output\":" + outputJson + ",\"costUsd\":0.01}").exchange()).hasStatus(204);
+                .content("{\"output\":" + outputJson + ",\"costUsd\":0.01,"
+                        + "\"usage\":{\"model\":\"claude-test\",\"inputTokens\":1200,\"outputTokens\":80}}").exchange()).hasStatus(204);
     }
 
     public void fail(Job job, String error) {

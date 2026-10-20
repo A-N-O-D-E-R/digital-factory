@@ -16,7 +16,23 @@ type Job = {
   budgetUsd: number;
 };
 
-type Result = { output: unknown; costUsd: number | null } | { error: string; costUsd: number | null };
+/** What the run used: the models that answered, tokens in (cache included) and out. */
+type Usage = { model: string; inputTokens: number; outputTokens: number };
+type Spent = { costUsd: number | null; usage?: Usage };
+type Result = ({ output: unknown } | { error: string }) & Spent;
+
+type Tokens = { input_tokens?: number; output_tokens?: number; cache_read_input_tokens?: number; cache_creation_input_tokens?: number };
+
+export function usage(message: { usage?: Tokens; modelUsage?: Record<string, unknown> }, fallbackModel: string): Usage | undefined {
+  if (!message.usage) return undefined;
+  const t = message.usage;
+  const models = Object.keys(message.modelUsage ?? {});
+  return {
+    model: models.length > 0 ? models.join(", ") : fallbackModel,
+    inputTokens: (t.input_tokens ?? 0) + (t.cache_read_input_tokens ?? 0) + (t.cache_creation_input_tokens ?? 0),
+    outputTokens: t.output_tokens ?? 0,
+  };
+}
 
 const READ = ["Read", "Glob", "Grep"];
 
@@ -62,14 +78,16 @@ export async function run(job: Job, workspace: string): Promise<Result> {
     for await (const message of query({ prompt: prompt(job), options: options(job, workspace) })) {
       if (message.type !== "result") continue;
       cost = message.total_cost_usd ?? null;
+      const used = usage(message as Parameters<typeof usage>[0], job.input.settings.modelId);
       const structured = (message as { structured_output?: unknown }).structured_output;
-      if (!message.is_error && structured != null) return { output: structured, costUsd: cost };
+      if (!message.is_error && structured != null) return { output: structured, costUsd: cost, usage: used };
       const errors = (message as { errors?: { message?: string; type: string }[] }).errors ?? [];
       const text = (message as { result?: string }).result;
       return {
         error: `${job.task} ended without an output (${message.subtype})`
           + errors.map((e) => `: ${e.message ?? e.type}`).join("") + (text ? `: ${text.slice(0, 2000)}` : ""),
         costUsd: cost,
+        usage: used,
       };
     }
     return { error: `${job.task} ended without a result`, costUsd: cost };

@@ -31,9 +31,12 @@ describe("runner", () => {
 
   it("runs the role headless, sandboxed by its options, and returns its structured output", async () => {
     answers({ type: "assistant" },
-      { type: "result", subtype: "success", is_error: false, total_cost_usd: 0.42, structured_output: { summary: "s" } });
+      { type: "result", subtype: "success", is_error: false, total_cost_usd: 0.42, structured_output: { summary: "s" },
+        usage: { input_tokens: 100, output_tokens: 20, cache_read_input_tokens: 300, cache_creation_input_tokens: 50 },
+        modelUsage: { "claude-opus-5-5": {} } });
 
-    expect(await run(job("implementer", true), "/workspace")).toEqual({ output: { summary: "s" }, costUsd: 0.42 });
+    expect(await run(job("implementer", true), "/workspace")).toEqual({ output: { summary: "s" }, costUsd: 0.42,
+      usage: { model: "claude-opus-5-5", inputTokens: 450, outputTokens: 20 } });
 
     const { prompt, options } = query.mock.calls[0][0];
     expect(options).toMatchObject({

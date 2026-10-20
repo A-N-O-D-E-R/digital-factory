@@ -40,7 +40,7 @@ class WorkerTest {
     static final String AGENT = """
             if ! grep -q '"title":"leave"' /job/job.json; then echo fixed > fix.txt; fi && \
             echo 'aws = AKIAABCDEFGHIJKLMNOP' > config.txt && \
-            printf '{"output":{"summary":"s","commitMessage":"fix: it"},"costUsd":0.42}' > /out/result.json""";
+            printf '{"output":{"summary":"s","commitMessage":"fix: it"},"costUsd":0.42,"usage":{"model":"claude-opus-5-5","inputTokens":900,"outputTokens":40}}' > /out/result.json""";
 
     @TempDir Path tmp;
     final JsonMapper json = JsonMapper.builder().build();
@@ -164,6 +164,8 @@ class WorkerTest {
         assertThat(received).containsKey("bundle");
         JsonNode completion = json.readTree(received.get("complete"));
         assertThat(completion.get("costUsd").decimalValue()).isEqualByComparingTo("0.42");
+        assertThat(completion.get("usage")).isEqualTo(json.readTree(
+                "{\"model\":\"claude-opus-5-5\",\"inputTokens\":900,\"outputTokens\":40}"));
         bundle = received.remove("bundle");
         received.clear();
 

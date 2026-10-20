@@ -24,7 +24,11 @@ import tools.jackson.databind.json.JsonMapper;
 class RunExecutor {
 
     /** What a run produced: its output (null when it failed) or why it failed, and what it cost. */
-    record Outcome(JsonNode output, String error, BigDecimal costUsd) {
+    record Outcome(JsonNode output, String error, BigDecimal costUsd, ControlPlane.Usage usage) {
+        Outcome(JsonNode output, String error, BigDecimal costUsd) {
+            this(output, error, costUsd, null);
+        }
+
         static Outcome failed(String error, BigDecimal costUsd) {
             return new Outcome(null, error, costUsd);
         }
@@ -113,20 +117,23 @@ class RunExecutor {
         }
         JsonNode result = json.readTree(read(resultFile));
         BigDecimal cost = result.hasNonNull("costUsd") ? result.get("costUsd").decimalValue() : null;
+        JsonNode used = result.path("usage");
+        ControlPlane.Usage usage = used.isObject() ? new ControlPlane.Usage(used.path("model").asString(null),
+                used.path("inputTokens").asLong(0), used.path("outputTokens").asLong(0)) : null;
         if (!result.hasNonNull("output")) {
-            return Outcome.failed(result.path("error").asString("The agent produced no output"), cost);
+            return new Outcome(null, result.path("error").asString("The agent produced no output"), cost, usage);
         }
         JsonNode output = result.get("output");
         for (String conflict : conflicts) {
             Path file = workspace.tree().resolve(conflict);
             if (Files.isRegularFile(file, LinkOption.NOFOLLOW_LINKS) && read(file).contains("<<<<<<< ")) {
-                return Outcome.failed("Conflict left unresolved in " + conflict, cost);
+                return new Outcome(null, "Conflict left unresolved in " + conflict, cost, usage);
             }
         }
         if (writes && workspace.commitAll(output.path("commitMessage").asString(job.task() + " changes"))) {
             controlPlane.upload(job.runId(), workspace.bundle());
         }
-        return new Outcome(output, null, cost);
+        return new Outcome(output, null, cost, usage);
     }
 
     /** The repository's tests, then the hidden acceptance tests if the specifier wrote some. */

@@ -133,9 +133,11 @@ class Dispatcher implements SmartLifecycle {
         }
         try {
             if (outcome.output() != null) {
-                controlPlane.complete(job.runId(), new ControlPlane.Completion(outcome.output(), outcome.costUsd()));
+                controlPlane.complete(job.runId(), new ControlPlane.Completion(outcome.output(), outcome.costUsd(),
+                        outcome.usage()));
             } else {
-                controlPlane.fail(job.runId(), new ControlPlane.Failure(outcome.error(), outcome.costUsd()));
+                controlPlane.fail(job.runId(), new ControlPlane.Failure(outcome.error(), outcome.costUsd(),
+                        outcome.usage()));
             }
         } catch (RuntimeException e) { // its lease expires and the control plane retries it
             log.warn("Cannot report run {}: {}", job.runId(), e.getMessage());

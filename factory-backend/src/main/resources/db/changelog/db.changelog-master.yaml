@@ -442,3 +442,14 @@ databaseChangeLog:
             tableName: runs
             columns:
               - column: { name: slot, type: int, defaultValueNumeric: 0, constraints: { nullable: false } }
+  - changeSet:
+      id: 020-run-usage
+      author: digital-factory
+      comment: The model(s) and tokens an agent run used, as its worker reported them
+      changes:
+        - addColumn:
+            tableName: runs
+            columns:
+              - column: { name: model, type: varchar(255) }
+              - column: { name: input_tokens, type: bigint }
+              - column: { name: output_tokens, type: bigint }

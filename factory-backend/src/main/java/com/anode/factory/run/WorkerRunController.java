@@ -26,9 +26,12 @@ import tools.jackson.databind.json.JsonMapper;
 @PreAuthorize("hasRole('WORKER')")
 class WorkerRunController {
 
-    record Completion(JsonNode output, BigDecimal costUsd) {}
+    /** What an agent run used: the model(s) and tokens; null for runs calling no model. */
+    record Usage(String model, long inputTokens, long outputTokens) {}
 
-    record Failure(String error, BigDecimal costUsd) {}
+    record Completion(JsonNode output, BigDecimal costUsd, Usage usage) {}
+
+    record Failure(String error, BigDecimal costUsd, Usage usage) {}
 
     private final RunQueue queue;
     private final WorkerRegistry registry;
@@ -67,13 +70,21 @@ class WorkerRunController {
     ResponseEntity<Void> complete(@PathVariable UUID runId, @RequestBody Completion completion, Authentication worker) {
         String output = completion.output() == null ? null : json.writeValueAsString(completion.output());
         queue.complete(runId, worker(worker), output, completion.costUsd());
+        record(runId, completion.usage());
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/{runId}/fail")
     ResponseEntity<Void> fail(@PathVariable UUID runId, @RequestBody Failure failure, Authentication worker) {
         queue.fail(runId, worker(worker), failure.error(), failure.costUsd());
+        record(runId, failure.usage());
         return ResponseEntity.noContent().build();
+    }
+
+    private void record(UUID runId, Usage usage) {
+        if (usage != null) {
+            queue.used(runId, usage.model(), usage.inputTokens(), usage.outputTokens());
+        }
     }
 
     /** The work branch so far, for the run to start from; none until a code-writing run succeeded. */

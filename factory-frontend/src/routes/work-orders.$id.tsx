@@ -114,13 +114,15 @@ function RunsTable({ runs }: { runs: Run[] }) {
   return (
     <table className="w-full text-left text-xs">
       <thead className="text-muted-foreground">
-        <tr><th className="py-1">Étape</th><th>Tâche</th><th>Essai</th><th>Statut</th><th>Coût</th><th>Fin</th></tr>
+        <tr><th className="py-1">Étape</th><th>Tâche</th><th>Essai</th><th>Statut</th><th>Modèle</th><th>Jetons</th><th>Coût</th><th>Fin</th></tr>
       </thead>
       <tbody>
         {runs.map((run) => (
           <tr key={run.id} className="border-t" title={run.error ?? undefined}>
             <td className="py-1">{run.stepId} #{run.visit}</td><td>{run.task}</td><td>{run.attempt}</td>
-            <td>{run.status}</td><td>{run.costUsd == null ? "—" : formatUsd(run.costUsd)}</td>
+            <td>{run.status}</td><td className="font-mono">{run.model ?? "—"}</td>
+            <td>{run.inputTokens == null ? "—" : `${formatTokens(run.inputTokens)} → ${formatTokens(run.outputTokens ?? 0)}`}</td>
+            <td>{run.costUsd == null ? "—" : formatUsd(run.costUsd)}</td>
             <td>{run.finishedAt ? format(new Date(run.finishedAt), "HH:mm:ss") : "—"}</td>
           </tr>
         ))}
@@ -140,6 +142,10 @@ function TimelineEntry({ event }: { event: TimelineEvent }) {
       <span>{what}</span>
     </li>
   );
+}
+
+function formatTokens(value: number): string {
+  return value >= 1000 ? `${(value / 1000).toFixed(1)} k` : String(value);
 }
 
 function formatUsd(value: number): string {

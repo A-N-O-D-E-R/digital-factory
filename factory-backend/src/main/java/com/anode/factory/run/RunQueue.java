@@ -125,6 +125,12 @@ public class RunQueue {
         retryOrFinish(run);
     }
 
+    /** What a finished run used, as its worker reported it. */
+    @Transactional
+    public void used(UUID runId, String model, long inputTokens, long outputTokens) {
+        runs.findById(runId).ifPresent(run -> run.used(model, inputTokens, outputTokens));
+    }
+
     /** Runs whose worker stopped sending heartbeats are failed, hence retried. */
     @Scheduled(fixedDelayString = "${factory.runs.reaper-interval:30s}")
     @Transactional

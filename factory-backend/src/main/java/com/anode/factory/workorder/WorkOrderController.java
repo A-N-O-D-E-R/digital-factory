@@ -51,10 +51,12 @@ class WorkOrderController {
     }
 
     record RunView(UUID id, String stepId, int visit, String kind, String task, String status, int attempt,
-                   String error, BigDecimal costUsd, Instant createdAt, Instant finishedAt) {
+                   String error, BigDecimal costUsd, String model, Long inputTokens, Long outputTokens,
+                   Instant createdAt, Instant finishedAt) {
         static RunView of(Run r) {
             return new RunView(r.id(), r.stepId(), r.visit(), r.kind().name(), r.task(), r.status().name(),
-                    r.attempt(), r.error(), r.costUsd(), r.createdAt(), r.finishedAt());
+                    r.attempt(), r.error(), r.costUsd(), r.model(), r.inputTokens(), r.outputTokens(), r.createdAt(),
+                    r.finishedAt());
         }
     }
 

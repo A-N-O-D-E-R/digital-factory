@@ -77,6 +77,15 @@ public class Run {
     @Column(name = "cost_usd")
     private BigDecimal costUsd;
 
+    /** The model(s) an agent run used, and its tokens (input with the cache, output). */
+    private String model;
+
+    @Column(name = "input_tokens")
+    private Long inputTokens;
+
+    @Column(name = "output_tokens")
+    private Long outputTokens;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -111,6 +120,12 @@ public class Run {
         this.workerId = workerId;
         this.leaseUntil = leaseUntil;
         this.startedAt = now;
+    }
+
+    void used(String model, long inputTokens, long outputTokens) {
+        this.model = model;
+        this.inputTokens = inputTokens;
+        this.outputTokens = outputTokens;
     }
 
     void extendLease(Instant leaseUntil) {
@@ -188,6 +203,18 @@ public class Run {
 
     public BigDecimal costUsd() {
         return costUsd;
+    }
+
+    public String model() {
+        return model;
+    }
+
+    public Long inputTokens() {
+        return inputTokens;
+    }
+
+    public Long outputTokens() {
+        return outputTokens;
     }
 
     public Instant createdAt() {

@@ -942,6 +942,14 @@ export interface components {
         Failure: {
             error: string;
             costUsd: number;
+            usage: components["schemas"]["Usage"];
+        };
+        Usage: {
+            model: string;
+            /** Format: int64 */
+            inputTokens: number;
+            /** Format: int64 */
+            outputTokens: number;
         };
         GitCredential: {
             cloneUrl: string;
@@ -954,6 +962,7 @@ export interface components {
             /** @description Any JSON value */
             output: Record<string, unknown>;
             costUsd: number;
+            usage: components["schemas"]["Usage"];
         };
         Job: {
             /** Format: uuid */
@@ -1178,6 +1187,11 @@ export interface components {
             attempt: number;
             error: string;
             costUsd: number;
+            model: string;
+            /** Format: int64 */
+            inputTokens: number;
+            /** Format: int64 */
+            outputTokens: number;
             /** Format: date-time */
             createdAt: string;
             /** Format: date-time */
