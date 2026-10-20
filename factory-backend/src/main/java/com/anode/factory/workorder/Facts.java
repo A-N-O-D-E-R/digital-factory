@@ -14,15 +14,23 @@ final class Facts {
 
     private Facts() {}
 
-    static Map<String, Object> of(List<Run> runs, String join, Map<String, Object> known, JsonMapper json) {
+    /**
+     * {@code highAboveFiles}: a change touching more files is HIGH risk. So are SECURITY work and
+     * major dependency bumps, whatever risk the agents gave.
+     */
+    static Map<String, Object> of(List<Run> runs, String join, Map<String, Object> known, int highAboveFiles,
+                                  JsonMapper json) {
         Map<String, Object> facts = new HashMap<>();
         List<String> verdicts = new java.util.ArrayList<>();
         for (Run run : runs) {
             JsonNode out = json.readTree(run.output());
             switch (run.outputSchema()) {
                 case "classifier" -> {
-                    facts.put("type", out.get("type").asString());
-                    facts.put("risk", out.get("risk").asString());
+                    String type = out.get("type").asString();
+                    facts.put("type", type);
+                    boolean high = type.equals("SECURITY")
+                            || (type.equals("DEPENDENCY") && "major".equals(out.path("dependencyBump").asString("major")));
+                    facts.put("risk", high ? "HIGH" : out.get("risk").asString());
                 }
                 case "analyst" -> {
                     facts.put("analysis.valid", out.get("valid").asBoolean());
@@ -36,6 +44,9 @@ final class Facts {
                 case "run-tests" -> {
                     int files = out.get("diff").get("files").asInt();
                     facts.put("diff.files", files);
+                    if (files > highAboveFiles) {
+                        facts.put("risk", "HIGH");
+                    }
                     facts.put("diff.empty", files == 0);
                     facts.put("tests.passed", passed(out.get("tests")));
                     if (out.has("acceptance")) {

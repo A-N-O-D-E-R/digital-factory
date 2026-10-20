@@ -84,16 +84,16 @@ public class AutonomyPolicies {
     }
 
     /**
-     * The {@code autonomy.allows} fact: the class has earned merging, and every piece of the factory's
-     * evidence is known and green — tests, acceptance tests, review, secret scan. Anything unknown
-     * denies. The forge's own checks come later, from the PR: the merge action requires them too.
+     * The {@code autonomy.allows} fact: the class has earned merging, the work is not HIGH risk, and
+     * every piece of the factory's evidence is known and green — tests, acceptance tests, review,
+     * secret scan. Anything unknown denies. The forge's own checks come later, from the PR: the merge action requires them too.
      */
     public boolean allowsMerge(Map<String, Object> facts) {
         boolean green = Boolean.TRUE.equals(facts.get("tests.passed"))
                 && Boolean.TRUE.equals(facts.get("acceptance.passed"))
                 && "PASS".equals(facts.get("verdict"))
                 && Boolean.FALSE.equals(facts.get("secrets.found"));
-        if (!green || !(facts.get("type") instanceof String type)) {
+        if (!green || "HIGH".equals(facts.get("risk")) || !(facts.get("type") instanceof String type)) {
             return false;
         }
         WorkOrderType workOrderType;

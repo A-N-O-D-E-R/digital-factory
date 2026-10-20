@@ -247,6 +247,26 @@ class WorkOrderExecutionTest {
     }
 
     @Test
+    void securityWorkMajorBumpsAndLargeChangesAreHighRiskWhateverTheAgentsSay() {
+        UUID security = create("mini");
+        worker.complete(claim("classifier"), classification("SECURITY", "LOW"));
+        assertThat(awaitStatus(security, "WAITING_FOR_HUMAN").get("workOrder").get("facts").get("risk").asString())
+                .as("the plan gate of HIGH risk").isEqualTo("HIGH");
+
+        UUID patch = create("mini");
+        worker.complete(claim("classifier"), "{\"type\":\"DEPENDENCY\",\"risk\":\"LOW\",\"dependencyBump\":\"patch\",\"summary\":\"s\"}");
+        awaitStep(patch, "specify");
+        worker.complete(claim("specifier"), acceptance());
+        awaitStep(patch, "implement");
+        worker.complete(claim("implementer"), implementation());
+        awaitStep(patch, "verify");
+        worker.complete(claim("run-tests"), tests(25, 0)); // more than risk.highAboveFiles (20)
+        JsonNode facts = awaitStatus(patch, "DONE").get("workOrder").get("facts");
+        assertThat(facts.get("risk").asString()).isEqualTo("HIGH");
+        assertThat(facts.get("autonomy.allows").asBoolean()).isFalse();
+    }
+
+    @Test
     void aRiskyPlanWaitsForApproval() {
         UUID id = create("mini");
         worker.complete(claim("classifier"), classification("SECURITY", "HIGH"));

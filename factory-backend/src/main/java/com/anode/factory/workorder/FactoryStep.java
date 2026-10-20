@@ -164,7 +164,9 @@ class FactoryStep implements ContextualTask {
                     + " after " + run.attempt() + " attempt(s): " + run.error(), clock.instant());
             return StepResult.WAIT;
         }
-        workOrder.learn(Facts.of(List.copyOf(latest.values()), step.join(), workOrder.facts(), json), clock.instant());
+        int highAboveFiles = json.readTree(workOrder.settings()).path("risk").path("highAboveFiles").asInt(20);
+        workOrder.learn(Facts.of(List.copyOf(latest.values()), step.join(), workOrder.facts(), highAboveFiles, json),
+                clock.instant());
         return StepResult.PROCEED;
     }
 

@@ -7,6 +7,7 @@
   "properties": {
     "type": { "enum": ["BUG", "FEATURE", "REFACTOR", "DOCUMENTATION", "TEST", "DEPENDENCY", "SECURITY", "UNKNOWN"] },
     "risk": { "enum": ["LOW", "MEDIUM", "HIGH"] },
+    "dependencyBump": { "enum": ["patch", "minor", "major"], "description": "DEPENDENCY only: the largest version bump requested." },
     "summary": { "type": "string", "maxLength": 2000 }
   }
 }
