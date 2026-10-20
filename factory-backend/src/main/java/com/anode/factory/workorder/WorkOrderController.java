@@ -108,7 +108,7 @@ class WorkOrderController {
                 service.approvalsOf(id).stream().map(ApprovalView::of).toList());
     }
 
-    record RunOutput(RunView run, JsonNode output) {}
+    record RunOutput(RunView run, JsonNode output, String logs) {}
 
     /** What a run produced (evidence, verdicts, plans): untrusted text, shown as such. */
     @GetMapping("/work-orders/{id}/runs/{runId}")
@@ -116,7 +116,7 @@ class WorkOrderController {
     RunOutput run(@PathVariable UUID id, @PathVariable UUID runId) {
         Run run = runs.runsOf(id).stream().filter(r -> r.id().equals(runId)).findFirst()
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
-        return new RunOutput(RunView.of(run), run.output() == null ? null : json.readTree(run.output()));
+        return new RunOutput(RunView.of(run), run.output() == null ? null : json.readTree(run.output()), run.logs());
     }
 
     private WorkOrderView view(WorkOrder workOrder) {

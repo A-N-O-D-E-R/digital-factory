@@ -115,10 +115,11 @@ class Dispatcher implements SmartLifecycle {
             }
         }, properties.heartbeatInterval().toMillis(), properties.heartbeatInterval().toMillis(), TimeUnit.MILLISECONDS);
         Path dir = properties.workDir().resolve(job.runId().toString());
+        StringBuilder logs = new StringBuilder();
         RunExecutor.Outcome outcome;
         try {
             Files.createDirectories(dir);
-            outcome = executor.execute(job, dir, cancelled::get);
+            outcome = executor.execute(job, dir, cancelled::get, logs);
         } catch (Exception e) {
             log.warn("Run {} failed", job.runId(), e);
             outcome = RunExecutor.Outcome.failed(e.getMessage() == null ? e.getClass().getName() : e.getMessage(), null);
@@ -134,14 +135,20 @@ class Dispatcher implements SmartLifecycle {
         try {
             if (outcome.output() != null) {
                 controlPlane.complete(job.runId(), new ControlPlane.Completion(outcome.output(), outcome.costUsd(),
-                        outcome.usage()));
+                        outcome.usage(), tail(logs)));
             } else {
                 controlPlane.fail(job.runId(), new ControlPlane.Failure(outcome.error(), outcome.costUsd(),
-                        outcome.usage()));
+                        outcome.usage(), tail(logs)));
             }
         } catch (RuntimeException e) { // its lease expires and the control plane retries it
             log.warn("Cannot report run {}: {}", job.runId(), e.getMessage());
         }
+    }
+
+    private static final int MAX_LOGS = 64 * 1024;
+
+    private static String tail(StringBuilder logs) {
+        return logs.length() > MAX_LOGS ? logs.substring(logs.length() - MAX_LOGS) : logs.toString();
     }
 
     private void sleep() {

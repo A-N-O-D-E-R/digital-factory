@@ -125,6 +125,12 @@ public class RunQueue {
         retryOrFinish(run);
     }
 
+    /** The end of a finished run's sandbox output, as its worker reported it. */
+    @Transactional
+    public void logged(UUID runId, String logs) {
+        runs.findById(runId).ifPresent(run -> run.logged(logs));
+    }
+
     /** What a finished run used, as its worker reported it. */
     @Transactional
     public void used(UUID runId, String model, long inputTokens, long outputTokens) {

@@ -33,9 +33,10 @@ public interface ControlPlane {
     /** What an agent run used; null for runs calling no model. */
     record Usage(String model, long inputTokens, long outputTokens) {}
 
-    record Completion(JsonNode output, BigDecimal costUsd, Usage usage) {}
+    /** {@code logs}: the end of the sandboxes' output. */
+    record Completion(JsonNode output, BigDecimal costUsd, Usage usage, String logs) {}
 
-    record Failure(String error, BigDecimal costUsd, Usage usage) {}
+    record Failure(String error, BigDecimal costUsd, Usage usage, String logs) {}
 
     record Heartbeat(String version, int slots, int busy) {}
 

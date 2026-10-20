@@ -503,3 +503,12 @@ databaseChangeLog:
             tableName: pr_outcomes
             indexName: ix_pr_outcomes_merge_commit
             columns: [ { column: { name: merge_commit } } ]
+  - changeSet:
+      id: 024-run-logs
+      author: digital-factory
+      comment: The end of a run's sandbox output, as its worker reported it
+      changes:
+        - addColumn:
+            tableName: runs
+            columns:
+              - column: { name: logs, type: text }

@@ -86,6 +86,9 @@ public class Run {
     @Column(name = "output_tokens")
     private Long outputTokens;
 
+    /** The end of its sandboxes' output (untrusted: what the code under test printed). */
+    private String logs;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -126,6 +129,14 @@ public class Run {
         this.model = model;
         this.inputTokens = inputTokens;
         this.outputTokens = outputTokens;
+    }
+
+    void logged(String logs) {
+        this.logs = logs;
+    }
+
+    public String logs() {
+        return logs;
     }
 
     void extendLease(Instant leaseUntil) {

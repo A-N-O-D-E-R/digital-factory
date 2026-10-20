@@ -121,6 +121,8 @@ class WorkOrderExecutionTest {
         String testsRun = done.get("runs").get(3).get("id").asString();
         var output = mvc.get().uri("/api/work-orders/{id}/runs/{run}", id, testsRun).with(developer()).exchange();
         assertThat(output).hasStatusOk().bodyJson().extractingPath("$.output.tests.total").isEqualTo(10);
+        assertThat(mvc.get().uri("/api/work-orders/{id}/runs/{run}", id, testsRun).with(developer()).exchange())
+                .bodyJson().extractingPath("$.logs").isEqualTo("[INFO] BUILD SUCCESS");
         assertThat(mvc.get().uri("/api/work-orders/{id}/runs/{run}", id, UUID.randomUUID()).with(developer()).exchange())
                 .hasStatus(404);
     }

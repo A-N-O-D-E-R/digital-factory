@@ -959,6 +959,7 @@ export interface components {
             error: string;
             costUsd: number;
             usage: components["schemas"]["Usage"];
+            logs: string;
         };
         Usage: {
             model: string;
@@ -979,6 +980,7 @@ export interface components {
             output: Record<string, unknown>;
             costUsd: number;
             usage: components["schemas"]["Usage"];
+            logs: string;
         };
         Job: {
             /** Format: uuid */
@@ -1234,6 +1236,7 @@ export interface components {
             run: components["schemas"]["RunView"];
             /** @description Any JSON value */
             output: Record<string, unknown>;
+            logs: string;
         };
         PrEventView: {
             id: string;

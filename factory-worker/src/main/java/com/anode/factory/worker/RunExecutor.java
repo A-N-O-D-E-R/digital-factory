@@ -48,7 +48,8 @@ class RunExecutor {
         this.json = json;
     }
 
-    Outcome execute(ControlPlane.Job job, Path dir, BooleanSupplier cancelled) {
+    /** {@code logs}: where the sandboxes' output goes (their tail), reported with the run. */
+    Outcome execute(ControlPlane.Job job, Path dir, BooleanSupplier cancelled, StringBuilder logs) {
         JsonNode input = job.input();
         JsonNode repository = input.get("repository");
         byte[] bundle = controlPlane.bundle(job.runId()).getBody();
@@ -56,15 +57,15 @@ class RunExecutor {
                 repository.get("defaultBranch").asString(), input.get("workOrder").get("branch").asString(), bundle,
                 dir)) {
             return switch (job.kind()) {
-                case "AGENT" -> agent(job, workspace, dir, cancelled);
+                case "AGENT" -> agent(job, workspace, dir, cancelled, logs);
                 case "UPDATE" -> update(job, workspace);
                 case "PUSH" -> new Outcome(json.valueToTree(
                         Map.of("branch", workspace.branch(), "commit", workspace.push())), null, null);
                 case "EVIDENCE" -> switch (job.task()) {
-                    case "run-tests" -> tests(job, workspace, cancelled);
+                    case "run-tests" -> tests(job, workspace, cancelled, logs);
                     case "secret-scan" -> new Outcome(json.valueToTree(
                             Map.of("findings", SecretScan.scan(workspace.diff()))), null, null);
-                    case "judge" -> judge(job, workspace, cancelled);
+                    case "judge" -> judge(job, workspace, cancelled, logs);
                     default -> Outcome.failed("This worker does not know the action " + job.task(), null);
                 };
                 default -> Outcome.failed("This worker does not know runs of kind " + job.kind(), null);
@@ -86,7 +87,8 @@ class RunExecutor {
      * A code writer whose branch conflicts with the default branch starts from the merge, markers in
      * place; what it leaves is committed as the merge.
      */
-    private Outcome agent(ControlPlane.Job job, Workspace workspace, Path dir, BooleanSupplier cancelled) {
+    private Outcome agent(ControlPlane.Job job, Workspace workspace, Path dir, BooleanSupplier cancelled,
+                          StringBuilder logs) {
         boolean writes = job.input().path("writesCode").asBoolean(false);
         List<String> conflicts = writes && job.input().path("facts").path("branch.conflicted").asBoolean(false)
                 ? workspace.mergeDefaultBranch() : List.of();
@@ -110,6 +112,7 @@ class RunExecutor {
                 new Sandbox.Mount(out, "/out", true)),
                 settings.path("cpus").asDouble(2.0), settings.path("memoryMb").asInt(4096),
                 Duration.ofMinutes(settings.path("timeoutMinutes").asInt(30))), cancelled);
+        logs.append(exit.logs()).append("\n");
         Path resultFile = out.resolve("result.json");
         if (!Files.isRegularFile(resultFile)) {
             return Outcome.failed(exit.timedOut() ? "The agent timed out" : "The agent left no result (exit "
@@ -137,7 +140,7 @@ class RunExecutor {
     }
 
     /** The repository's tests, then the hidden acceptance tests if the specifier wrote some. */
-    private Outcome tests(ControlPlane.Job job, Workspace workspace, BooleanSupplier cancelled) {
+    private Outcome tests(ControlPlane.Job job, Workspace workspace, BooleanSupplier cancelled, StringBuilder logs) {
         Workspace.DiffStats diff = workspace.diffStats();
         JsonNode repository = job.input().get("repository");
         String reports = repository.get("testReports").asString();
@@ -146,7 +149,8 @@ class RunExecutor {
         String patch = workspace.diff();
         // what reviewers and the UI read; past the cap they have the branch
         evidence.put("patch", patch.length() > MAX_PATCH ? patch.substring(0, MAX_PATCH) + "\n[… cut]" : patch);
-        Object tests = suite(job, workspace, repository.get("testCommand").asString(), reports, cancelled, "tests");
+        Object tests = suite(job, workspace, repository.get("testCommand").asString(), reports, cancelled, "tests",
+                logs);
         if (tests instanceof String error) {
             return Outcome.failed(error, null);
         }
@@ -161,7 +165,7 @@ class RunExecutor {
             }
             // ponytail: counts every report the acceptance command writes; filter by the spec's files if it runs more
             Object acceptance = suite(job, workspace, spec.get("command").asString(), reports, cancelled,
-                    "acceptance tests");
+                    "acceptance tests", logs);
             if (acceptance instanceof String error) {
                 return Outcome.failed(error, null);
             }
@@ -170,19 +174,20 @@ class RunExecutor {
         return new Outcome(json.valueToTree(evidence), null, null);
     }
 
-    private Outcome judge(ControlPlane.Job job, Workspace workspace, BooleanSupplier cancelled) {
+    private Outcome judge(ControlPlane.Job job, Workspace workspace, BooleanSupplier cancelled, StringBuilder logs) {
         Object tests = suite(job, workspace, job.input().get("judge").get("command").asString(),
-                job.input().get("repository").get("testReports").asString(), cancelled, "hidden tests");
+                job.input().get("repository").get("testReports").asString(), cancelled, "hidden tests", logs);
         return tests instanceof String error ? Outcome.failed(error, null)
                 : new Outcome(json.valueToTree(Map.of("tests", tests)), null, null);
     }
 
     /** The suite a command's reports describe, or why there is none (an error message). */
     private Object suite(ControlPlane.Job job, Workspace workspace, String command, String reports,
-                         BooleanSupplier cancelled, String what) {
+                         BooleanSupplier cancelled, String what, StringBuilder logs) {
         Sandbox.Exit exit = sandbox.run(new Sandbox.Spec(image(job), List.of("sh", "-c", command), Map.of(),
                 List.of(new Sandbox.Mount(workspace.tree(), "/workspace", true)), properties.evidenceCpus(),
                 properties.evidenceMemoryMb(), properties.evidenceTimeout()), cancelled);
+        logs.append(exit.logs()).append("\n");
         if (exit.timedOut()) {
             return "The " + what + " timed out";
         }

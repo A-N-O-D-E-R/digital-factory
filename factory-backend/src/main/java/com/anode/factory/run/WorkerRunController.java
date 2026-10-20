@@ -29,9 +29,12 @@ class WorkerRunController {
     /** What an agent run used: the model(s) and tokens; null for runs calling no model. */
     record Usage(String model, long inputTokens, long outputTokens) {}
 
-    record Completion(JsonNode output, BigDecimal costUsd, Usage usage) {}
+    /** {@code logs}: the end of the sandboxes' output, kept for the people looking into the run. */
+    record Completion(JsonNode output, BigDecimal costUsd, Usage usage, String logs) {}
 
-    record Failure(String error, BigDecimal costUsd, Usage usage) {}
+    record Failure(String error, BigDecimal costUsd, Usage usage, String logs) {}
+
+    private static final int MAX_LOGS = 64 * 1024;
 
     private final RunQueue queue;
     private final WorkerRegistry registry;
@@ -70,20 +73,23 @@ class WorkerRunController {
     ResponseEntity<Void> complete(@PathVariable UUID runId, @RequestBody Completion completion, Authentication worker) {
         String output = completion.output() == null ? null : json.writeValueAsString(completion.output());
         queue.complete(runId, worker(worker), output, completion.costUsd());
-        record(runId, completion.usage());
+        record(runId, completion.usage(), completion.logs());
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/{runId}/fail")
     ResponseEntity<Void> fail(@PathVariable UUID runId, @RequestBody Failure failure, Authentication worker) {
         queue.fail(runId, worker(worker), failure.error(), failure.costUsd());
-        record(runId, failure.usage());
+        record(runId, failure.usage(), failure.logs());
         return ResponseEntity.noContent().build();
     }
 
-    private void record(UUID runId, Usage usage) {
+    private void record(UUID runId, Usage usage, String logs) {
         if (usage != null) {
             queue.used(runId, usage.model(), usage.inputTokens(), usage.outputTokens());
+        }
+        if (logs != null && !logs.isBlank()) {
+            queue.logged(runId, logs.length() > MAX_LOGS ? logs.substring(logs.length() - MAX_LOGS) : logs);
         }
     }
 

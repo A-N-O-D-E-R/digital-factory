@@ -264,6 +264,7 @@ class WorkerTest {
         assertThat(received).doesNotContainKey("complete");
         assertThat(new String(received.get("fail"), StandardCharsets.UTF_8))
                 .contains("did not run (exit 3", "no build tool here");
+        assertThat(json.readTree(received.get("fail")).get("logs").asString()).as("the sandbox's output").contains("no build tool here");
 
         received.clear();
         dispatcher.run(job("PUSH", "push-branch", "true", Map.of()));

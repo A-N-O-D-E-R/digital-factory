@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { useLiveEvents } from "../api/live";
 import { useQuery } from "@tanstack/react-query";
 import { api, type Run, type Schemas, type TimelineEvent } from "../api/client";
@@ -57,7 +57,7 @@ function WorkOrderPage() {
 
       <section className="flex flex-col gap-2">
         <h2 className="font-medium">Runs</h2>
-        <RunsTable runs={runs} />
+        <RunsTable workOrderId={workOrder.id} runs={runs} />
       </section>
 
       <section className="flex flex-col gap-2">
@@ -110,7 +110,8 @@ function Actions({ id, status }: { id: string; status: string }) {
   );
 }
 
-function RunsTable({ runs }: { runs: Run[] }) {
+function RunsTable({ workOrderId, runs }: { workOrderId: string; runs: Run[] }) {
+  const [open, setOpen] = useState<string>();
   return (
     <table className="w-full text-left text-xs">
       <thead className="text-muted-foreground">
@@ -118,16 +119,37 @@ function RunsTable({ runs }: { runs: Run[] }) {
       </thead>
       <tbody>
         {runs.map((run) => (
-          <tr key={run.id} className="border-t" title={run.error ?? undefined}>
-            <td className="py-1">{run.stepId} #{run.visit}</td><td>{run.task}</td><td>{run.attempt}</td>
-            <td>{run.status}</td><td className="font-mono">{run.model ?? "—"}</td>
-            <td>{run.inputTokens == null ? "—" : `${formatTokens(run.inputTokens)} → ${formatTokens(run.outputTokens ?? 0)}`}</td>
-            <td>{run.costUsd == null ? "—" : formatUsd(run.costUsd)}</td>
-            <td>{run.finishedAt ? format(new Date(run.finishedAt), "HH:mm:ss") : "—"}</td>
-          </tr>
+          <Fragment key={run.id}>
+            <tr onClick={() => setOpen(open === run.id ? undefined : run.id)} aria-expanded={open === run.id}
+                className="cursor-pointer border-t hover:bg-accent">
+              <td className="py-1">{run.stepId} #{run.visit}</td><td>{run.task}</td><td>{run.attempt}</td>
+              <td className={run.status === "FAILED" || run.status === "INVALID_OUTPUT" ? "text-failed" : ""}>{run.status}</td>
+              <td className="font-mono">{run.model ?? "—"}</td>
+              <td>{run.inputTokens == null ? "—" : `${formatTokens(run.inputTokens)} → ${formatTokens(run.outputTokens ?? 0)}`}</td>
+              <td>{run.costUsd == null ? "—" : formatUsd(run.costUsd)}</td>
+              <td>{run.finishedAt ? format(new Date(run.finishedAt), "HH:mm:ss") : "—"}</td>
+            </tr>
+            {open === run.id && <tr><td colSpan={8}><RunLogs workOrderId={workOrderId} run={run} /></td></tr>}
+          </Fragment>
         ))}
       </tbody>
     </table>
+  );
+}
+
+/** Why a run failed and the end of what its sandbox printed (untrusted text, shown as is). */
+function RunLogs({ workOrderId, run }: { workOrderId: string; run: Run }) {
+  const detail = useQuery({
+    queryKey: ["work-orders", workOrderId, "runs", run.id, "logs"],
+    queryFn: () => api.get(`work-orders/${workOrderId}/runs/${run.id}`).json<Schemas["RunOutput"]>(),
+  }).data;
+  return (
+    <div className="flex flex-col gap-1 py-2">
+      {run.error && <p className="whitespace-pre-wrap text-failed">{run.error}</p>}
+      <pre aria-label="Journal du run" className="max-h-80 overflow-auto rounded-md bg-muted p-2 font-mono text-xs">
+        {detail ? detail.logs ?? "Pas de journal." : "Chargement…"}
+      </pre>
+    </div>
   );
 }
 
