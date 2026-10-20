@@ -299,7 +299,7 @@ class PrWatchTest {
     void whatWebhooksMissPollingFindsAndAnEventSeenBothWaysCountsOnce() {
         Watched pr = watchedPullRequest();
         try {
-            forge.activity(List.of(
+            forge.activity(pr.number(), List.of(
                     new PrActivity("github:comment:77", "commented", "factory-user", false, "Done in abc.", null, null),
                     new PrActivity("github:comment:78", "commented", "maintainer", false, "Please rename it", null, null)));
             awaitStep(pr.id(), "triage");
@@ -313,7 +313,7 @@ class PrWatchTest {
             assertThat(events.findValuesAsString("id")).containsExactly("github:comment:77", "github:comment:78");
             assertThat(events.get(0).get("ignoredBecause").asString()).isEqualTo("author is the factory");
         } finally {
-            forge.activity(List.of());
+            forge.activity(pr.number(), List.of());
         }
     }
 

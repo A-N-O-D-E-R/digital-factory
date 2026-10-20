@@ -4,6 +4,8 @@ import com.anode.factory.repository.CodeRepository;
 import com.anode.factory.repository.ForgeType;
 import java.time.Instant;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -64,16 +66,16 @@ public class FakeForge implements Forge {
         return failedChecks;
     }
 
-    private volatile List<PrActivity> activity = List.of();
+    private final Map<Long, List<PrActivity>> activity = new ConcurrentHashMap<>();
 
-    /** What polling any PR finds from now on. */
-    public void activity(List<PrActivity> activity) {
-        this.activity = activity;
+    /** What polling PR {@code number} finds from now on (ids are the forge's: one comment is on one PR). */
+    public void activity(long number, List<PrActivity> activity) {
+        this.activity.put(number, activity);
     }
 
     @Override
     public List<PrActivity> activity(CodeRepository repository, PullRequest pullRequest) {
-        return activity;
+        return activity.getOrDefault(pullRequest.number(), List.of());
     }
 
     /** The fake factory comments as this user. */
