@@ -6,7 +6,7 @@ export type Condition =
   | { not: Condition };
 export type Transition = { when?: Condition; to: string; maxVisits?: number; onExhausted?: string };
 export type Step = {
-  id: string; kind: "agent" | "factory" | "gate"; roles?: string[]; join?: string; action?: string;
+  id: string; kind: "agent" | "factory" | "gate"; roles?: string[]; join?: string; action?: string; actions?: string[];
   gate?: string; when?: Condition; next: Transition[]; enabled?: boolean;
 };
 export type WorkflowDefinition = { description?: string; start: string; steps: Step[] };
@@ -23,6 +23,6 @@ export function describe(condition: Condition | undefined): string {
 
 export function what(step: Step): string {
   return (step.enabled === false ? "désactivée · " : "") + (step.kind === "agent" ? `agent ${step.roles?.join(" + ")}${step.join && step.join !== "all" ? ` (${step.join})` : ""}`
-    : step.kind === "factory" ? `action ${step.action}`
+    : step.kind === "factory" ? (step.actions ? `actions ${step.actions.join(" + ")} (en parallèle)` : `action ${step.action}`)
     : `barrière ${step.gate}${step.when ? ` si ${describe(step.when)}` : ""}`);
 }

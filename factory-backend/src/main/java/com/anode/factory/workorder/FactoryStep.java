@@ -95,7 +95,9 @@ class FactoryStep implements ContextualTask {
         StepResult result = switch (step.kind()) {
             case agent -> runs(workOrder, step, RunKind.AGENT, step.roles());
             case gate -> gate(workOrder, step);
-            case factory -> workOrder.eval() && PUBLISHING.contains(step.action())
+            case factory -> step.actions() != null
+                    ? runs(workOrder, step, RunKind.EVIDENCE, step.actions()) // checks at once
+                    : workOrder.eval() && PUBLISHING.contains(step.action())
                     ? judge(workOrder, step)
                     : WORKER_ACTIONS.containsKey(step.action())
                     ? runs(workOrder, step, WORKER_ACTIONS.get(step.action()), List.of(step.action()))

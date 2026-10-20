@@ -135,10 +135,31 @@
             },
             "with": {
               "type": "object"
+            },
+            "actions": {
+              "description": "Evidence actions run at once, as separate runs; their facts combine.",
+              "type": "array",
+              "minItems": 2,
+              "uniqueItems": true,
+              "items": {
+                "enum": [
+                  "run-tests",
+                  "secret-scan"
+                ]
+              }
             }
           },
-          "required": [
-            "action"
+          "anyOf": [
+            {
+              "required": [
+                "action"
+              ]
+            },
+            {
+              "required": [
+                "actions"
+              ]
+            }
           ]
         },
         {

@@ -258,10 +258,10 @@ public class WorkflowValidator {
                     continue;
                 }
                 Step step = steps.get(id);
-                if (step.kind() == WorkflowDefinition.Kind.factory && EVIDENCE.equals(step.action()) && !step.disabled()) {
+                if (step.kind() == WorkflowDefinition.Kind.factory && step.factoryActions().contains(EVIDENCE) && !step.disabled()) {
                     continue; // the change is proven here
                 }
-                if (step.kind() == WorkflowDefinition.Kind.factory && PUBLISHING.contains(step.action())) {
+                if (step.kind() == WorkflowDefinition.Kind.factory && step.factoryActions().stream().anyMatch(PUBLISHING::contains)) {
                     errors.add("step '" + id + "' (" + step.action() + ") can follow '" + writer.id()
                             + "' without the change being tested: put a run-tests step in between");
                     continue;

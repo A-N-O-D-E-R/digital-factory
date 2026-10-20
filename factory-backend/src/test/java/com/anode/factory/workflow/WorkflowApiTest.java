@@ -147,6 +147,15 @@ class WorkflowApiTest {
         }
 
         @Test
+        void checksAtOnceProveTheChangeWhenTheTestsAreAmongThem() {
+            String checks = """
+                    { "id": "verify", "kind": "factory", "actions": ["run-tests", "secret-scan"], "next": [{ "to": "push" }] }""";
+            assertThat(validate(linear(IMPLEMENT + "," + checks + "," + PUSH))).hasStatusOk().bodyJson()
+                    .hasPathSatisfying("$.valid", v -> assertThat(v).isEqualTo(true));
+            assertRefused(linear(IMPLEMENT + "," + checks.replace("\"run-tests\", ", "\"push-branch\", ") + "," + PUSH), "actions");
+        }
+
+        @Test
         void aDisabledTestStepProvesNothing() {
             assertRefused(linear(IMPLEMENT + "," + VERIFY.replace("\"action\": \"run-tests\",", "\"action\": \"run-tests\", \"enabled\": false,")
                     + "," + PUSH), "without the change being tested");

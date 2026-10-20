@@ -14,6 +14,7 @@ import com.anode.factory.FakeWorker;
 import com.anode.factory.IntegrationTest;
 import com.anode.factory.TestRepository;
 import java.time.Duration;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.BeforeEach;
@@ -369,6 +370,29 @@ class WorkOrderExecutionTest {
         worker.fail(implement, "sandbox crashed");
         assertThat(awaitStatus(id, "FAILED").get("workOrder").get("outcomeReason").asString())
                 .contains("after 1 attempt(s)");
+    }
+
+    @Test
+    void evidenceChecksRunAtOnceAndTheirFactsCombine() {
+        publish("checks", """
+                { "start": "implement", "steps": [
+                  { "id": "implement", "kind": "agent", "roles": ["implementer"], "next": [{ "to": "prove" }] },
+                  { "id": "prove", "kind": "factory", "actions": ["run-tests", "secret-scan"],
+                    "next": [{ "when": { "fact": "secrets.found", "equals": true }, "to": "@blocked" },
+                             { "when": { "fact": "tests.passed", "equals": true }, "to": "@done" }, { "to": "@failed" }] }
+                ] }""");
+        UUID id = create("checks");
+        worker.complete(claim("implementer"), implementation());
+        awaitStep(id, "prove");
+        FakeWorker.Job first = worker.claim();
+        FakeWorker.Job second = worker.claim();
+        assertThat(List.of(first.task(), second.task())).as("both queued at once").containsExactlyInAnyOrder("run-tests", "secret-scan");
+        for (FakeWorker.Job job : List.of(first, second)) {
+            worker.complete(job, job.task().equals("run-tests") ? tests(2, 0) : "{\"findings\":[]}");
+        }
+        JsonNode facts = awaitStatus(id, "DONE").get("workOrder").get("facts");
+        assertThat(facts.get("tests.passed").asBoolean()).isTrue();
+        assertThat(facts.get("secrets.found").asBoolean()).isFalse();
     }
 
     @Test

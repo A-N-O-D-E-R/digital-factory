@@ -57,7 +57,13 @@ public record WorkflowDefinition(String description, String start, List<Step> st
             Condition when,
             List<Transition> next,
             Map<String, Object> settings,
-            Boolean enabled) {
+            Boolean enabled,
+            List<String> actions) {
+
+        /** What a factory step runs: its action, or its evidence actions at once. */
+        public List<String> factoryActions() {
+            return actions != null ? actions : action == null ? List.of() : List.of(action);
+        }
 
         /** A disabled step is passed through: its transitions are taken on what is known already. */
         public boolean disabled() {
