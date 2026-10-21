@@ -3,6 +3,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { format } from "date-fns";
 import type { FormEvent } from "react";
 import { Field, formValues } from "../../components/Field";
+import { RepositoryChoice } from "../../components/ImportTicket";
 import { api, type Schemas } from "../../api/client";
 import { useAdminChange } from "../../api/useAdminChange";
 
@@ -11,10 +12,11 @@ export const Route = createFileRoute("/admin/intake")({ component: Intake });
 /** Tickets become work orders: by hand from a reference, or found by a rule's pass. */
 function Intake() {
   const rules = useQuery({ queryKey: ["intake"], queryFn: () => api.get("intake-rules").json<Schemas["RuleView"][]>() }).data;
+  const repositories = useQuery({ queryKey: ["repositories"], queryFn: () => api.get("repositories").json<Schemas["RepositoryView"][]>() }).data;
   const tickets = useQuery({ queryKey: ["intake", "tickets"], queryFn: () => api.get("tickets").json<Schemas["ImportedView"][]>() }).data;
   const poll = useAdminChange(["intake"], (id: string) => api.post(`intake-rules/${id}/poll`), "Passe effectuée");
-  const importTicket = useAdminChange(["intake"], ({ ticket, reimport }: { ticket: string; reimport?: boolean }) =>
-    api.post("tickets/import", { json: { ticket, reimport } }), "Ticket importé");
+  const importTicket = useAdminChange(["intake"], (json: { ticket: string; repository?: string; reimport?: boolean }) =>
+    api.post("tickets/import", { json }), "Ticket importé");
   const save = useAdminChange(["intake"], ({ id, ...body }: Record<string, unknown>) =>
     id ? api.put(`intake-rules/${id}`, { json: body }) : api.post("intake-rules", { json: body }), "Règle enregistrée");
   const ruleSettings = (r: Schemas["RuleView"]) => ({ source: r.source, project: r.project, filter: r.filter, repository: r.repository,
@@ -26,13 +28,15 @@ function Intake() {
   };
   const submit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    importTicket.mutate({ ticket: String(new FormData(e.currentTarget).get("ticket")) });
+    const form = new FormData(e.currentTarget);
+    importTicket.mutate({ ticket: String(form.get("ticket")), repository: String(form.get("repository")) || undefined });
   };
   return (
     <section className="flex flex-col gap-4">
       <form onSubmit={submit} className="flex gap-2">
         <input name="ticket" required placeholder="github:acme/api#12, OPS-12 ou URL du ticket" aria-label="Ticket"
                className="w-96 rounded-md border bg-transparent px-2 py-1.5" />
+        <RepositoryChoice repositories={repositories} />
         <button className="rounded-md border px-3 py-1.5 hover:bg-accent">Importer</button>
       </form>
       <h2 className="font-medium">Règles</h2>

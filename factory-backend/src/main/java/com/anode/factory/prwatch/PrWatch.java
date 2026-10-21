@@ -68,7 +68,7 @@ class PrWatch {
         String ignoredBecause = ignoredBecause(event, repository.get());
         ForgeEvent saved = events.save(new ForgeEvent(event, workOrder.get().id(), ignoredBecause, clock.instant()));
         Matcher command = event.body() == null ? null : COMMAND.matcher(event.body().strip());
-        if (ignoredBecause == null && !event.system() && command.lookingAt()) {
+        if (ignoredBecause == null && !event.system() && command != null && command.lookingAt()) {
             saved.consume(clock.instant()); // a command for the factory, not feedback on the work
             command(command.group(1), event, workOrder.get(), repository.get());
         } else if (ignoredBecause == null) {

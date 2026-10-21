@@ -17,7 +17,7 @@ function Workflow() {
   const { name } = Route.useParams();
   const history = useQuery({ queryKey: ["workflows", name], queryFn: () => api.get(`workflows/${name}/versions`).json<Schemas["VersionView"][]>() });
   const [selected, setSelected] = useState<number>();
-  const version = history.data?.find((v) => v.version === selected) ?? history.data?.at(-1);
+  const version = history.data?.find((v) => v.version === selected) ?? history.data?.[0]; // newest first
   if (!version) {
     return <p className="p-6 text-muted-foreground">{history.isError ? "Workflow introuvable." : "Chargement…"}</p>;
   }

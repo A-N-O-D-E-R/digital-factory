@@ -52,6 +52,8 @@ class WorkerTest {
     final AtomicInteger claims = new AtomicInteger();
     final List<String> heartbeats = new CopyOnWriteArrayList<>();
     Dispatcher dispatcher;
+    /** The repository's sandbox image. */
+    String image = "alpine:latest";
 
     @BeforeEach
     void start() throws Exception {
@@ -136,7 +138,7 @@ class WorkerTest {
                 "workOrder", Map.of("id", "wo-1", "branch", BRANCH, "title", title, "description", "d"),
                 "facts", facts,
                 "repository", Map.of("key", "github:acme/api", "defaultBranch", "main", "testCommand", testCommand,
-                        "testReports", REPORTS, "sandboxImage", "alpine:latest"),
+                        "testReports", REPORTS, "sandboxImage", image),
                 "task", task, "artifacts", artifacts, "writesCode", task.equals("implementer"),
                 "settings", Map.of("timeoutMinutes", 2, "cpus", 1, "memoryMb", 256)));
         return new ControlPlane.Job(UUID.randomUUID(), UUID.randomUUID(), kind, task, 1, input,
@@ -257,6 +259,23 @@ class WorkerTest {
         dispatcher.run(job("UPDATE", "update-branch", "true", Map.of()));
         assertThat(completed()).isEqualTo(json.readTree("{\"updated\":true,\"conflicts\":[]}"));
         assertThat(received).containsKey("bundle");
+    }
+
+    @Test
+    void theRepositorysCommandsRunInsteadOfTheImagesEntrypoint() throws Exception {
+        // like factory-sandbox: an image whose entrypoint is the agent runner
+        Process build = new ProcessBuilder("docker", "build", "-q", "-t", "factory-worker-test:entrypoint", "-")
+                .redirectErrorStream(true).start();
+        build.getOutputStream().write("FROM alpine:latest\nENTRYPOINT [\"sh\", \"-c\", \"echo the runner; exit 9\"]\n"
+                .getBytes(StandardCharsets.UTF_8));
+        build.getOutputStream().close();
+        assertThat(build.waitFor()).as(new String(build.getInputStream().readAllBytes(), StandardCharsets.UTF_8)).isZero();
+        image = "factory-worker-test:entrypoint";
+
+        dispatcher.run(job("EVIDENCE", "run-tests", """
+                mkdir -p target/surefire-reports && \
+                printf '<testsuite><testcase name="ok"/></testsuite>' > target/surefire-reports/TEST-A.xml""", Map.of()));
+        assertThat(completed().get("tests").get("total").asInt()).isEqualTo(1);
     }
 
     @Test

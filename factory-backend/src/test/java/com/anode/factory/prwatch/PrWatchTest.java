@@ -198,6 +198,15 @@ class PrWatchTest {
     }
 
     @Test
+    void aReviewWithoutTextIsRecorded() {
+        Watched pr = watchedPullRequest();
+
+        assertThat(deliver("pull_request_review", review(pr.number(), "approved", "maintainer", "User")
+                .replace("\"Please round half-even\"", "null"))).hasStatus(202);
+        assertThat(get("/api/work-orders/{id}/pr-events", pr.id()).findValuesAsString("kind")).containsExactly("approved");
+    }
+
+    @Test
     void strangersAndBotsAreRecordedButIgnored() {
         Watched pr = watchedPullRequest();
 

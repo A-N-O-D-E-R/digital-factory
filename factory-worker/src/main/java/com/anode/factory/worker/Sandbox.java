@@ -90,7 +90,8 @@ class Sandbox {
                 .withWorkingDir("/workspace")
                 .withHostConfig(host);
         if (!spec.command().isEmpty()) {
-            create.withCmd(spec.command());
+            // the command replaces the image's entrypoint (factory-sandbox's is the agent runner), not its arguments
+            create.withEntrypoint(spec.command());
         }
         String id = create.exec().getId();
         try {

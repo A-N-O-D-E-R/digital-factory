@@ -165,7 +165,9 @@ Deux façons, réservées aux développeurs et administrateurs.
 ### Import d'un ticket
 
 **Importer un ticket** accepte une clé ou une URL : `OPS-12` (Jira), `github:acme/api#12`, ou l'URL d'une issue
-GitHub/GitLab, d'une page Notion. Le ticket devient un work order sur le dépôt qui lui correspond. Pour importer
+GitHub/GitLab, d'une page Notion. Le ticket devient un work order sur le dépôt choisi ; « Dépôt du ticket »
+convient aux issues GitHub/GitLab, un ticket Jira ou Notion demande de choisir le dépôt. Une réimportation va
+sur le dépôt de l'import précédent. Pour importer
 automatiquement, voir les règles d'import ([11.8](#118-tickets--import-et-règles)).
 
 ![Import d'un ticket](images/05-importer-ticket.png)
@@ -461,7 +463,9 @@ Avant de promouvoir un changement de prompt ou de modèle partout, l'évaluer ([
   | Workflow | `default` si vide |
   | Lus au plus / Créés au plus par passe | garde-fous contre un filtre trop large |
 
-  **Lancer une passe** exécute la règle tout de suite ; la colonne *Dernière passe* donne l'heure ou l'erreur
+  Chaque règle active est passée **automatiquement toutes les 5 minutes** (propriété `factory.intake.interval`,
+  par exemple `FACTORY_INTAKE_INTERVAL=1m`) ; un ticket n'est importé qu'une fois. **Lancer une passe** exécute la
+  règle tout de suite ; la colonne *Dernière passe* donne l'heure ou l'erreur
   (intégration non configurée, 401…). **Désactiver** suspend une règle.
 - **Tickets importés** : le lien vers le ticket et son work order. **Réimporter** crée un nouveau work order pour
   le même ticket.

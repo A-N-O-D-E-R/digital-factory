@@ -129,6 +129,32 @@ describe("the factory UI", () => {
     expect(screen.queryByRole("button", { name: "Publier" })).not.toBeInTheDocument(); // not an admin
   });
 
+  it("opens a workflow on its newest version", async () => {
+    const definition = (description: string) => ({ start: "a", description, steps: [{ id: "a", kind: "agent", roles: ["implementer"], next: [{ to: "@done" }] }] });
+    fakeApi({
+      "GET /api/user": user(["work-order:read"]), "GET /api/work-orders": [], "GET /api/approvals": [],
+      "GET /api/workflows/mini/versions": [2, 1].map((version) => ({ name: "mini", version, definition: definition(`v${version}`),
+        note: `note ${version}`, createdBy: "ada", createdAt: "2026-10-20T10:00:00Z" })), // the API's order: newest first
+    });
+    await renderApp("/workflows/mini");
+    expect(await screen.findByRole("combobox")).toHaveDisplayValue(/^v2/);
+  });
+
+  it("imports a ticket onto the repository chosen for it", async () => {
+    document.cookie = "XSRF-TOKEN=t";
+    const calls = fakeApi({
+      "GET /api/user": user(["work-order:read", "work-order:write"]), "GET /api/work-orders": [], "GET /api/approvals": [],
+      "GET /api/repositories": [{ key: "github:acme/api", active: true }],
+      "POST /api/tickets/import": { ticket: "jira:OPS-12", workOrderId: "wo-1" },
+    });
+    await renderApp("/?action=import-ticket");
+    fireEvent.change(await screen.findByLabelText("Ticket"), { target: { value: "OPS-12" } });
+    fireEvent.change(await screen.findByRole("option", { name: "github:acme/api" }).then(() => screen.getByLabelText("Dépôt")), { target: { value: "github:acme/api" } });
+    fireEvent.click(screen.getByRole("button", { name: "Importer" }));
+    await vi.waitFor(() => expect(calls.find((c) => c.what === "POST /api/tickets/import")?.body)
+      .toEqual({ ticket: "OPS-12", repository: "github:acme/api" }));
+  });
+
   it("lets an admin pause the factory and change the settings with a reason", async () => {
     document.cookie = "XSRF-TOKEN=t";
     const admin = { name: "ada", roles: ["ADMIN"], permissions: ["work-order:read", "settings:write"] };

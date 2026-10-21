@@ -70,7 +70,9 @@ public class Intake {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     ref.key() + " is already imported as work order " + existing.get().workOrderId());
         }
-        String target = repository != null ? repository : source.repositoryOf(ref).orElseThrow(() ->
+        // a reimport goes where the ticket went before: Jira and Notion tickets do not name a repository
+        Optional<String> before = existing.map(e -> workOrders.get(e.workOrderId()).repository());
+        String target = repository != null ? repository : before.or(() -> source.repositoryOf(ref)).orElseThrow(() ->
                 new ResponseStatusException(HttpStatus.BAD_REQUEST, "Which repository is " + ref.key() + " for?"));
         return create(source.read(ref), target, workflow, null, by, existing);
     }

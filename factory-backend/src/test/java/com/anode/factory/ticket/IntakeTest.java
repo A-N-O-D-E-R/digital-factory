@@ -88,6 +88,18 @@ class IntakeTest {
     }
 
     @Test
+    void aReimportGoesToTheRepositoryTheTicketWentToBefore() {
+        issues.file("acme/elsewhere", 7, "Tracked elsewhere", "bug"); // its own repository is not registered
+
+        MvcTestResult imported = importTicket(Map.of("ticket", "github:acme/elsewhere#7", "repository", TestRepository.KEY));
+        assertThat(imported).hasStatus(201);
+        MvcTestResult again = importTicket(Map.of("ticket", "github:acme/elsewhere#7", "reimport", true));
+        assertThat(again).hasStatus(201);
+        assertThat(workOrder(body(again).get("workOrderId").asString()).get("repository").asString())
+                .isEqualTo(TestRepository.KEY);
+    }
+
+    @Test
     void rulesImportNewTicketsWithinTheirCaps() {
         for (int number = 201; number <= 205; number++) {
             issues.file("acme/api", number, "Docs " + number, "factory-docs");
