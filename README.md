@@ -4,6 +4,7 @@ Usine logicielle autonome : du ticket à la PR, avec preuves produites par l'usi
 
 - Spec : voir l'issue « Spec: Digital Factory v1 » de ce dépôt.
 - Vocabulaire : [CONTEXT.md](CONTEXT.md).
+- Guide d'utilisation, avec captures : [docs/guide-utilisateur.md](docs/guide-utilisateur.md).
 
 ## Modules
 
