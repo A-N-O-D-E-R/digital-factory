@@ -114,12 +114,12 @@ class WorkerTest {
         server.start();
         WorkerProperties properties = new WorkerProperties("http://localhost:" + server.getAddress().getPort(), "t",
                 1, tmp.resolve("work"), Duration.ofMillis(100), Duration.ofSeconds(1), "none", null, null, "factory-worker:test",
-                List.of("sh", "-c", AGENT), Duration.ofMinutes(2), 1.0, 256);
+                List.of("sh", "-c", AGENT), Duration.ofMinutes(2), 1.0, 256, "docker");
         ControlPlane controlPlane = HttpServiceProxyFactory.builderFor(RestClientAdapter.create(
                         RestClient.builder().baseUrl(properties.controlPlaneUrl())
                                 .defaultHeader("Authorization", "Bearer t").build()))
                 .build().createClient(ControlPlane.class);
-        dispatcher = new Dispatcher(controlPlane, new RunExecutor(controlPlane, new Sandbox(properties), properties,
+        dispatcher = new Dispatcher(controlPlane, new RunExecutor(controlPlane, new DockerSandbox(properties), properties,
                 json), properties);
     }
 

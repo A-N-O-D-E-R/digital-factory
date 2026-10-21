@@ -25,4 +25,13 @@ public class WorkerApplication {
         return HttpServiceProxyFactory.builderFor(RestClientAdapter.create(client)).build()
                 .createClient(ControlPlane.class);
     }
+
+    @Bean
+    Sandbox sandbox(WorkerProperties properties) {
+        return switch (properties.sandbox()) {
+            case "docker" -> new DockerSandbox(properties);
+            default -> throw new IllegalStateException(
+                    "Unknown factory.worker.sandbox \"" + properties.sandbox() + "\": docker");
+        };
+    }
 }

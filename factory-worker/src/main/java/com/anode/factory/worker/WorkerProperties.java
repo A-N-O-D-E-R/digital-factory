@@ -31,7 +31,9 @@ public record WorkerProperties(
         /* limits of the sandboxes running no agent (tests, judge) */
         Duration evidenceTimeout,
         Double evidenceCpus,
-        Integer evidenceMemoryMb) {
+        Integer evidenceMemoryMb,
+        /* where sandboxes run: "docker", the local daemon */
+        String sandbox) {
 
     public WorkerProperties {
         slots = slots == null ? 1 : slots;
@@ -43,5 +45,6 @@ public record WorkerProperties(
         evidenceTimeout = evidenceTimeout == null ? Duration.ofMinutes(30) : evidenceTimeout;
         evidenceCpus = evidenceCpus == null ? 2.0 : evidenceCpus;
         evidenceMemoryMb = evidenceMemoryMb == null ? 4096 : evidenceMemoryMb;
+        sandbox = sandbox == null ? "docker" : sandbox;
     }
 }
