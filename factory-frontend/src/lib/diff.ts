@@ -21,29 +21,41 @@ export function splitDiff(patch: string): FileDiff[] {
     removed = [];
     added = [];
   };
-  for (const line of patch.split("\n")) {
+  // a hunk's body is as long as its header says: the only way to tell a removed "-- comment" from a file header,
+  // or a blank context line (its space stripped) from the end of the patch. A file or hunk header still ends it,
+  // should the counts be wrong (a hand-made patch): no body line starts with "d" or "@".
+  let leftToGo = 0;
+  let rightToGo = 0;
+  for (const line of patch.replace(/\n$/, "").split("\n")) {
     if (line.startsWith("diff --git ")) {
       if (file) flush();
+      leftToGo = rightToGo = 0;
       file = { path: line.replace(/^diff --git a\/.+ b\//, ""), rows: [] };
       files.push(file);
-    } else if (!file || line.startsWith("--- ") || line.startsWith("+++ ") || line.startsWith("index ")
-      || line.startsWith("new file") || line.startsWith("deleted file") || line.startsWith("\\")) {
-      continue;
-    } else if (line.startsWith("@@")) {
+    } else if (file && line.startsWith("@@")) {
       flush();
-      const m = /^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@(.*)$/.exec(line);
+      const m = /^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@/.exec(line);
       left = Number(m?.[1] ?? 0);
-      right = Number(m?.[2] ?? 0);
+      right = Number(m?.[3] ?? 0);
+      leftToGo = Number(m?.[2] ?? 1);
+      rightToGo = Number(m?.[4] ?? 1);
       file.rows.push({ hunk: line });
-    } else if (line.startsWith("-")) {
-      removed.push({ number: left++, text: line.slice(1), kind: "removed" });
-    } else if (line.startsWith("+")) {
-      added.push({ number: right++, text: line.slice(1), kind: "added" });
-    } else if (line.startsWith(" ")) {
-      flush();
-      file.rows.push({ left: { number: left++, text: line.slice(1), kind: "context" },
-                       right: { number: right++, text: line.slice(1), kind: "context" } });
-    }
+    } else if (file && (leftToGo > 0 || rightToGo > 0)) {
+      if (line.startsWith("\\")) continue; // "\ No newline at end of file"
+      if (line.startsWith("-")) {
+        removed.push({ number: left++, text: line.slice(1), kind: "removed" });
+        leftToGo--;
+      } else if (line.startsWith("+")) {
+        added.push({ number: right++, text: line.slice(1), kind: "added" });
+        rightToGo--;
+      } else {
+        flush();
+        const text = line.slice(1);
+        file.rows.push({ left: { number: left++, text, kind: "context" }, right: { number: right++, text, kind: "context" } });
+        leftToGo--;
+        rightToGo--;
+      }
+    } // anything else is a file header: index, mode, ---/+++
   }
   if (file) flush();
   return files;

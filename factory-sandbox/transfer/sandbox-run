@@ -1,0 +1,51 @@
+#!/bin/sh
+# Entrypoint of sandboxes that cannot be given the worker's directories (ECS Fargate): fetches them
+# from URLs, runs the command given as arguments, sends the writable ones back.
+#
+# For each directory i = 0, 1... (the first missing SANDBOX_MOUNT_<i>_PATH ends the list):
+#   SANDBOX_MOUNT_<i>_PATH  where it is (/workspace, /job...)
+#   SANDBOX_MOUNT_<i>_GET   a gzipped tar of its content (optional: starts empty)
+#   SANDBOX_MOUNT_<i>_PUT   where its content goes after the command, as a gzipped tar (optional: read-only)
+# The URLs are presigned S3 URLs: no credential reaches the sandbox, and transfers do not go through
+# the egress proxy (the network allows the bucket only). The variables are removed before the command.
+#
+# Exits with the command's code, or 125 when a directory cannot be fetched (the command does not run)
+# or sent back (the run's output is lost).
+set -u
+
+transfer() { curl --fail --silent --show-error --retry 3 --noproxy '*' "$@"; }
+
+n=0
+while eval "path=\${SANDBOX_MOUNT_${n}_PATH:-}"; [ -n "$path" ]; do
+  eval "get=\${SANDBOX_MOUNT_${n}_GET:-} put_$n=\${SANDBOX_MOUNT_${n}_PUT:-} path_$n=\$path"
+  unset "SANDBOX_MOUNT_${n}_PATH" "SANDBOX_MOUNT_${n}_GET" "SANDBOX_MOUNT_${n}_PUT"
+  mkdir -p "$path" || exit 125
+  if [ -n "$get" ]; then
+    archive=/tmp/sandbox-run-in-$n.tgz
+    if ! transfer --output "$archive" "$get" || ! tar -xzf "$archive" -C "$path"; then
+      echo "sandbox-run: cannot fetch $path" >&2
+      exit 125
+    fi
+    rm -f "$archive"
+  fi
+  n=$((n + 1))
+done
+
+"$@"
+code=$?
+
+i=0
+while [ "$i" -lt "$n" ]; do
+  eval "put=\$put_$i path=\$path_$i"
+  if [ -n "$put" ]; then
+    archive=/tmp/sandbox-run-out-$i.tgz
+    # a file, not a pipe: S3 wants the length of what is put
+    if ! tar -czf "$archive" -C "$path" . || ! transfer --upload-file "$archive" "$put"; then
+      echo "sandbox-run: cannot send $path back" >&2
+      code=125
+    fi
+    rm -f "$archive"
+  fi
+  i=$((i + 1))
+done
+exit "$code"

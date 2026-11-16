@@ -140,6 +140,25 @@ describe("the factory UI", () => {
     expect(await screen.findByRole("combobox")).toHaveDisplayValue(/^v2/);
   });
 
+  it("builds a new workflow on the canvas and publishes it", async () => {
+    document.cookie = "XSRF-TOKEN=t";
+    const calls = fakeApi({
+      "GET /api/user": { name: "ada", roles: ["ADMIN"], permissions: ["work-order:read"] }, "GET /api/work-orders": [], "GET /api/approvals": [],
+      "GET /api/workflows/review-twice/versions": [],
+      "POST /api/workflows/review-twice/versions": { name: "review-twice", version: 1, definition: {}, note: "Création", createdBy: "ada", createdAt: "2026-10-20T10:00:00Z" },
+    });
+    await renderApp("/workflows/review-twice");
+    expect(await screen.findByText("nouveau, non publié")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Agent" })); // from the palette: added and selected
+    expect(screen.getByLabelText("Identifiant")).toHaveValue("agent-1");
+    fireEvent.click(screen.getByRole("button", { name: "reviewer" }));
+    fireEvent.change(screen.getByLabelText("Destination 1"), { target: { value: "implement" } });
+    fireEvent.click(screen.getByRole("button", { name: "Publier" }));
+    await screen.findByText("Version 1 publiée");
+    const body = calls.find((c) => c.what === "POST /api/workflows/review-twice/versions")!.body as { definition: { steps: unknown[] } };
+    expect(body.definition.steps).toContainEqual({ id: "agent-1", kind: "agent", roles: ["implementer", "reviewer"], next: [{ to: "implement" }] });
+  });
+
   it("imports a ticket onto the repository chosen for it", async () => {
     document.cookie = "XSRF-TOKEN=t";
     const calls = fakeApi({

@@ -50,3 +50,20 @@ html { color-scheme: light; }
 html.dark { color-scheme: dark; }
 body { @apply bg-background text-foreground font-sans text-sm antialiased; }
 * { @apply border-border; }
+
+/* React Flow in the app's palette, light and dark */
+.react-flow {
+  --xy-background-color: var(--background);
+  --xy-background-pattern-color: var(--border);
+  --xy-edge-stroke: var(--muted-foreground);
+  --xy-edge-stroke-selected: var(--foreground);
+  --xy-connectionline-stroke: var(--working);
+  --xy-edge-label-background-color: var(--background);
+  --xy-edge-label-color: var(--muted-foreground);
+  --xy-controls-button-background-color: var(--background);
+  --xy-controls-button-background-color-hover: var(--accent);
+  --xy-controls-button-color: var(--foreground);
+  --xy-controls-button-border-color: var(--border);
+  --xy-node-boxshadow-selected: none;
+}
+.react-flow__edge-text { font-size: 11px; }

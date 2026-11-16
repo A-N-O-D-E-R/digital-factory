@@ -33,4 +33,26 @@ describe("splitDiff", () => {
     expect(totals.rows[5]).toEqual({ left: { number: 4, text: "}", kind: "context" }, right: { number: 5, text: "}", kind: "context" } });
     expect(created).toEqual({ path: "NEW.md", rows: [{ hunk: "@@ -0,0 +1 @@" }, { left: null, right: { number: 1, text: "hello", kind: "added" } }] });
   });
+
+  it("reads a removed SQL comment and a stripped blank line as lines, not headers", () => {
+    const [sql] = splitDiff(`diff --git a/v1.sql b/v1.sql
+--- a/v1.sql
++++ b/v1.sql
+@@ -1,3 +1,3 @@
+--- old note
++++ counter
+ 
+ select 1;
+`.replace("\n \n", "\n\n")); // the blank context line, its space stripped by an editor
+    expect(sql.rows[1]).toEqual({ left: { number: 1, text: "-- old note", kind: "removed" }, right: { number: 1, text: "++ counter", kind: "added" } });
+    expect(sql.rows[2]).toMatchObject({ left: { number: 2, text: "", kind: "context" } });
+    expect(sql.rows[3]).toMatchObject({ left: { number: 3, text: "select 1;" }, right: { number: 3 } });
+    expect(sql.rows).toHaveLength(4);
+  });
+
+  it("still splits files when a hand-made patch miscounts its hunk", () => {
+    const files = splitDiff(patch.replace("@@ -1,4 +1,5 @@", "@@ -1,9 +1,9 @@"));
+    expect(files.map((f) => f.path)).toEqual(["totals.js", "NEW.md"]);
+    expect(files[0].rows.at(-1)).toMatchObject({ left: { text: "}" } });
+  });
 });

@@ -20,7 +20,7 @@ test("an admin signs in, moves around and sees the factory's state", async ({ pa
   await expect(page.getByText("Non configurée").first()).toBeVisible(); // nothing set up locally
 
   await page.goto("/workflows/default");
-  await expect(page.getByText(/action watch-pr/)).toBeVisible();
+  await expect(page.getByRole("region", { name: "Graphe" }).getByText(/action watch-pr/)).toBeVisible(); // drawn on the canvas
   await page.getByRole("button", { name: "Valider" }).click();
   await expect(page.getByText("Workflow valide.")).toBeVisible();
 });

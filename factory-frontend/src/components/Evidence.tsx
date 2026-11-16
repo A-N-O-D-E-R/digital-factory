@@ -83,7 +83,7 @@ const SIDE_COLORS = { removed: "bg-failed/15", added: "bg-done/15", context: "" 
 function Cell({ side }: { side: Side | null }) {
   return (
     <>
-      <td className="w-10 select-none pr-2 text-right align-top text-muted-foreground">{side?.number}</td>
+      <td className="select-none pr-2 text-right align-top text-muted-foreground">{side?.number}</td>
       <td className={`whitespace-pre-wrap break-all align-top ${side ? SIDE_COLORS[side.kind] : "bg-muted"}`}>{side?.text}</td>
     </>
   );
@@ -97,6 +97,8 @@ function SplitDiff({ patch }: { patch: string }) {
         <details key={file.path} open className="overflow-hidden rounded-lg border">
           <summary className="cursor-pointer bg-muted px-3 py-1.5 font-mono text-xs">{file.path}</summary>
           <table className="w-full table-fixed font-mono text-xs">
+            {/* table-fixed takes widths from the first row, a hunk header spanning all: they are set here */}
+            <colgroup><col className="w-12" /><col /><col className="w-12" /><col /></colgroup>
             <tbody>
               {file.rows.map((row, i) => "hunk" in row ? (
                 <tr key={i}><td colSpan={4} className="bg-accent px-2 py-0.5 text-muted-foreground">{row.hunk}</td></tr>

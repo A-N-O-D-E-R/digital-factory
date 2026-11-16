@@ -4,7 +4,7 @@ FROM node:24-bookworm-slim AS node
 
 FROM eclipse-temurin:25-jdk-noble
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends git maven ca-certificates ripgrep \
+    && apt-get install -y --no-install-recommends git maven ca-certificates ripgrep curl \
     && rm -rf /var/lib/apt/lists/*
 COPY --from=node /usr/local/bin/node /usr/local/bin/node
 COPY --from=node /usr/local/lib/node_modules /usr/local/lib/node_modules
@@ -18,6 +18,8 @@ RUN pnpm install --prod --frozen-lockfile
 COPY runner.ts ./
 # git in the sandbox reads the worker's git directory, mounted read-only and owned by another user
 RUN git config --system --add safe.directory '*'
+# the entrypoint where the worker's directories cannot be mounted (ECS Fargate): see the script
+COPY transfer/sandbox-run /usr/local/bin/sandbox-run
 
 WORKDIR /workspace
 ENTRYPOINT ["node", "/runner/runner.ts"]
