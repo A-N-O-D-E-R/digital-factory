@@ -12,6 +12,6 @@ const COLORS: Record<AgentState, string> = {
 export function AgentStateDot({ state }: { state: AgentState }) {
   return (
     <span role="img" aria-label={STATE_LABELS[state]} title={STATE_LABELS[state]}
-          className={`inline-block size-2 shrink-0 rounded-full ${COLORS[state]}`} />
+          className={`inline-block size-2 shrink-0 rounded-full ring-1 ring-white/70 ${COLORS[state]}`} />
   );
 }

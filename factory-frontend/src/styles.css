@@ -3,7 +3,7 @@
 @import "@fontsource-variable/geist";
 @import "@fontsource-variable/geist-mono";
 
-/* Neutral palette, colour for states only. Light by default, .dark on <html> (the system's, or chosen). */
+/* Neutral palette, colour for states only. */
 :root {
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
@@ -18,14 +18,6 @@
   --done: oklch(0.6 0.15 150);
   --idle: oklch(0.708 0 0);
   --radius: 0.625rem;
-}
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --muted: oklch(0.205 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --border: oklch(1 0 0 / 10%);
-  --accent: oklch(0.269 0 0);
 }
 
 @theme inline {
@@ -47,23 +39,7 @@
 }
 
 html { color-scheme: light; }
-html.dark { color-scheme: dark; }
-body { @apply bg-background text-foreground font-sans text-sm antialiased; }
-* { @apply border-border; }
+html.react-flow__edge-text { font-size: 11px; }
 
-/* React Flow in the app's palette, light and dark */
-.react-flow {
-  --xy-background-color: var(--background);
-  --xy-background-pattern-color: var(--border);
-  --xy-edge-stroke: var(--muted-foreground);
-  --xy-edge-stroke-selected: var(--foreground);
-  --xy-connectionline-stroke: var(--working);
-  --xy-edge-label-background-color: var(--background);
-  --xy-edge-label-color: var(--muted-foreground);
-  --xy-controls-button-background-color: var(--background);
-  --xy-controls-button-background-color-hover: var(--accent);
-  --xy-controls-button-color: var(--foreground);
-  --xy-controls-button-border-color: var(--border);
-  --xy-node-boxshadow-selected: none;
-}
-.react-flow__edge-text { font-size: 11px; }
+/* Brand gradient: blue -> pink -> orange (sidebar, login) */
+.brand-gradient { background: radial-gradient(circle at 15% 10%, #1e3a8a 0%, #3b82f6 28%, #ec4899 60%, #fb923c 85%, #fdba74 100%); }
