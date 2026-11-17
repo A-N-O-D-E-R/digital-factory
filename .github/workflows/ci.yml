@@ -1,5 +1,4 @@
-# The parts that build from public packages. The backend and the worker need the starter collection,
-# a local snapshot today: their job comes once it is published (mvn test, Docker required).
+# Backend, worker and frontend run through the collection's reusable workflow (baseline: ADR 0001).
 name: CI
 on:
   push:
@@ -7,25 +6,26 @@ on:
   pull_request:
 
 jobs:
-  frontend:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: factory-frontend
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 10
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: pnpm
-          cache-dependency-path: factory-frontend/pnpm-lock.yaml
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm lint
-      - run: pnpm test
-      - run: pnpm build
+  # backend (mvn verify, Testcontainers) + frontend (pnpm lint/test/build) + factory image
+  factory:
+    uses: A-N-O-D-E-R/springboot-starter-collection/.github/workflows/reusable-ci.yml@phase0-baseline # → @v0.2.0 once released
+    with:
+      frontend-dir: factory-frontend
+      image-name: ghcr.io/a-n-o-d-e-r/digital-factory
+      dockerfile: deploy/factory.Dockerfile
+    permissions:
+      contents: read
+      packages: write
+
+  worker:
+    uses: A-N-O-D-E-R/springboot-starter-collection/.github/workflows/reusable-ci.yml@phase0-baseline # → @v0.2.0 once released
+    with:
+      maven-dir: ''
+      image-name: ghcr.io/a-n-o-d-e-r/digital-factory-worker
+      dockerfile: deploy/worker.Dockerfile
+    permissions:
+      contents: read
+      packages: write
 
   sandbox:
     runs-on: ubuntu-latest

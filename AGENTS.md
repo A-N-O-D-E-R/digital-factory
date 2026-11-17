@@ -12,4 +12,4 @@ The five default roles, each label named after its role (`needs-triage`, `needs-
 
 ### Domain docs
 
-Single-context: the glossary is `CONTEXT.md` at the root, ADRs go in `docs/adr/`. See `docs/agents/domain.md`.
+Single-context: the glossary is `GLOSSARY.md` at the root, ADRs go in `docs/adr/`. See `docs/agents/domain.md`.

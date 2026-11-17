@@ -1,5 +1,5 @@
 # The factory on one host: Postgres, the control plane (with the UI), a worker, the egress proxy.
-# Build first (see deploy/*.Dockerfile), set the variables below (a .env file next to this one), then
+# Build the images first (see deploy/*.Dockerfile; they build from source), set the variables below (a .env file next to this one), then
 #   docker compose up -d
 # and register the worker as an admin (Admin > Workers): its token goes in FACTORY_WORKER_TOKEN.
 include:
