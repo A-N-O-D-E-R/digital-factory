@@ -6,7 +6,7 @@ jusqu'à sa fusion. Elle s'arrête aux **barrières** où un humain doit décide
 affirme : diff, tests, tests d'acceptation, avis des relecteurs.
 
 Ce guide suit l'interface page par page. Le vocabulaire (work order, step, gate, evidence…) est défini dans
-[CONTEXT.md](../CONTEXT.md).
+[GLOSSARY.md](../GLOSSARY.md).
 
 > Les captures viennent d'une usine locale (`dev/run-local.sh`) remplie de données de démonstration : dépôts,
 > work orders et coûts sont fictifs.

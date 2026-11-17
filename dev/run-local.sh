@@ -17,4 +17,4 @@ FACTORY_OIDC_ENABLED=false ANODE_SECURITY_MOCK=true \
 FACTORY_WORKER_JWT_SECRET=${FACTORY_WORKER_JWT_SECRET:-local-only-secret-0123456789abcdef0123} \
 FACTORY_PUBLIC_URL=http://localhost:$PORT SERVER_PORT=$PORT \
 SPRING_WEB_RESOURCES_STATIC_LOCATIONS=file:factory-frontend/dist/ \
-  exec java -jar factory-backend/target/factory-backend-0.1.0-SNAPSHOT.jar
+  exec java -jar factory-backend/target/factory-backend-*.jar

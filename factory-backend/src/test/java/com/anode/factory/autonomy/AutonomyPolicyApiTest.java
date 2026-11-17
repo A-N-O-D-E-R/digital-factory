@@ -30,9 +30,16 @@ class AutonomyPolicyApiTest {
                 .hasPathSatisfying("$.length()", n -> assertThat(n).isEqualTo(8))
                 .hasPathSatisfying("$[?(@.type == 'SECURITY')].level", l -> assertThat(l).asArray().containsExactly("DRAFT_PR"));
 
-        assertThat(grant(admin(), "DOCUMENTATION", "{\"level\":\"MERGE\",\"minSuccessRate\":0.9}")).hasStatusOk().bodyJson()
-                .hasPathSatisfying("$.updatedBy", by -> assertThat(by).isEqualTo("ada"))
-                .hasPathSatisfying("$.successRate", rate -> assertThat(rate).isNull());
+        // a grant never changes the measured rate; other tests may already have measured one in the shared database
+        var measured = mvc.get().uri("/api/autonomy-policy").with(viewer()).exchange();
+        String rateBefore = String.valueOf(assertThat(measured).bodyJson()
+                .extractingPath("$[?(@.type == 'DOCUMENTATION')].successRate").actual());
+
+        var granted = grant(admin(), "DOCUMENTATION", "{\"level\":\"MERGE\",\"minSuccessRate\":0.9}");
+        assertThat(granted).hasStatusOk().bodyJson()
+                .hasPathSatisfying("$.updatedBy", by -> assertThat(by).isEqualTo("ada"));
+        String rateAfter = "[" + assertThat(granted).bodyJson().extractingPath("$.successRate").actual() + "]";
+        assertThat(rateAfter).isEqualTo(rateBefore);
     }
 
     @Test
