@@ -10,6 +10,9 @@ import { ApprovalDecision } from "../components/Approvals";
 import { AgentStateDot } from "../components/AgentStateDot";
 import { Evidence, Plan } from "../components/Evidence";
 import { agentState, STATUS_LABELS } from "../lib/status";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 
 export const Route = createFileRoute("/work-orders/$id")({ component: WorkOrderPage });
 
@@ -94,16 +97,16 @@ function Actions({ id, status }: { id: string; status: string }) {
   return (
     <div className="mt-2 flex flex-col gap-2">
       {!TERMINAL.includes(status) && (
-        <button onClick={() => cancel.mutate(id)} disabled={cancel.isPending}
-                className="w-fit rounded-md border px-3 py-1.5 hover:bg-accent disabled:opacity-50">Annuler</button>
+        <Button variant="outline" onClick={() => cancel.mutate(id)} disabled={cancel.isPending}
+                className="w-fit">Annuler</Button>
       )}
       {status === "BLOCKED" && (
         <form className="flex flex-col gap-2" onSubmit={(e) => { e.preventDefault(); rework.mutate({ id, instructions }); }}>
-          <textarea aria-label="Instructions de reprise" required value={instructions}
+          <Textarea aria-label="Instructions de reprise" required value={instructions}
                     onChange={(e) => setInstructions(e.target.value)} placeholder="Ce qui manquait pour avancer…"
-                    className="min-h-20 rounded-md border bg-transparent p-2" />
-          <button type="submit" disabled={rework.isPending}
-                  className="w-fit rounded-md bg-foreground px-3 py-1.5 text-background disabled:opacity-50">Reprendre</button>
+                    className="min-h-20" />
+          <Button type="submit" disabled={rework.isPending}
+                  className="w-fit">Reprendre</Button>
         </form>
       )}
     </div>
@@ -113,27 +116,27 @@ function Actions({ id, status }: { id: string; status: string }) {
 function RunsTable({ workOrderId, runs }: { workOrderId: string; runs: Run[] }) {
   const [open, setOpen] = useState<string>();
   return (
-    <table className="w-full text-left text-xs">
-      <thead className="text-muted-foreground">
-        <tr><th className="py-1">Étape</th><th>Tâche</th><th>Essai</th><th>Statut</th><th>Modèle</th><th>Jetons</th><th>Coût</th><th>Fin</th></tr>
-      </thead>
-      <tbody>
+    <Table className="w-full text-left text-xs">
+      <TableHeader className="text-muted-foreground">
+        <TableRow><TableHead className="py-1">Étape</TableHead><TableHead>Tâche</TableHead><TableHead>Essai</TableHead><TableHead>Statut</TableHead><TableHead>Modèle</TableHead><TableHead>Jetons</TableHead><TableHead>Coût</TableHead><TableHead>Fin</TableHead></TableRow>
+      </TableHeader>
+      <TableBody>
         {runs.map((run) => (
           <Fragment key={run.id}>
-            <tr onClick={() => setOpen(open === run.id ? undefined : run.id)} aria-expanded={open === run.id}
+            <TableRow onClick={() => setOpen(open === run.id ? undefined : run.id)} aria-expanded={open === run.id}
                 className="cursor-pointer border-t hover:bg-accent">
-              <td className="py-1">{run.stepId} #{run.visit}</td><td>{run.task}</td><td>{run.attempt}</td>
-              <td className={run.status === "FAILED" || run.status === "INVALID_OUTPUT" ? "text-failed" : ""}>{run.status}</td>
-              <td className="font-mono">{run.model ?? "—"}</td>
-              <td>{run.inputTokens == null ? "—" : `${formatTokens(run.inputTokens)} → ${formatTokens(run.outputTokens ?? 0)}`}</td>
-              <td>{run.costUsd == null ? "—" : formatUsd(run.costUsd)}</td>
-              <td>{run.finishedAt ? format(new Date(run.finishedAt), "HH:mm:ss") : "—"}</td>
-            </tr>
-            {open === run.id && <tr><td colSpan={8}><RunLogs workOrderId={workOrderId} run={run} /></td></tr>}
+              <TableCell className="py-1">{run.stepId} #{run.visit}</TableCell><TableCell>{run.task}</TableCell><TableCell>{run.attempt}</TableCell>
+              <TableCell className={run.status === "FAILED" || run.status === "INVALID_OUTPUT" ? "text-failed" : ""}>{run.status}</TableCell>
+              <TableCell className="font-mono">{run.model ?? "—"}</TableCell>
+              <TableCell>{run.inputTokens == null ? "—" : `${formatTokens(run.inputTokens)} → ${formatTokens(run.outputTokens ?? 0)}`}</TableCell>
+              <TableCell>{run.costUsd == null ? "—" : formatUsd(run.costUsd)}</TableCell>
+              <TableCell>{run.finishedAt ? format(new Date(run.finishedAt), "HH:mm:ss") : "—"}</TableCell>
+            </TableRow>
+            {open === run.id && <TableRow><TableCell colSpan={8}><RunLogs workOrderId={workOrderId} run={run} /></TableCell></TableRow>}
           </Fragment>
         ))}
-      </tbody>
-    </table>
+      </TableBody>
+    </Table>
   );
 }
 

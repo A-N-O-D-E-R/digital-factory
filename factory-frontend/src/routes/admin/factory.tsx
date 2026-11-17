@@ -3,6 +3,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import type { FormEvent } from "react";
 import { api, type Schemas } from "../../api/client";
 import { useAdminChange } from "../../api/useAdminChange";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 export const Route = createFileRoute("/admin/factory")({ component: Factory });
 
@@ -28,19 +30,19 @@ function Factory() {
       <div className="flex items-center gap-3 rounded-lg border p-3">
         <span className={`size-2 rounded-full ${state.paused ? "bg-waiting" : "bg-done"}`} />
         <span>{state.paused ? "Usine en pause : aucun run n'est distribué" : "Usine en marche"}</span>
-        <button onClick={() => pause.mutate(!state.paused)} className="ml-auto rounded-md border px-3 py-1.5 hover:bg-accent">
+        <Button variant="outline" onClick={() => pause.mutate(!state.paused)} className="ml-auto">
           {state.paused ? "Reprendre" : "Mettre en pause"}
-        </button>
+        </Button>
       </div>
       <p className="text-muted-foreground">Dépensé aujourd'hui : {usd(state.spentTodayUsd)} sur {usd(state.dailyUsd)}</p>
       <form onSubmit={submit} className="flex flex-col gap-2">
         <label className="flex items-center justify-between gap-2">Budget quotidien ($)
-          <input name="dailyUsd" type="number" min="0" step="0.01" defaultValue={state.dailyUsd ?? ""} className="w-32 rounded-md border bg-transparent p-1.5" />
+          <Input name="dailyUsd" type="number" min="0" step="0.01" defaultValue={state.dailyUsd ?? ""} className="w-32" />
         </label>
         <label className="flex items-center justify-between gap-2">Budget par work order ($)
-          <input name="workOrderUsd" type="number" min="0" step="0.01" defaultValue={state.workOrderUsd ?? ""} className="w-32 rounded-md border bg-transparent p-1.5" />
+          <Input name="workOrderUsd" type="number" min="0" step="0.01" defaultValue={state.workOrderUsd ?? ""} className="w-32" />
         </label>
-        <button className="w-fit self-end rounded-md bg-foreground px-3 py-1.5 text-background">Enregistrer</button>
+        <Button className="w-fit self-end">Enregistrer</Button>
       </form>
     </section>
   );

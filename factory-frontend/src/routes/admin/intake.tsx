@@ -6,6 +6,10 @@ import { Field, formValues } from "../../components/Field";
 import { RepositoryChoice } from "../../components/ImportTicket";
 import { api, type Schemas } from "../../api/client";
 import { useAdminChange } from "../../api/useAdminChange";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { NativeSelect } from "@/components/ui/native-select";
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 
 export const Route = createFileRoute("/admin/intake")({ component: Intake });
 
@@ -34,41 +38,41 @@ function Intake() {
   return (
     <section className="flex flex-col gap-4">
       <form onSubmit={submit} className="flex gap-2">
-        <input name="ticket" required placeholder="github:acme/api#12, OPS-12 ou URL du ticket" aria-label="Ticket"
-               className="w-96 rounded-md border bg-transparent px-2 py-1.5" />
+        <Input name="ticket" required placeholder="github:acme/api#12, OPS-12 ou URL du ticket" aria-label="Ticket"
+               className="w-96" />
         <RepositoryChoice repositories={repositories} />
-        <button className="rounded-md border px-3 py-1.5 hover:bg-accent">Importer</button>
+        <Button variant="outline">Importer</Button>
       </form>
       <h2 className="font-medium">Règles</h2>
       <form onSubmit={createRule} aria-label="Nouvelle règle" className="grid max-w-5xl grid-cols-4 gap-2 rounded-lg border p-3">
         <Field label="Nom" name="name" required pattern="[a-z][a-z0-9\-]{0,62}" />
-        <Field label="Source"><select name="source" className="rounded-md border bg-transparent px-2 py-1.5">
-          <option>github</option><option>gitlab</option><option>jira</option><option>notion</option></select></Field>
+        <Field label="Source"><NativeSelect size="sm" name="source">
+          <option>github</option><option>gitlab</option><option>jira</option><option>notion</option></NativeSelect></Field>
         <Field label="Projet" name="project" required placeholder="acme/api, OPS, id de base Notion" />
         <Field label="Filtre" name="filter" required placeholder="label, JQL, Statut = Prêt" />
         <Field label="Dépôt cible" name="repository" required placeholder="github:acme/api" />
         <Field label="Workflow" name="workflow" placeholder="default" />
         <Field label="Lus au plus" name="maxRead" type="number" min={1} max={100} defaultValue={50} />
         <Field label="Créés au plus par passe" name="maxCreated" type="number" min={1} max={20} defaultValue={5} />
-        <button className="col-span-4 w-fit rounded-md bg-foreground px-3 py-1.5 text-background">Créer la règle</button>
+        <Button className="col-span-4 w-fit">Créer la règle</Button>
       </form>
-      <table className="w-full text-left text-xs">
-        <thead className="text-muted-foreground"><tr><th className="py-1">Règle</th><th>Source</th><th>Filtre</th><th>Dépôt</th><th>Dernière passe</th><th /></tr></thead>
-        <tbody>
+      <Table className="w-full text-left text-xs">
+        <TableHeader className="text-muted-foreground"><TableRow><TableHead className="py-1">Règle</TableHead><TableHead>Source</TableHead><TableHead>Filtre</TableHead><TableHead>Dépôt</TableHead><TableHead>Dernière passe</TableHead><TableHead /></TableRow></TableHeader>
+        <TableBody>
           {rules?.map((r) => (
-            <tr key={r.id} className="border-t">
-              <td className="py-1.5">{r.name}{!r.enabled && <span className="text-muted-foreground"> (désactivée)</span>}</td>
-              <td>{r.source}:{r.project}</td><td className="font-mono">{r.filter}</td><td>{r.repository}</td>
-              <td className={r.lastError ? "text-failed" : ""}>{r.lastError ?? (r.lastPolledAt ? format(new Date(r.lastPolledAt), "d MMM HH:mm") : "jamais")}</td>
-              <td className="flex gap-1 py-1">
-                <button onClick={() => poll.mutate(r.id)} className="rounded-md border px-2 py-0.5 hover:bg-accent">Lancer une passe</button>
-                <button onClick={() => save.mutate({ id: r.id, ...ruleSettings(r), enabled: !r.enabled })}
-                        className="rounded-md border px-2 py-0.5 hover:bg-accent">{r.enabled ? "Désactiver" : "Activer"}</button>
-              </td>
-            </tr>
+            <TableRow key={r.id} className="border-t">
+              <TableCell className="py-1.5">{r.name}{!r.enabled && <span className="text-muted-foreground"> (désactivée)</span>}</TableCell>
+              <TableCell>{r.source}:{r.project}</TableCell><TableCell className="font-mono">{r.filter}</TableCell><TableCell>{r.repository}</TableCell>
+              <TableCell className={r.lastError ? "text-failed" : ""}>{r.lastError ?? (r.lastPolledAt ? format(new Date(r.lastPolledAt), "d MMM HH:mm") : "jamais")}</TableCell>
+              <TableCell className="flex gap-1 py-1">
+                <Button variant="outline" size="sm" onClick={() => poll.mutate(r.id)}>Lancer une passe</Button>
+                <Button variant="outline" size="sm" onClick={() => save.mutate({ id: r.id, ...ruleSettings(r), enabled: !r.enabled })}
+>{r.enabled ? "Désactiver" : "Activer"}</Button>
+              </TableCell>
+            </TableRow>
           ))}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
       <h2 className="font-medium">Tickets importés</h2>
       <ul className="flex flex-col divide-y rounded-lg border text-xs">
         {tickets?.map((t) => (
@@ -76,8 +80,8 @@ function Intake() {
             <a href={t.url} target="_blank" rel="noreferrer" className="font-mono hover:underline">{t.ticket}</a>
             <Link to="/work-orders/$id" params={{ id: t.workOrderId }} className="hover:underline">work order</Link>
             <span className="ml-auto text-muted-foreground">{format(new Date(t.importedAt), "d MMM HH:mm")}</span>
-            <button onClick={() => confirm(`Réimporter ${t.ticket} ? Un nouveau work order est créé.`) && importTicket.mutate({ ticket: t.ticket, reimport: true })}
-                    className="rounded-md border px-2 py-0.5 hover:bg-accent">Réimporter</button>
+            <Button variant="outline" size="sm" onClick={() => confirm(`Réimporter ${t.ticket} ? Un nouveau work order est créé.`) && importTicket.mutate({ ticket: t.ticket, reimport: true })}
+>Réimporter</Button>
           </li>
         ))}
       </ul>

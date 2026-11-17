@@ -5,6 +5,7 @@ import { useCurrentUser, usePendingApprovals, useWorkOrders } from "../api/queri
 import { agentState } from "../lib/status";
 import { AgentStateDot } from "./AgentStateDot";
 import { Logo } from "./Logo";
+import { Button } from "@/components/ui/button";
 
 /** Every work order with what the factory is doing about it; what waits for you first. */
 export function Sidebar() {
@@ -60,10 +61,10 @@ export function Sidebar() {
         )}
         <span className={`truncate px-1 text-xs text-white/80 ${hide}`}>{user?.name}</span>
         <span className={`ml-auto text-xs text-white/80 ${hide}`}><kbd>Ctrl</kbd>+<kbd>K</kbd></span>
-        <button onClick={toggle} aria-label={collapsed ? "Déplier la barre latérale" : "Replier la barre latérale"}
-                title={collapsed ? "Déplier" : "Replier"} className="rounded-md p-1.5 hover:bg-white/10">
+        <Button variant="ghost" size="icon-sm" onClick={toggle} aria-label={collapsed ? "Déplier la barre latérale" : "Replier la barre latérale"}
+                title={collapsed ? "Déplier" : "Replier"} className="hover:bg-white/10">
           {collapsed ? <PanelLeftOpen className="size-4" /> : <PanelLeftClose className="size-4" />}
-        </button>
+        </Button>
       </div>
     </nav>
   );

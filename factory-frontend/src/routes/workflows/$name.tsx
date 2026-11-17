@@ -7,6 +7,10 @@ import { useCurrentUser } from "../../api/queries";
 import { StepPanel } from "../../components/StepPanel";
 import { WorkflowCanvas } from "../../components/WorkflowCanvas";
 import { addStep, blank, connect, layout, removeStep, updateStep, type WorkflowDefinition } from "../../lib/workflow";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { NativeSelect } from "@/components/ui/native-select";
+import { Textarea } from "@/components/ui/textarea";
 
 export const Route = createFileRoute("/workflows/$name")({ component: Workflow });
 
@@ -95,10 +99,10 @@ function Editor({ name, version, versions, select }: {
       <div className="flex flex-wrap items-center gap-3">
         <h1 className="text-lg font-semibold">{name}</h1>
         {version ? (
-          <select aria-label="Version" value={version.version} onChange={(e) => select(Number(e.target.value))}
-                  className="rounded-md border bg-transparent px-2 py-1">
+          <NativeSelect size="sm" aria-label="Version" value={version.version} onChange={(e) => select(Number(e.target.value))}
+>
             {versions.map((v) => <option key={v.version} value={v.version}>v{v.version} — {v.note}</option>)}
-          </select>
+          </NativeSelect>
         ) : <span className="rounded-full bg-muted px-2 py-0.5 text-xs">nouveau, non publié</span>}
         {dirty && version && <span className="text-xs text-waiting">modifié</span>}
         <div role="tablist" className="ml-auto flex gap-1 rounded-lg border p-0.5 text-xs">{tab("graph", "Graphe")}{tab("json", "JSON")}</div>
@@ -132,12 +136,12 @@ function Editor({ name, version, versions, select }: {
           <StepPanel definition={definition} id={step} onChange={edit} onRemove={remove} onSelect={setStep} />
           <div className="flex flex-col gap-2 border-t pt-3">
             <label className="flex flex-col gap-1 text-xs">Ce que chaque passage apprend (dry-run)
-              <textarea aria-label="Faits appris" value={learnt} onChange={(e) => setLearnt(e.target.value)} spellCheck={false}
-                        className="min-h-20 rounded-md border bg-transparent p-2 font-mono" />
+              <Textarea aria-label="Faits appris" value={learnt} onChange={(e) => setLearnt(e.target.value)} spellCheck={false}
+                        className="min-h-20 font-mono" />
             </label>
             <div className="flex gap-2">
-              <button onClick={() => check.mutate(false)} className="flex-1 rounded-md border px-3 py-1.5 hover:bg-accent">Valider</button>
-              <button onClick={() => check.mutate(true)} className="flex-1 rounded-md border px-3 py-1.5 hover:bg-accent">Simuler</button>
+              <Button variant="outline" onClick={() => check.mutate(false)} className="flex-1">Valider</Button>
+              <Button variant="outline" onClick={() => check.mutate(true)} className="flex-1">Simuler</Button>
             </div>
             {result && (result.errors.length > 0 ? (
               <ul role="alert" className="list-disc pl-5 text-xs text-failed">{result.errors.map((e) => <li key={e}>{e}</li>)}</ul>
@@ -149,10 +153,10 @@ function Editor({ name, version, versions, select }: {
             ) : <p className="text-xs text-done">Workflow valide.</p>)}
             {admin && (
               <div className="flex gap-2">
-                <input aria-label="Note de version" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Note de version"
-                       className="min-w-0 flex-1 rounded-md border bg-transparent px-2" />
-                <button disabled={!note.trim() || !dirty && !!version || publish.isPending} onClick={() => publish.mutate()}
-                        className="rounded-md bg-foreground px-3 py-1.5 text-background disabled:opacity-50">Publier</button>
+                <Input aria-label="Note de version" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Note de version"
+                       className="min-w-0 flex-1" />
+                <Button disabled={!note.trim() || !dirty && !!version || publish.isPending} onClick={() => publish.mutate()}
+>Publier</Button>
               </div>
             )}
           </div>

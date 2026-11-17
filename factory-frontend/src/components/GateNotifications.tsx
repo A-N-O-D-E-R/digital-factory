@@ -3,6 +3,7 @@ import { Bell, X } from "lucide-react";
 import { useState } from "react";
 import { usePendingApprovals, useWorkOrders } from "../api/queries";
 import { GATE_LABELS } from "../lib/status";
+import { Button } from "@/components/ui/button";
 
 /**
  * The gates waiting for a decision, stacked until decided: from the server (they survive a reload),
@@ -25,9 +26,9 @@ export function GateNotifications() {
             <span className="block font-medium">Barrière « {GATE_LABELS[a.gate] ?? a.gate} »</span>
             <span className="text-muted-foreground">{titles.get(a.workOrderId) ?? a.workOrderId}</span>
           </Link>
-          <button aria-label="Masquer" onClick={() => setHidden(new Set(hidden).add(a.id))} className="rounded p-0.5 hover:bg-accent">
+          <Button variant="ghost" size="icon-sm" aria-label="Masquer" onClick={() => setHidden(new Set(hidden).add(a.id))}>
             <X className="size-3.5" />
-          </button>
+          </Button>
         </div>
       ))}
       {shown.length > 4 && <Link to="/approvals" className="text-xs text-muted-foreground hover:underline">et {shown.length - 4} autre(s)…</Link>}

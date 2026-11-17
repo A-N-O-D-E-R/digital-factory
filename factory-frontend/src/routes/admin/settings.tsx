@@ -4,6 +4,10 @@ import { format } from "date-fns";
 import { useState } from "react";
 import { api, type Schemas } from "../../api/client";
 import { useAdminChange } from "../../api/useAdminChange";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { NativeSelect } from "@/components/ui/native-select";
+import { Textarea } from "@/components/ui/textarea";
 
 export const Route = createFileRoute("/admin/settings")({ component: Settings });
 
@@ -22,10 +26,10 @@ function Settings() {
   const restore = useAdminChange(key, (id: string) => api.post(`settings/changes/${id}/restore`, { json: { reason: "restauration" } }), "Version restaurée");
   return (
     <section className="flex flex-col gap-4">
-      <select aria-label="Portée" value={repository} onChange={(e) => setRepository(e.target.value)} className="w-fit rounded-md border bg-transparent px-2 py-1">
+      <NativeSelect size="sm" aria-label="Portée" value={repository} onChange={(e) => setRepository(e.target.value)} className="w-fit">
         <option value="">Global</option>
         {repositories?.map((r) => <option key={r.key} value={r.key}>{r.key}</option>)}
-      </select>
+      </NativeSelect>
       {layer && <LayerEditor key={`${repository}-${layer.updatedAt}`} layer={layer} save={(document, reason) => save.mutate({ document, reason })} />}
       <h2 className="font-medium">Historique</h2>
       <ul className="flex flex-col divide-y rounded-lg border text-xs">
@@ -33,7 +37,7 @@ function Settings() {
           <li key={c.id} className="flex items-center gap-3 p-2">
             <time className="text-muted-foreground">{format(new Date(c.changedAt), "d MMM HH:mm")}</time>
             <span>{c.changedBy}</span><span className="text-muted-foreground">{c.reason}</span>
-            <button onClick={() => restore.mutate(c.id)} className="ml-auto rounded-md border px-2 py-0.5 hover:bg-accent">Restaurer l'état d'avant</button>
+            <Button variant="outline" size="sm" onClick={() => restore.mutate(c.id)} className="ml-auto">Restaurer l'état d'avant</Button>
           </li>
         ))}
       </ul>
@@ -48,13 +52,13 @@ function LayerEditor({ layer, save }: { layer: Schemas["Layer"]; save: (document
   return (
     <div className="grid grid-cols-2 gap-4">
       <div className="flex flex-col gap-2">
-        <textarea aria-label="Couche" value={text} onChange={(e) => setText(e.target.value)} spellCheck={false}
-                  className="min-h-80 rounded-md border bg-transparent p-2 font-mono text-xs" />
+        <Textarea aria-label="Couche" value={text} onChange={(e) => setText(e.target.value)} spellCheck={false}
+                  className="min-h-80 font-mono text-xs" />
         <div className="flex gap-2">
-          <input aria-label="Raison" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Raison du changement"
-                 className="flex-1 rounded-md border bg-transparent px-2" />
-          <button disabled={parsed === undefined || !reason.trim()} onClick={() => save(parsed, reason)}
-                  className="rounded-md bg-foreground px-3 py-1.5 text-background disabled:opacity-50">Enregistrer</button>
+          <Input aria-label="Raison" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Raison du changement"
+                 className="flex-1" />
+          <Button disabled={parsed === undefined || !reason.trim()} onClick={() => save(parsed, reason)}
+>Enregistrer</Button>
         </div>
         {parsed === undefined && <p className="text-failed">JSON invalide</p>}
       </div>

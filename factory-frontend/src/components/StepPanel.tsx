@@ -4,6 +4,7 @@ import {
   ACTIONS, type Condition, describe, FACTS, renameStep, ROLES, type Step, TERMINALS, type Transition, typed, updateStep, what, without,
   type WorkflowDefinition,
 } from "../lib/workflow";
+import { Button } from "@/components/ui/button";
 
 const input = "rounded-md border bg-transparent px-2 py-1";
 const PARALLEL = "run-tests + secret-scan";
@@ -42,7 +43,7 @@ function ConditionField({ value, onChange, label }: { value?: Condition; onChang
                  className={`${input} w-20`} />
         </>
       )}
-      <button title="Éditer en JSON" onClick={() => setRaw(JSON.stringify(value ?? { allOf: [] }))} className="rounded-md border px-1.5 font-mono text-xs hover:bg-accent">{"{}"}</button>
+      <Button variant="outline" size="sm" title="Éditer en JSON" onClick={() => setRaw(JSON.stringify(value ?? { allOf: [] }))} className="font-mono text-xs">{"{}"}</Button>
     </div>
   );
 }
@@ -140,7 +141,7 @@ export function StepPanel({ definition, id, onChange, onRemove, onSelect }: {
                  onChange={(e) => change((s) => (e.target.checked ? without(s, "enabled") : { ...s, enabled: false }))} /> Active
         </label>
         {definition.start !== step.id && (
-          <button onClick={() => onChange({ ...definition, start: step.id })} className="underline">Définir comme départ</button>
+          <Button variant="ghost" onClick={() => onChange({ ...definition, start: step.id })} className="underline">Définir comme départ</Button>
         )}
       </div>
 
@@ -156,8 +157,8 @@ export function StepPanel({ definition, id, onChange, onRemove, onSelect }: {
                   {[...new Set([t.to, ...targets])].map((x) => <option key={x}>{x}</option>)}
                 </select>
                 {step.next.length > 1 && (
-                  <button aria-label="Retirer la transition" onClick={() => change((s) => ({ ...s, next: s.next.filter((_, j) => j !== i) }))}
-                          className="rounded p-1 hover:bg-accent"><Trash2 className="size-3.5" /></button>
+                  <Button variant="ghost" size="icon-sm" aria-label="Retirer la transition" onClick={() => change((s) => ({ ...s, next: s.next.filter((_, j) => j !== i) }))}
+><Trash2 className="size-3.5" /></Button>
                 )}
               </div>
               {fallback && !t.when ? <span className="text-muted-foreground">sinon (toujours)</span> : (
@@ -182,8 +183,8 @@ export function StepPanel({ definition, id, onChange, onRemove, onSelect }: {
             </div>
           );
         })}
-        <button onClick={() => change((s) => ({ ...s, next: [...s.next.slice(0, -1), { to: "@done", when: { fact: "verdict", equals: "approved" } }, ...s.next.slice(-1)] }))}
-                className="rounded-md border border-dashed py-1 hover:bg-accent">+ transition</button>
+        <Button variant="outline" size="sm" onClick={() => change((s) => ({ ...s, next: [...s.next.slice(0, -1), { to: "@done", when: { fact: "verdict", equals: "approved" } }, ...s.next.slice(-1)] }))}
+                className="border-dashed">+ transition</Button>
       </fieldset>
 
       <button onClick={() => onRemove(step.id)} className="flex items-center justify-center gap-1.5 rounded-md border border-failed/40 py-1.5 text-failed hover:bg-failed/10">

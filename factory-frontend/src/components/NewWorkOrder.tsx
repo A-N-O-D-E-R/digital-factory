@@ -3,6 +3,12 @@ import { useNavigate } from "@tanstack/react-router";
 import { type FormEvent, useState } from "react";
 import { api, type Schemas } from "../api/client";
 import { useCan, useCreateWorkOrder } from "../api/queries";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { NativeSelect } from "@/components/ui/native-select";
+import { Textarea } from "@/components/ui/textarea";
 
 // ponytail: plain controlled form; TanStack Form + Zod once forms have more than three fields
 export function NewWorkOrder({ initiallyOpen = false }: { initiallyOpen?: boolean }) {
@@ -26,27 +32,31 @@ export function NewWorkOrder({ initiallyOpen = false }: { initiallyOpen?: boolea
       { onSuccess: (w) => { setOpen(false); void navigate({ to: "/work-orders/$id", params: { id: w.id } }); } },
     );
   };
-  if (!open) {
-    return <button onClick={() => setOpen(true)} className="rounded-md border px-3 py-1.5 hover:bg-accent">Nouveau work order</button>;
-  }
   return (
-    <form onSubmit={submit} aria-label="Nouveau work order"
-          className="fixed inset-x-0 top-16 z-10 mx-auto flex w-[32rem] flex-col gap-3 rounded-lg border bg-background p-4 shadow-lg">
-      <label className="flex flex-col gap-1">Dépôt
-        <select name="repository" required className="rounded-md border bg-transparent p-2">
-          {repositories.data?.filter((r) => r.active).map((r) => <option key={r.key}>{r.key}</option>)}
-        </select>
-      </label>
-      <label className="flex flex-col gap-1">Titre
-        <input name="title" required maxLength={300} className="rounded-md border bg-transparent p-2" />
-      </label>
-      <label className="flex flex-col gap-1">Description
-        <textarea name="description" required className="min-h-32 rounded-md border bg-transparent p-2" />
-      </label>
-      <div className="flex justify-end gap-2">
-        <button type="button" onClick={() => setOpen(false)} className="rounded-md border px-3 py-1.5">Annuler</button>
-        <button type="submit" disabled={create.isPending} className="rounded-md bg-foreground px-3 py-1.5 text-background disabled:opacity-50">Créer</button>
-      </div>
-    </form>
+    <>
+      <Button variant="outline" onClick={() => setOpen(true)}>Nouveau work order</Button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Nouveau work order</DialogTitle></DialogHeader>
+          <form onSubmit={submit} aria-label="Nouveau work order" className="flex flex-col gap-3">
+            <Label className="flex-col items-start">Dépôt
+              <NativeSelect name="repository" required className="w-full">
+                {repositories.data?.filter((r) => r.active).map((r) => <option key={r.key}>{r.key}</option>)}
+              </NativeSelect>
+            </Label>
+            <Label className="flex-col items-start">Titre
+              <Input name="title" required maxLength={300} />
+            </Label>
+            <Label className="flex-col items-start">Description
+              <Textarea name="description" required className="min-h-32" />
+            </Label>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setOpen(false)}>Annuler</Button>
+              <Button type="submit" disabled={create.isPending}>Créer</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

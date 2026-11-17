@@ -4,6 +4,10 @@ import { format } from "date-fns";
 import { useState } from "react";
 import { api, type Schemas } from "../../api/client";
 import { useAdminChange } from "../../api/useAdminChange";
+import { Button } from "@/components/ui/button";
+import { NativeSelect } from "@/components/ui/native-select";
+import { Textarea } from "@/components/ui/textarea";
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 
 export const Route = createFileRoute("/admin/evals")({ component: Evals });
 
@@ -29,21 +33,21 @@ function Evals() {
   return (
     <section className="flex flex-col gap-4">
       <div className="grid max-w-4xl grid-cols-[auto_auto_1fr_auto] items-start gap-2">
-        <select aria-label="Suite" value={suite} onChange={(e) => setSuite(e.target.value)} className="rounded-md border bg-transparent px-2 py-1">
+        <NativeSelect size="sm" aria-label="Suite" value={suite} onChange={(e) => setSuite(e.target.value)}>
           <option value="fast">Rapide (classification, analyse)</option>
           <option value="complete">Complète (tests cachés)</option>
-        </select>
-        <select aria-label="Workflow évalué" value={workflow} disabled={suite === "fast"} onChange={(e) => setWorkflow(e.target.value)}
-                className="rounded-md border bg-transparent px-2 py-1">
+        </NativeSelect>
+        <NativeSelect size="sm" aria-label="Workflow évalué" value={workflow} disabled={suite === "fast"} onChange={(e) => setWorkflow(e.target.value)}
+>
           {(workflows ?? [{ name: "default" }]).map((w) => <option key={w.name}>{w.name}</option>)}
-        </select>
-        <textarea aria-label="Candidat" value={candidate} onChange={(e) => setCandidate(e.target.value)} spellCheck={false}
+        </NativeSelect>
+        <Textarea aria-label="Candidat" value={candidate} onChange={(e) => setCandidate(e.target.value)} spellCheck={false}
                   placeholder='Candidat (facultatif), ex. {"roles":{"classifier":{"model":"sonnet"}}}'
-                  className="min-h-9 rounded-md border bg-transparent px-2 py-1 font-mono text-xs" />
-        <button disabled={overlay === undefined}
+                  className="min-h-9 font-mono text-xs" />
+        <Button variant="outline" disabled={overlay === undefined}
                 onClick={() => confirm("Lancer une évaluation ? Ses runs sont facturés et comptent dans les budgets.")
                   && start.mutate({ workflow: suite === "fast" ? undefined : workflow, suite, candidate: overlay })}
-                className="rounded-md border px-3 py-1.5 hover:bg-accent disabled:opacity-50">Lancer</button>
+>Lancer</Button>
       </div>
       {runs?.map((run) => (
         <EvalRun key={run.id} run={run} baseline={baseline?.id === run.id ? undefined : baseline}
@@ -70,8 +74,8 @@ function EvalRun({ run, baseline, compareWith, setCompareWith, promote }: {
           Référence
         </button>
         {run.finished && run.candidate && (
-          <button onClick={() => confirm("Promouvoir ce candidat dans les paramètres globaux ?") && promote()}
-                  className="rounded-md bg-foreground px-2 py-0.5 text-xs text-background">Promouvoir</button>
+          <Button size="sm" onClick={() => confirm("Promouvoir ce candidat dans les paramètres globaux ?") && promote()}
+                  className="text-xs">Promouvoir</Button>
         )}
       </header>
       {run.finished && (
@@ -79,29 +83,29 @@ function EvalRun({ run, baseline, compareWith, setCompareWith, promote }: {
           {byType.map(([type, rs]) => <span key={type}>{type} : {rs!.filter((r) => r.passed).length}/{rs!.length}</span>)}
         </div>
       )}
-      <table className="w-full text-left text-xs">
-        <thead className="text-muted-foreground">
-          <tr><th className="py-1">Fixture</th><th>Classe</th><th>Attendu</th><th>Statut</th><th>Réussi</th>{baseline && <th>Référence</th>}</tr>
-        </thead>
-        <tbody>
+      <Table className="w-full text-left text-xs">
+        <TableHeader className="text-muted-foreground">
+          <TableRow><TableHead className="py-1">Fixture</TableHead><TableHead>Classe</TableHead><TableHead>Attendu</TableHead><TableHead>Statut</TableHead><TableHead>Réussi</TableHead>{baseline && <TableHead>Référence</TableHead>}</TableRow>
+        </TableHeader>
+        <TableBody>
           {results.map((r) => {
             const was = before.get(r.fixture)?.passed;
             const moved = baseline && was != null && r.passed != null && was !== r.passed;
             return (
-              <tr key={r.workOrderId} className="border-t">
-                <td className="py-1"><Link to="/work-orders/$id" params={{ id: r.workOrderId }} className="hover:underline">{r.fixture}</Link></td>
-                <td>{r.type}</td><td>{r.expect}</td><td>{r.status ?? "…"}</td>
-                <td className={r.passed == null ? "" : r.passed ? "text-done" : "text-failed"}>{r.passed == null ? "…" : r.passed ? "oui" : "non"}</td>
+              <TableRow key={r.workOrderId} className="border-t">
+                <TableCell className="py-1"><Link to="/work-orders/$id" params={{ id: r.workOrderId }} className="hover:underline">{r.fixture}</Link></TableCell>
+                <TableCell>{r.type}</TableCell><TableCell>{r.expect}</TableCell><TableCell>{r.status ?? "…"}</TableCell>
+                <TableCell className={r.passed == null ? "" : r.passed ? "text-done" : "text-failed"}>{r.passed == null ? "…" : r.passed ? "oui" : "non"}</TableCell>
                 {baseline && (
-                  <td className={moved ? (r.passed ? "text-done" : "text-failed") : "text-muted-foreground"}>
+                  <TableCell className={moved ? (r.passed ? "text-done" : "text-failed") : "text-muted-foreground"}>
                     {was == null ? "—" : was ? "oui" : "non"}{moved && (r.passed ? " ↑" : " ↓")}
-                  </td>
+                  </TableCell>
                 )}
-              </tr>
+              </TableRow>
             );
           })}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
     </article>
   );
 }

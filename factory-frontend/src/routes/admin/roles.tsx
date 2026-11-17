@@ -4,6 +4,10 @@ import { type FormEvent, useState } from "react";
 import { Field, formValues } from "../../components/Field";
 import { api, type Schemas } from "../../api/client";
 import { useAdminChange } from "../../api/useAdminChange";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { NativeSelect } from "@/components/ui/native-select";
+import { Textarea } from "@/components/ui/textarea";
 
 export const Route = createFileRoute("/admin/roles")({ component: Roles });
 
@@ -34,8 +38,8 @@ function Roles() {
           <form onSubmit={submit} aria-label="Nouveau rôle de revue" className="mt-3 flex flex-col gap-2 border-t pt-3">
             <Field label="Nouveau rôle de revue" name="name" required pattern="[a-z][a-z0-9\-]{0,62}" placeholder="perf-reviewer" />
             <Field label="Description" name="description" required />
-            <Field label="Prompt"><textarea name="prompt" required className="min-h-24 rounded-md border bg-transparent p-2 text-xs" /></Field>
-            <button className="w-fit rounded-md border px-2 py-1 hover:bg-accent">Créer</button>
+            <Field label="Prompt"><Textarea name="prompt" required className="min-h-24 text-xs" /></Field>
+            <Button variant="outline" size="sm" className="w-fit">Créer</Button>
           </form>
         </li>
       </ul>
@@ -61,10 +65,10 @@ function Prompts({ role }: { role: string }) {
   }
   return (
     <div className="flex flex-col gap-3">
-      <select aria-label="Version du prompt" value={version?.version} onChange={(e) => setShown(Number(e.target.value))}
-              className="w-fit rounded-md border bg-transparent px-2 py-1">
+      <NativeSelect size="sm" aria-label="Version du prompt" value={version?.version} onChange={(e) => setShown(Number(e.target.value))}
+              className="w-fit">
         {history?.map((v) => <option key={v.version} value={v.version}>v{v.version} — {v.note}</option>)}
-      </select>
+      </NativeSelect>
       {detail?.diff && detail.diff.length > 0 && (
         <pre aria-label="Différences" className="overflow-auto rounded-md bg-muted p-2 font-mono text-xs">
           {detail.diff.map((line, i) => (
@@ -82,13 +86,13 @@ function Editor({ text: initial, publish }: { text: string; publish: (text: stri
   const [note, setNote] = useState("");
   return (
     <div className="flex flex-col gap-2">
-      <textarea aria-label="Prompt" value={text} onChange={(e) => setText(e.target.value)}
-                className="min-h-80 rounded-md border bg-transparent p-2 font-mono text-xs" />
+      <Textarea aria-label="Prompt" value={text} onChange={(e) => setText(e.target.value)}
+                className="min-h-80 font-mono text-xs" />
       <div className="flex gap-2">
-        <input aria-label="Note de version" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Ce qui change"
-               className="flex-1 rounded-md border bg-transparent px-2" />
-        <button disabled={!note.trim() || text === initial} onClick={() => publish(text, note)}
-                className="rounded-md bg-foreground px-3 py-1.5 text-background disabled:opacity-50">Publier une version</button>
+        <Input aria-label="Note de version" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Ce qui change"
+               className="flex-1" />
+        <Button disabled={!note.trim() || text === initial} onClick={() => publish(text, note)}
+>Publier une version</Button>
       </div>
     </div>
   );

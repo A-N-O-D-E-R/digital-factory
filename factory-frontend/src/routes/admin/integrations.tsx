@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { format } from "date-fns";
 import { api, type Schemas } from "../../api/client";
+import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/admin/integrations")({ component: Integrations });
 
@@ -18,7 +19,7 @@ function Integrations() {
   });
   return (
     <section className="flex max-w-3xl flex-col gap-3">
-      <button onClick={() => void refresh()} className="w-fit rounded-md border px-3 py-1.5 hover:bg-accent">Vérifier à nouveau</button>
+      <Button variant="outline" onClick={() => void refresh()} className="w-fit">Vérifier à nouveau</Button>
       <ul className="flex flex-col divide-y rounded-lg border">
         {integrations.data?.map((i) => (
           <li key={i.name} className="flex items-start gap-3 p-3">

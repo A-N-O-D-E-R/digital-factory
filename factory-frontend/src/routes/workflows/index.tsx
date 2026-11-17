@@ -3,6 +3,8 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { api, type Schemas } from "../../api/client";
 import type { WorkflowDefinition } from "../../lib/workflow";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 export const Route = createFileRoute("/workflows/")({ component: Workflows });
 
@@ -16,9 +18,9 @@ function Workflows() {
       <div className="flex items-center gap-2">
         <h1 className="text-lg font-semibold">Workflows</h1>
         <form className="ml-auto flex gap-2" onSubmit={(e) => { e.preventDefault(); if (valid) void navigate({ to: "/workflows/$name", params: { name } }); }}>
-          <input aria-label="Nom du nouveau workflow" value={name} onChange={(e) => setName(e.target.value.toLowerCase())}
-                 placeholder="nom-du-workflow" className="rounded-md border bg-transparent px-2 py-1" />
-          <button disabled={!valid} className="rounded-md border px-3 py-1.5 hover:bg-accent disabled:opacity-50">Nouveau workflow</button>
+          <Input aria-label="Nom du nouveau workflow" value={name} onChange={(e) => setName(e.target.value.toLowerCase())}
+                 placeholder="nom-du-workflow"  />
+          <Button variant="outline" disabled={!valid}>Nouveau workflow</Button>
         </form>
       </div>
       <ul className="flex flex-col divide-y rounded-lg border">

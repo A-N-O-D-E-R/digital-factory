@@ -8,6 +8,7 @@ import { AgentStateDot } from "../components/AgentStateDot";
 import { ImportTicket } from "../components/ImportTicket";
 import { NewWorkOrder } from "../components/NewWorkOrder";
 import { type AgentState, agentState, STATE_LABELS } from "../lib/status";
+import { Button } from "@/components/ui/button";
 
 /** {@code action}: what to open on arrival (from the command palette). */
 type BoardSearch = { action?: "new-work-order" | "import-ticket" };
@@ -30,9 +31,9 @@ function Board() {
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-semibold">Tableau</h1>
         <div className="flex gap-2">
-          <button onClick={() => setByStep(!byStep)} aria-pressed={byStep} className="rounded-md border px-3 py-1.5 hover:bg-accent">
+          <Button variant="outline" onClick={() => setByStep(!byStep)} aria-pressed={byStep}>
             {byStep ? "Par état" : "Par étape"}
-          </button>
+          </Button>
           <ImportTicket key={`import-${action}`} initiallyOpen={action === "import-ticket"} />
           <NewWorkOrder key={`new-${action}`} initiallyOpen={action === "new-work-order"} />
         </div>

@@ -11,7 +11,7 @@ Usine logicielle autonome : du ticket à la PR, avec preuves produites par l'usi
 - `factory-backend` — plan de contrôle (Spring Boot 4.1, Java 25) ; sert aussi l'interface.
 - `factory-worker` — réclame les runs et les exécute dans des conteneurs sandbox.
 - `factory-sandbox` — image des sandbox et runner des agents (Claude Agent SDK) ; `egress/` : le proxy de sortie.
-- `factory-frontend` — interface (React 19, Vite, TanStack) ; pnpm, Node 22.22+.
+- `factory-frontend` — interface (React 19, Vite, TanStack, Tailwind v4, shadcn/ui) ; pnpm, Node 22.22+.
 - `factory-contracts` — schémas JSON (sorties d'agents, workflows, paramètres).
 
 ## Lancer

@@ -3,6 +3,9 @@ import { useNavigate } from "@tanstack/react-router";
 import { type FormEvent, useState } from "react";
 import { api, type Schemas } from "../api/client";
 import { useCan, useChange } from "../api/queries";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { NativeSelect } from "@/components/ui/native-select";
 
 /** A ticket (key or URL) becomes a work order, on its own repository unless one is chosen. */
 export function ImportTicket({ initiallyOpen = false }: { initiallyOpen?: boolean }) {
@@ -22,7 +25,7 @@ export function ImportTicket({ initiallyOpen = false }: { initiallyOpen?: boolea
     return null;
   }
   if (!open) {
-    return <button onClick={() => setOpen(true)} className="rounded-md border px-3 py-1.5 hover:bg-accent">Importer un ticket</button>;
+    return <Button variant="outline" onClick={() => setOpen(true)}>Importer un ticket</Button>;
   }
   const submit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -33,11 +36,11 @@ export function ImportTicket({ initiallyOpen = false }: { initiallyOpen?: boolea
   };
   return (
     <form onSubmit={submit} className="flex gap-2">
-      <input name="ticket" required autoFocus aria-label="Ticket" placeholder="OPS-12, github:acme/api#12 ou URL"
-             className="w-80 rounded-md border bg-transparent px-2 py-1.5" />
+      <Input name="ticket" required autoFocus aria-label="Ticket" placeholder="OPS-12, github:acme/api#12 ou URL"
+             className="w-80" />
       <RepositoryChoice repositories={repositories.data} />
-      <button disabled={importTicket.isPending} className="rounded-md bg-foreground px-3 py-1.5 text-background disabled:opacity-50">Importer</button>
-      <button type="button" onClick={() => setOpen(false)} className="rounded-md border px-3 py-1.5">Annuler</button>
+      <Button disabled={importTicket.isPending}>Importer</Button>
+      <Button variant="outline" type="button" onClick={() => setOpen(false)}>Annuler</Button>
     </form>
   );
 }
@@ -45,9 +48,9 @@ export function ImportTicket({ initiallyOpen = false }: { initiallyOpen?: boolea
 /** Issues know their repository; Jira and Notion tickets need one chosen. */
 export function RepositoryChoice({ repositories }: { repositories?: Schemas["RepositoryView"][] }) {
   return (
-    <select name="repository" aria-label="Dépôt" className="rounded-md border bg-transparent px-2 py-1.5">
+    <NativeSelect size="sm" name="repository" aria-label="Dépôt">
       <option value="">Dépôt du ticket</option>
       {repositories?.filter((r) => r.active).map((r) => <option key={r.key}>{r.key}</option>)}
-    </select>
+    </NativeSelect>
   );
 }
