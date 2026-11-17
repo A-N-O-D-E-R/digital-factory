@@ -1,0 +1,40 @@
+{
+  "createdAt": "2026-11-17T09:12:44Z",
+  "goal": "Help small labs track reagent stock",
+  "idea": {
+    "id": 42,
+    "boardId": 7,
+    "title": "Barcode reagent ledger",
+    "pitch": "Scan a bottle in, scan it out; the lab sees what runs low before an experiment stalls.",
+    "kind": "seed",
+    "sourceUrl": null,
+    "originality": 3,
+    "feasibility": 5,
+    "impact": 4,
+    "reason": "Simple, valuable, buildable in weeks.",
+    "keywords": ["lab", "inventory", "barcode"]
+  },
+  "lineage": [
+    { "id": 12, "boardId": 7, "title": "Lab inventory", "pitch": "Know what is on the shelf.", "kind": "seed", "sourceUrl": "https://example.org/forum/thread/881" }
+  ],
+  "brief": {
+    "name": "ReagentLedger",
+    "slug": "reagent-ledger",
+    "oneLiner": "Know your reagent stock before an experiment stalls.",
+    "problem": "Small labs find out a reagent ran out in the middle of an experiment.",
+    "audience": "Lab managers of 5-30 person academic labs",
+    "mvp": ["Scan in / scan out", "Low-stock alert", "Per-bench view"],
+    "outOfScope": ["Purchasing", "Safety data sheets"],
+    "stack": "Spring Boot, Postgres, React",
+    "firstSteps": ["Interview three lab managers", "Model reagents and lots"],
+    "openQuestions": ["Which barcode formats do suppliers use?", "Is a mobile app needed?"],
+    "risks": ["Labs will not scan consistently", "Supplier barcodes are not standard"]
+  },
+  "research": {
+    "hypotheses": ["A scan-in/scan-out ledger cuts stock-out incidents by half in labs under 30 people."],
+    "relatedWork": "LIMS products cover inventory but are heavy; two open-source lab inventory tools exist without alerts.",
+    "riskFactors": ["Adoption depends on scanning discipline"],
+    "noveltyVerdict": "incremental",
+    "jobUrl": "https://ai-scientist.example.org/v1/jobs/9f2c"
+  }
+}
