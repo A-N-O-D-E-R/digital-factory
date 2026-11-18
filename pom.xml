@@ -11,7 +11,7 @@
 
     <groupId>io.github.a-n-o-d-e-r</groupId>
     <artifactId>digital-factory</artifactId>
-    <version>0.2.0</version>
+    <version>0.3.0</version>
     <packaging>pom</packaging>
     <name>Digital Factory</name>
     <description>Autonomous software factory: from ticket to pull request, autonomy earned by evaluation</description>

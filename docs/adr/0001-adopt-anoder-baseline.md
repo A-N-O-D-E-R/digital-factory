@@ -14,11 +14,11 @@ Align on one baseline built on `springboot-starter-collection`:
 
 - `io.github.a-n-o-d-e-r` coordinates and `com.anode.<app>` packages (already the case here);
 - `spring-boot-starter-parent` 4.1.2, Java 25;
-- import `springboot-starter-collection-dependencies` at a released version (0.2.0), never a SNAPSHOT;
+- import `springboot-starter-collection-dependencies` at a released version (0.3.0), never a SNAPSHOT;
 - CI is the collection's reusable workflow (`reusable-ci.yml`), updates come from its Renovate preset;
 - the glossary is `GLOSSARY.md` (was `CONTEXT.md`), decisions live in `docs/adr/`.
 
-The factory's own version follows the collection's (0.2.0). The Claude agent SDK in `factory-sandbox` stays: it is the
+The factory's own version follows the collection's (0.3.0). The Claude agent SDK in `factory-sandbox` stays: it is the
 agent runtime, not a chat-completion client.
 
 ## Consequences
