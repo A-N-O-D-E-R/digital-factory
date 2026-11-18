@@ -24,7 +24,7 @@
 
     <properties>
         <java.version>25</java.version>
-        <starter-collection.version>0.2.0</starter-collection.version>
+        <starter-collection.version>0.3.0</starter-collection.version>
         <workflow-starter.version>0.1.0</workflow-starter.version>
         <spring-modulith.version>2.1.1</spring-modulith.version>
         <json-schema-validator.version>3.0.8</json-schema-validator.version>
