@@ -467,6 +467,21 @@ Avant de promouvoir un changement de prompt ou de modèle partout, l'évaluer ([
   par exemple `FACTORY_INTAKE_INTERVAL=1m`) ; un ticket n'est importé qu'une fois. **Lancer une passe** exécute la
   règle tout de suite ; la colonne *Dernière passe* donne l'heure ou l'erreur
   (intégration non configurée, 401…). **Désactiver** suspend une règle.
+- **Depuis productDesigner (Jira)** : productDesigner exporte sa Roadmap vers Jira (un Epic par Jalon, une Story par Ticket,
+  des liens « Blocks » entre Stories) en posant le label `factory` sur les Stories. Une seule règle suffit :
+
+  | Champ | Valeur |
+  |---|---|
+  | Source | `jira` |
+  | Projet | la clé du projet Jira de l'export (`PD`) |
+  | Filtre | `labels = factory AND status = "To Do"` |
+  | Dépôt cible | le dépôt où va le travail (un ticket Jira n'en nomme pas) |
+
+  **L'ordre de la Roadmap est respecté** : une Story qui a un lien « est bloquée par » vers une issue non terminée (catégorie de
+  statut autre que *Done*) n'est **pas importée** ; elle le sera à une passe suivante, quand ses bloquantes sont terminées. Sans cela,
+  toutes les Stories seraient lancées en parallèle. Seule la recherche des règles attend les bloquantes : **importer à la main** un
+  ticket reste possible. Le work order commente et déplace le ticket Jira à chaque étape (`factory.tickets.transitions.jira.*`),
+  ce qui libère les Stories suivantes.
 - **Tickets importés** : le lien vers le ticket et son work order. **Réimporter** crée un nouveau work order pour
   le même ticket.
 

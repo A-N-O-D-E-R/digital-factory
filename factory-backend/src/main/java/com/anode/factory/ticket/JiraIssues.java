@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
@@ -81,13 +82,47 @@ class JiraIssues implements TicketSource, IntegrationCheck {
         return ticket(jira.issues().getIssue(ref.id(), FIELDS, null, null, null, null, null));
     }
 
+    /**
+     * Matching issues, newest first, <b>without those still blocked</b>: an issue with an "is blocked by" link to an issue that is
+     * not done is left for a later pass, so a roadmap's order is respected (productDesigner exports its Tickets with "Blocks"
+     * links) instead of every ticket being started in parallel. Importing one by hand ({@link #read}) is not held back.
+     */
     @Override
     public List<Ticket> search(String project, String filter, int limit) {
         SearchAndReconcileRequestBean query = new SearchAndReconcileRequestBean();
         query.setJql("project = \"" + project.replace("\"", "") + "\" AND (" + filter + ") ORDER BY created DESC");
         query.setMaxResults(limit);
-        query.setFields(FIELDS);
-        return jira.search().searchAndReconsileIssuesUsingJqlPost(query).getIssues().stream().map(this::ticket).toList();
+        query.setFields(Stream.concat(FIELDS.stream(), Stream.of("issuelinks")).toList());
+        return jira.search().searchAndReconsileIssuesUsingJqlPost(query).getIssues().stream()
+                .filter(issue -> !blockedByOpenIssue(issue.getFields()))
+                .map(this::ticket).toList();
+    }
+
+    /**
+     * Whether the issue's {@code issuelinks} hold a "Blocks" link whose blocker is not done. On the blocked issue the blocker is
+     * the link's {@code inwardIssue} ("is blocked by"); its {@code status.statusCategory.key} is {@code done} once resolved. A
+     * blocker whose status is not in the answer counts as open: better to wait than to start a ticket that must not start.
+     */
+    static boolean blockedByOpenIssue(Map<String, Object> fields) {
+        if (fields == null || !(fields.get("issuelinks") instanceof List<?> links)) {
+            return false;
+        }
+        for (Object link : links) {
+            if (!(link instanceof Map<?, ?> l) || !(l.get("inwardIssue") instanceof Map<?, ?> blocker)) {
+                continue;
+            }
+            boolean blocks = l.get("type") instanceof Map<?, ?> type
+                    && ("Blocks".equalsIgnoreCase(String.valueOf(type.get("name"))) || "is blocked by".equalsIgnoreCase(String.valueOf(type.get("inward"))));
+            if (blocks && !done(blocker)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean done(Map<?, ?> issue) {
+        return issue.get("fields") instanceof Map<?, ?> f && f.get("status") instanceof Map<?, ?> status
+                && status.get("statusCategory") instanceof Map<?, ?> category && "done".equals(category.get("key"));
     }
 
     @Override
